@@ -56,21 +56,21 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarCollapse">
                     <div class="navbar-nav ms-auto py-0 pe-4">
-                        <a href="{{route('home')}}" class="nav-item nav-link active">Home</a>
+                        {{-- <a href="{{route('home')}}" class="nav-item nav-link active">Home</a>
                         <a href="{{route('about')}}" class="nav-item nav-link">About</a>
                         <a href="{{route('service')}}" class="nav-item nav-link">Service</a>
                         <a href="{{route('menu')}}" class="nav-item nav-link">Menu</a>
                         <div class="nav-item dropdown">
                             <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Pages</a>
-                            <div class="dropdown-menu m-0">
+                            <div class="dropdown-menu m-0"> --}}
                                 <a href="{{route('booking')}}" class="dropdown-item">Booking</a>
-                                <a href="{{route('team')}}" class="dropdown-item">Our Team</a>
+                                {{-- <a href="{{route('team')}}" class="dropdown-item">Our Team</a>
                                 <a href="{{route('testimonial')}}" class="dropdown-item">Testimonial</a>
                             </div>
                         </div>
                         <a href="{{route('contact')}}" class="nav-item nav-link">Contact</a>
                     </div>
-                    <a href="{{route('booking')}}" class="btn btn-primary py-2 px-4">Book A Table</a>
+                    <a href="{{route('booking')}}" class="btn btn-primary py-2 px-4">Book A Table</a> --}}
                 </div>
             </nav>
 
