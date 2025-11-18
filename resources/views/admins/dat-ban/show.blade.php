@@ -114,6 +114,7 @@
                                 <div class="info-box">
                                     <h5><i class="fas fa-chair mr-2"></i> Bàn & Combo</h5>
                                     <p><strong>Bàn Đã Chọn:</strong> {{ $datBan->banAn->so_ban ?? 'N/A' }}</p>
+                                    <p><strong>Khu Vực:</strong> {{ $datBan->banAn->khuVuc->ten_khu_vuc ?? 'N/A' }}</p>
                                     <p><strong>Combo:</strong> {!! $datBan->comboBuffet->ten_combo ?? '<em>Không chọn combo</em>' !!}</p>
                                 </div>
                             </div>
