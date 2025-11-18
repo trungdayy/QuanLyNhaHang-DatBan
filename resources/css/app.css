@@ -9,3 +9,59 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+/* GRID CHỨA CÁC QR */
+.qr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+    padding: 10px;
+}
+
+/* CARD CHỨA MỖI QR */
+.qr-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+    text-align: center;
+    transition: 0.25s ease;
+}
+
+.qr-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+
+/* TIÊU ĐỀ (Số bàn) */
+.qr-card h3 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+/* ẢNH QR */
+.qr-image {
+    margin: 0 auto 10px;
+    display: flex;
+    justify-content: center;
+}
+
+/* LINK */
+.qr-link {
+    margin-top: 12px;
+    display: inline-block;
+    font-size: 14px;
+    color: #2563eb;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.qr-link:hover {
+    text-decoration: underline;
+}
+
+/* NỀN CHUNG */
+body {
+    background: #f3f4f6;
+}

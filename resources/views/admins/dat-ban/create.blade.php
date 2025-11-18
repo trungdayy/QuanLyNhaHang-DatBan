@@ -55,14 +55,38 @@
                                 <label class="control-label">Giờ Khách Đến (*)</label>
                                 <input class="form-control" type="datetime-local" name="gio_den" id="gio_den_input" value="{{ old('gio_den') }}" required>
                             </div>
-                            <div class="form-group col-md-4">
+<div class="form-group col-md-4">
                                 <label class="control-label">Chọn Bàn (*)</label>
                                 <select class="form-control" name="ban_id" id="ban_id_select" required>
                                     <option value="">-- Vui lòng chọn Giờ đến trước --</option>
-                                    @if(old('ban_id'))
-                                        <option value="{{ old('ban_id') }}" selected>(Đã chọn Bàn {{ old('ban_id') }})</option>
-                                    @endif
+                                    
+                                    {{-- Hiển thị danh sách ban đầu (Server-side render) --}}
+                                    @foreach($banAns as $ban)
+                                        @php
+                                            // Logic hiển thị trạng thái trên giao diện ban đầu
+                                            $isBusy = in_array($ban->trang_thai, ['dang_phuc_vu', 'da_dat']);
+                                            $statusText = match($ban->trang_thai) {
+                                                'dang_phuc_vu' => '(Đang phục vụ)',
+                                                'da_dat' => '(Đã đặt)',
+                                                default => ''
+                                            };
+                                            // Style cảnh báo
+                                            $style = $isBusy ? 'background-color: #ffeeee; color: #d9534f;' : '';
+                                        @endphp
+
+                                        <option value="{{ $ban->id }}" 
+                                            {{ old('ban_id') == $ban->id ? 'selected' : '' }}
+                                            {{ $isBusy ? 'disabled' : '' }} 
+                                            style="{{ $style }}"
+                                        >
+                                            {{-- HIỂN THỊ: Bàn 1 - 4 ghế (Khu A) (Trạng thái) --}}
+                                            Bàn {{ $ban->so_ban }} - {{ $ban->so_ghe }} ghế 
+                                            @if($ban->khuVuc) ({{ $ban->khuVuc->ten_khu_vuc }}) @endif
+                                            {{ $statusText }}
+                                        </option>
+                                    @endforeach
                                 </select>
+                                <small class="text-muted"><i>* Danh sách bàn sẽ tự động lọc lại khi bạn đổi giờ đến.</i></small>
                             </div>
                             <div class="form-group col-md-4">
                                 <label class="control-label">Chọn Combo (Nếu có)</label>

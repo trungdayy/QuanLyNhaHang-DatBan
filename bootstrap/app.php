@@ -11,7 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // ===== THÊM DÒNG NÀY VÀO ĐỂ TẮT CSRF CHO API =====
+        $middleware->validateCsrfTokens(except: [
+            'oderqr/*'
+        ]);
+        // ===================================================
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -74,7 +74,7 @@
             <li>
                 <a class="app-menu__item " href="{{ route('admin.khu-vuc-ban-an') }}">
                     <i class='app-menu__icon bx bx-table'></i>
-                    <span class="app-menu__label">Quản lý khu vực</span>
+                    <span class="app-menu__label">Khu vực & bàn ăn</span>
                 </a>
             </li>
 
@@ -120,6 +120,12 @@
                 </a>
             </li>
 
+            <li>
+                <a class="app-menu__item" href="{{ route('admin.ban-an.qr_tool') }}">
+                    <i class='app-menu__icon bx bx-calendar-check'></i>
+                    <span class="app-menu__label">Quản lý mã QR</span>
+                </a>
+            </li>
 
 
         </ul>

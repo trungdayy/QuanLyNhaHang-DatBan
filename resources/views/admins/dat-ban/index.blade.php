@@ -143,15 +143,14 @@
 
         {{-- Bảng danh sách --}}
         <div class="tile-body">
-                        <table class="table table-bordered table-hover align-middle text-center mb-3" id="monAnTable">
-                            <thead style="background-color: #002b5b; color: white;">
+            <table class="table table-bordered table-hover align-middle text-center mb-3" id="monAnTable">
+                <thead style="background-color: #002b5b; color: white;">
                     <tr>
                         <th>Mã</th>
                         <th>Khách hàng</th>
                         <th>Điện thoại</th>
                         <th>Combo</th>
-                        <th>Bàn</th>
-                        <th>Giờ đến</th>
+                        <th>Bàn / Khu vực</th> <th>Giờ đến</th>
                         <th>Trạng thái</th>
                         <th>Hành động</th>
                     </tr>
@@ -163,7 +162,15 @@
                             <td>{{ $datBan->ten_khach }}</td>
                             <td>{{ $datBan->sdt_khach }}</td>
                             <td>{!! $datBan->comboBuffet->ten_combo ?? 'N/A' !!}</td>
-                            <td>{{ $datBan->banAn->so_ban ?? 'N/A' }}</td>
+                            
+                            <td>
+                                <div class="fw-bold">{{ $datBan->banAn->so_ban ?? 'N/A' }}</div>
+                                @if($datBan->banAn && $datBan->banAn->khuVuc)
+                                    <div class="small text-muted" style="font-size: 0.85rem;">
+                                        {{ $datBan->banAn->khuVuc->ten_khu_vuc }}
+                                    </div>
+                                @endif
+                            </td>
                             <td class="cell-gio-den">
                                 @if($datBan->gio_den)
                                     <div class="gio">{{ \Carbon\Carbon::parse($datBan->gio_den)->format('H:i') }}</div>
