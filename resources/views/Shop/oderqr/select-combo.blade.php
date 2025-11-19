@@ -5,178 +5,134 @@
 @section('content')
 
 <style>
-/* ===========================
-   Trang Chọn Combo Bắt Đầu Order
-=========================== */
-
-/* Body & Main */
-.app-content {
-    min-height: 100vh;
-    background: linear-gradient(to right, #f5f7fa, #c3cfe2);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    display: flex;
-    justify-content: center;
-    padding: 30px 15px;
+/* ===== Form khách hàng ===== */
+.customer-input-group {
+    background: #f1f3f5;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    border: 1px solid #e9ecef;
 }
-
-/* Form chính */
-.form-container {
-    background: #ffffff;
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 100%;
+.customer-input-group label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+    display: block;
+}
+.customer-input-group input {
     width: 100%;
-    box-shadow: 0 12px 25px rgba(0,0,0,0.1);
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.form-container:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 20px 35px rgba(0,0,0,0.15);
-}
-
-h1 {
-    color: #1c7ed6;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
     margin-bottom: 15px;
-}
-
-p {
-    color: #333;
     font-size: 1rem;
-    margin-bottom: 10px;
+}
+.customer-input-group input:focus {
+    outline: none;
+    border-color: #1c7ed6;
+    box-shadow: 0 0 0 3px rgba(28, 126, 214, 0.1);
 }
 
-/* Thông tin khách */
-.datban-info {
-    background: #f8f9fa;
-    border-left: 4px solid #1c7ed6;
-    padding: 12px 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
+/* ===== Form container ===== */
+.form-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
-/* Lỗi form */
-.error {
-    background: #ffe3e3;
-    color: #c92a2a;
-    padding: 10px 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
-
-/* Combo option */
+/* ===== Combo list ===== */
 .combo-option {
     display: flex;
-    flex-direction: column;
-    background: #f9f9f9;
-    border-radius: 15px;
-    margin-bottom: 15px;
+    align-items: flex-start;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, border 0.2s;
-    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    background: #fff;
 }
-
-.combo-option:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-}
-
 .combo-option.selected {
-    border: 2px solid #1c7ed6;
+    border-color: #1c7ed6;
+    box-shadow: 0 2px 6px rgba(28,126,214,0.2);
     background: #e7f5ff;
 }
+.combo-option:hover {
+    background: #f8f9fa;
+}
 
-/* Combo info */
+/* ===== Combo image / placeholder ===== */
 .combo-info-content {
     display: flex;
-    gap: 15px;
     align-items: center;
-    padding: 10px 15px;
+    width: 100%;
 }
-
-.combo-image {
+.combo-image, .placeholder-img {
     width: 80px;
     height: 80px;
+    border-radius: 10px;
     object-fit: cover;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-}
-
-.placeholder-img {
-    width: 80px;
-    height: 80px;
-    background: #ced4da;
-    border-radius: 12px;
+    margin-right: 15px;
+    background: #adb5bd;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    color: white;
+    font-size: 1.5rem;
 }
 
-/* Combo text */
+/* ===== Combo text ===== */
 .combo-details-text {
     flex: 1;
 }
-
 .combo-details-text strong {
-    font-size: 1.1rem;
     display: block;
+    font-size: 1.1rem;
     margin-bottom: 5px;
 }
-
 .combo-details-text p {
-    font-size: 0.9rem;
-    color: #555;
+    margin: 0;
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+/* ===== Danh sách món ăn trong combo ===== */
+.combo-dish-details {
+    margin-top: 8px;
+    padding-left: 95px; /* căn theo ảnh */
+}
+.combo-dish-details ul {
+    padding-left: 18px;
     margin: 0;
 }
 
-/* Danh sách món ăn trong combo */
-.combo-dish-details {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    color: #333;
-    border-top: 1px dashed #dee2e6;
-}
-
-.combo-dish-details ul {
-    padding-left: 20px;
-    margin: 5px 0 0 0;
-}
-
-.combo-dish-details li {
-    margin-bottom: 4px;
-}
-
-/* Nút submit */
+/* ===== Submit button ===== */
 button[type="submit"] {
-    width: 100%;
-    padding: 12px;
-    background: #fd7e14;
-    color: white;
-    font-weight: 600;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
+    margin-top: 20px;
+    padding: 12px 25px;
     font-size: 1rem;
-    transition: background 0.2s;
-    margin-top: 15px;
+    background-color: #1c7ed6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
 }
-
 button[type="submit"]:hover {
-    background: #e8590c;
+    background-color: #1971c2;
 }
 
-/* Responsive */
-@media (max-width: 576px) {
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
     .combo-info-content {
         flex-direction: column;
         align-items: flex-start;
     }
-
     .combo-image, .placeholder-img {
-        width: 100%;
-        height: auto;
+        margin-bottom: 10px;
+    }
+    .combo-dish-details {
+        padding-left: 0;
     }
 }
 </style>
@@ -186,22 +142,13 @@ button[type="submit"]:hover {
         <h1>Chọn Combo Bắt Đầu Order</h1>
         <p>Bàn hiện tại: <strong>{{ $tenBan }}</strong></p>
 
-        {{-- Hiển thị thông tin khách nếu đã có --}}
-        @if($datBan)
-            <div class="datban-info">
-                <p><strong>Họ tên khách:</strong> {{ $datBan->ten_khach }}</p>
-                <p><strong>SĐT:</strong> {{ $datBan->sdt_khach }}</p>
-                <p><strong>Số khách:</strong> {{ $datBan->so_khach }}</p>
-                <p><strong>Giờ đến:</strong> {{ \Carbon\Carbon::parse($datBan->gio_den)->format('H:i d/m/Y') }}</p>
-                @if($datBan->ghi_chu)
-                    <p><strong>Ghi chú:</strong> {{ $datBan->ghi_chu }}</p>
-                @endif
-            </div>
-        @endif
-
         @if ($errors->any())
             <div class="error">
-                Vui lòng chọn ít nhất một combo hoặc món lẻ.
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
@@ -209,26 +156,56 @@ button[type="submit"]:hover {
             @csrf
             <input type="hidden" name="ma_qr" value="{{ $qrKey }}">
             <input type="hidden" name="combo_id" id="selected-combo-id">
-            <input type="hidden" name="so_khach" value="{{ $datBan->so_khach ?? 1 }}">
             
+            {{-- ===== Thông tin khách hàng ===== --}}
+            @if($datBan && $datBan->ten_khach && $datBan->ten_khach !== 'Khách Vãng Lai')
+                <div class="datban-info">
+                    <p><strong>Họ tên khách:</strong> {{ $datBan->ten_khach }}</p>
+                    <p><strong>SĐT:</strong> {{ $datBan->sdt_khach }}</p>
+                    <p><strong>Số khách:</strong> {{ $datBan->so_khach }}</p>
+                    <p><strong>Giờ đến:</strong> {{ \Carbon\Carbon::parse($datBan->gio_den)->format('H:i d/m/Y') }}</p>
+                    
+                    <input type="hidden" name="so_khach" value="{{ $datBan->so_khach }}">
+                    <input type="hidden" name="ten_khach" value="{{ $datBan->ten_khach }}">
+                    <input type="hidden" name="sdt_khach" value="{{ $datBan->sdt_khach }}">
+                </div>
+            @else
+                <div class="customer-input-group">
+                    <h4 style="color: #1c7ed6; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+                        Thông tin khách hàng
+                    </h4>
+                    <div class="form-group">
+                        <label>Họ và Tên (*):</label>
+                        <input type="text" name="ten_khach" placeholder="Ví dụ: Nguyễn Văn A" required value="{{ old('ten_khach') }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Số Điện Thoại (*):</label>
+                        <input type="text" name="sdt_khach" placeholder="Nhập số điện thoại" required value="{{ old('sdt_khach') }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Số lượng khách (*):</label>
+                        <input type="number" name="so_khach" min="1" placeholder="Nhập số người ăn" required value="{{ old('so_khach', 1) }}">
+                    </div>
+                </div>
+            @endif
+
+            {{-- ===== Chọn combo ===== --}}
             <div class="form-group">
-                <label>Chọn Combo:</label> <br>
+                <label style="font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; display: block;">Chọn Combo:</label>
+                
+
+
                 @foreach ($combos as $combo)
                     <div class="combo-option" data-combo-id="{{ $combo->id }}">
                         <div class="combo-info-content">
                             @if ($combo->anh)
-                                {{-- SỬA ĐƯỜNG DẪN ẢNH Ở ĐÂY --}}
-                                {{-- Sử dụng url('uploads/') để trỏ thẳng vào thư mục public/uploads --}}
-                                {{-- Nếu $combo->anh đã có chữ 'uploads/' trong DB thì dùng url($combo->anh) --}}
-                                {{-- Dựa vào file SQL, $combo->anh là "combo_buffet/ten_anh.jpg" --}}
                                 <img src="{{ url('uploads/' . $combo->anh) }}" 
                                      alt="{{ $combo->ten_combo }}" 
                                      class="combo-image"
                                      onerror="this.src='https://placehold.co/80x80/eee/ccc?text=No+Img'">
                             @else
-                                <div class="placeholder-img">C</div>
+                                <div class="placeholder-img">{{ substr($combo->ten_combo, 0, 1) }}</div>
                             @endif
-                            
                             <div class="combo-details-text">
                                 <strong>{{ $combo->ten_combo }}</strong>
                                 <p>Giá: {{ number_format($combo->gia_co_ban) }} VNĐ | Thời gian: {{ $combo->thoi_luong_phut }} phút</p>
@@ -262,22 +239,17 @@ button[type="submit"]:hover {
 
             comboOptions.forEach(option => {
                 option.addEventListener('click', function() {
-                    // Ẩn tất cả danh sách món ăn trước
                     document.querySelectorAll('.combo-dish-details').forEach(d => d.style.display = 'none');
-                    // Xóa trạng thái selected cũ
                     comboOptions.forEach(opt => opt.classList.remove('selected'));
-                    // Thêm trạng thái selected mới
                     this.classList.add('selected');
-                    // Hiển thị danh sách món ăn của combo được chọn
                     const dishContainer = this.querySelector('.combo-dish-details');
                     if (dishContainer) dishContainer.style.display = 'block';
-                    // Cập nhật giá trị combo_id ẩn
                     const comboId = this.getAttribute('data-combo-id');
                     comboIdInput.value = comboId === '0' ? '' : comboId;
                 });
             });
 
-            // LOGIC CHỌN MẶC ĐỊNH
+            // Chọn mặc định
             const defaultComboToSelect = comboOptions[0] || document.querySelector('[data-combo-id="0"]');
             const oldComboId = '{{ old("combo_id") }}';
             let initialSelection = null;

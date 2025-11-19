@@ -150,7 +150,7 @@
         /* --- CẤU HÌNH STICKY --- */
         position: -webkit-sticky; /* Cho Safari */
         position: sticky;
-        top: 20px; /* Cách mép trên màn hình 20px */
+        top: 20px; 
         z-index: 100;
         
         /* Tạo thanh cuộn bên trong nếu giỏ hàng quá dài */
@@ -280,7 +280,9 @@
                 <h1>Chào mừng! <span id="ten-ban">{{ $tenBan }}</span></h1>
 
                 <p>Khách: <strong id="ten-khach">...</strong> (<strong id="so-nguoi">...</strong> người)</p>
-                <p>Thời gian còn lại: <strong id="thoi-gian">...</strong> phút</p>
+                
+                {{-- 💡 SỬA: THÊM ID ĐỂ JS TÍNH TOÁN GIỜ --}}
+                <p>Thời gian còn lại: <strong id="countdown-timer" class="text-danger">Đang tính...</strong></p>
 
                 <div id="combo-display">
                     <p>Combo Đã Đặt: <strong id="combo-name">Đang tải...</strong></p>
@@ -312,15 +314,14 @@
         </div>
 
         <script>
-            // ✅ ĐÃ SỬA: Dùng url('/') để lấy đường dẫn gốc của website
-            // Kết quả: http://127.0.0.1:8000
-            // Khi nối với "uploads/monan/anh.jpg" sẽ ra đường dẫn đúng
             const STORAGE_URL = '{{ url('/') }}'; 
-            
             const QR_KEY = '{{ $qrKey }}';
 
             let DAT_BAN_ID = null;
             let cart = [];
+            let bookingStartTime = null; // Biến lưu giờ bắt đầu
+            let bookingDuration = 0;     // Biến lưu thời lượng
+
             const menuContainer = document.getElementById('menu-container');
             const cartItemsList = document.getElementById('cart-items');
             const submitOrderBtn = document.getElementById('submit-order-btn');
@@ -328,12 +329,12 @@
             const soNguoiElement = document.getElementById('so-nguoi');
             const comboNameElement = document.getElementById('combo-name');
             const comboDetailsElement = document.getElementById('combo-details');
+            const countdownElement = document.getElementById('countdown-timer');
 
 
             // ----- HÀM 1: GỌI API KHI TẢI TRANG (API 1) -----
             async function loadSessionInfo() {
                 try {
-                    // SỬ DỤNG QR_KEY THAY CHO BAN_ID
                     const response = await fetch(`/oderqr/session/table/${QR_KEY}`);
                     if (!response.ok) {
                         const errorData = await response.json();
@@ -344,9 +345,15 @@
 
                     // Lấy thông tin từ data.dat_ban_info
                     DAT_BAN_ID = data.dat_ban_info.id;
-                    document.getElementById('thoi-gian').innerText = data.dat_ban_info.thoi_gian_con_lai_phut;
                     document.getElementById('ten-khach').innerText = data.dat_ban_info.ten_khach;
                     soNguoiElement.innerText = data.dat_ban_info.so_khach;
+                    
+                    // --- 💡 LƯU THỜI GIAN ĐỂ TÍNH COUNTDOWN ---
+                    bookingStartTime = data.dat_ban_info.gio_den; // "2025-11-19 06:00:00"
+                    bookingDuration = parseInt(data.dat_ban_info.thoi_luong_phut) || 0;
+                    startCountdown(); // Bắt đầu đếm ngược
+                    // ------------------------------------------
+
                     menuContainer.innerHTML = '';
 
                     // Lấy thông tin Combo
@@ -364,7 +371,7 @@
                     }
 
 
-                    // VẼ MENU (Đã Fix monAn -> mon_an)
+                    // VẼ MENU
                     data.menu.forEach(danhMuc => {
                         let danhMucHtml = `<div class="danh-muc"><h3>${danhMuc.ten_danh_muc}</h3>`;
 
@@ -372,8 +379,6 @@
                             danhMuc.mon_an.forEach(monAn => {
                                 const loaiMon = monAn.is_in_combo ? 'combo' : 'goi_them';
                                 const loaiMonText = monAn.is_in_combo ? 'Trong gói' : 'Gọi thêm';
-
-
                                 const imagePath = `${STORAGE_URL}/${monAn.hinh_anh}`;
 
                                 danhMucHtml += `
@@ -408,8 +413,43 @@
                 }
             }
 
+            // ----- 💡 HÀM MỚI: TÍNH TOÁN THỜI GIAN ĐẾM NGƯỢC -----
+            function startCountdown() {
+                if (!bookingStartTime || bookingDuration <= 0) {
+                    countdownElement.innerText = "Không giới hạn";
+                    return;
+                }
+
+                // Chuyển đổi chuỗi ngày giờ PHP sang JS Date (Fix lỗi Safari)
+                const safeTimeString = bookingStartTime.replace(' ', 'T'); 
+                const start = new Date(safeTimeString);
+                const end = new Date(start.getTime() + bookingDuration * 60000);
+
+                function update() {
+                    const now = new Date();
+                    const distance = end - now;
+
+                    if (distance < 0) {
+                        countdownElement.innerText = "Hết giờ";
+                        return;
+                    }
+
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    let text = "";
+                    if (hours > 0) text += `${hours} giờ `;
+                    text += `${minutes} phút`;
+                    
+                    countdownElement.innerText = text;
+                }
+
+                update(); // Chạy ngay
+                setInterval(update, 60000); // Cập nhật mỗi phút
+            }
+
             // ===============================================
-            // MỚI: HÀM CẬP NHẬT GHI CHÚ
+            // CÁC HÀM GIỎ HÀNG (GIỮ NGUYÊN)
             // ===============================================
             function editNote(index) {
                 const currentNote = cart[index].ghi_chu || '';
@@ -421,9 +461,6 @@
                 }
             }
 
-            // ===============================================
-            // MỚI: HÀM XÓA MÓN KHỎI GIỎ HÀNG
-            // ===============================================
             function deleteItem(index) {
                 if (confirm(`Bạn có chắc muốn xóa món ${cart[index].ten_mon} khỏi giỏ hàng?`)) {
                     cart.splice(index, 1);
@@ -431,20 +468,17 @@
                 }
             }
 
-            // ----- HÀM 2: Thêm vào giỏ hàng (LUÔN LÀ 'goi_them') -----
             function addToCart(monAnId, tenMon, loaiMonGoc) {
                 cart.push({
                     mon_an_id: monAnId,
                     ten_mon: tenMon,
                     so_luong: 1,
                     ghi_chu: null,
-                    loai_mon: 'goi_them' // Luôn là món thêm khi chọn thủ công
+                    loai_mon: 'goi_them'
                 });
-
                 renderCart();
             }
 
-            // ----- HÀM 3: Vẽ lại giỏ hàng (ĐÃ THÊM NÚT XÓA VÀ GHI CHÚ) -----
             function renderCart() {
                 cartItemsList.innerHTML = '';
                 cart.forEach((item, index) => {
@@ -464,7 +498,6 @@
                 });
             }
 
-            // ----- HÀM 4: GỌI API GỬI ORDER (API 2) -----
             submitOrderBtn.addEventListener('click', async () => {
                 if (cart.length === 0) return alert('Vui lòng chọn món');
                 if (!DAT_BAN_ID) return alert('Lỗi: Không tìm thấy ID bàn đặt');
@@ -499,7 +532,6 @@
                 submitOrderBtn.innerText = 'Gửi Order';
             });
 
-            // ----- HÀM 5: GỌI API XEM TRẠNG THÁI (API 3) -----
             async function loadOrderStatus() {
                 if (!DAT_BAN_ID) return;
 

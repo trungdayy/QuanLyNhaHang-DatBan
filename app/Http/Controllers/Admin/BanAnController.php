@@ -167,23 +167,37 @@ class BanAnController extends Controller
     /**
      * Cập nhật Bàn Ăn.
      */
+    /**
+     * Cập nhật Bàn Ăn (Có logic chặn sửa trạng thái khi đang bận)
+     */
     public function update(Request $request, $id)
     {
         $banAn = BanAn::findOrFail($id);
+
         $request->validate([
             'khu_vuc_id' => 'required|exists:khu_vuc,id',
             'so_ban' => ['required', 'string', 'max:50', Rule::unique('ban_an', 'so_ban')->ignore($banAn->id)],
             'so_ghe' => 'required|integer|min:1',
+            // Vẫn cho phép validate đủ 4 trạng thái để nhận giá trị cũ gửi lên
             'trang_thai' => 'required|in:trong,dang_phuc_vu,da_dat,khong_su_dung',
         ]);
 
         try {
+            $trangThaiMoi = trim($request->trang_thai);
+            $trangThaiCu = $banAn->trang_thai;
+            if (in_array($trangThaiCu, ['dang_phuc_vu', 'da_dat'])) {
+                if ($trangThaiMoi !== $trangThaiCu) {
+                    return back()->with('error', '❌ Bàn đang có khách hoặc đã được đặt. Bạn không thể thay đổi trạng thái lúc này. Vui lòng hoàn tất đơn hàng trước.');
+                }
+            }
+
             $banAn->update([
                 'khu_vuc_id' => $request->khu_vuc_id,
                 'so_ban' => $request->so_ban,
                 'so_ghe' => $request->so_ghe,
-                'trang_thai' => trim($request->trang_thai),
+                'trang_thai' => $trangThaiMoi,
             ]);
+
             return redirect()->route('admin.khu-vuc-ban-an')->with('success', "Cập nhật thành công!");
         } catch (\Exception $e) {
             return back()->with('error', 'Lỗi hệ thống.');
