@@ -40,6 +40,10 @@
                                 <input class="form-control" type="text" name="sdt_khach" value="{{ old('sdt_khach') }}" required>
                             </div>
                             <div class="form-group col-md-3">
+                                <label class="control-label">Email (*)</label>
+                                <input class="form-control" type="email" name="email_khach" value="{{ old('email_khach') }}" required>
+                            </div>
+                            <div class="form-group col-md-3">
                                 <label class="control-label">Số Lượng Khách (*)</label>
                                 <input class="form-control" type="number" name="so_khach" min="1" value="{{ old('so_khach', 1) }}" required>
                             </div>

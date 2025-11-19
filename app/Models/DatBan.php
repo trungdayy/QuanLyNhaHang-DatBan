@@ -14,6 +14,7 @@ class DatBan extends Model
     protected $fillable = [
         'ma_dat_ban',
         'ten_khach',
+        'email_khach',
         'sdt_khach',
         'so_khach',
         'ban_id',
@@ -48,9 +49,6 @@ class DatBan extends Model
         return $this->hasMany(OrderMon::class, 'dat_ban_id');
     }
 
-    /**
-     * THÊM MỚI: Quan hệ một-một với Hóa Đơn
-     */
     public function hoaDon()
     {
         return $this->hasOne(HoaDon::class, 'dat_ban_id');

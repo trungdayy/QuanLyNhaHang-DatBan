@@ -15,6 +15,7 @@
             <tr>
                 <th>ID</th>
                 <th>Đặt bàn</th>
+                <th>Tên khách hàng</th>
                 <th>Bàn</th>
                 <th>Tổng món</th>
                 <th>Tổng tiền</th>
@@ -27,6 +28,7 @@
             @foreach ($orders as $order)
             <tr>
                 <td>{{ $order->id }}</td>
+                <td>{{ $order->datBan->ma_dat_ban }}</td>
                 <td>{{ $order->datBan->ten_khach ?? 'N/A' }}</td>
                 <td>{{ $order->datBan->ban_id ?? 'N/A' }}</td>
                 <td>{{ $order->tong_mon }}</td>
