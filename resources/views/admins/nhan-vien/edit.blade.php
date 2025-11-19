@@ -41,6 +41,7 @@
             <option value="quan_ly" {{ old('vai_tro', $nhanVien->vai_tro) == 'quan_ly' ? 'selected' : '' }}>Quản lý</option>
             <option value="phuc_vu" {{ old('vai_tro', $nhanVien->vai_tro) == 'phuc_vu' ? 'selected' : '' }}>Phục vụ</option>
             <option value="bep" {{ old('vai_tro', $nhanVien->vai_tro) == 'bep' ? 'selected' : '' }}>Bếp</option>
+            <option value="le_tan" {{ old('vai_tro', $nhanVien->vai_tro) == 'le_tan' ? 'selected' : '' }}>Lễ tân</option>
           </select>
           @error('vai_tro') <small class="text-danger">{{ $message }}</small> @enderror
         </div>

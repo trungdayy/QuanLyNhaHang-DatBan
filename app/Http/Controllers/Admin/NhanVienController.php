@@ -62,7 +62,7 @@ class NhanVienController extends Controller
             'sdt' => 'required|string|max:20|unique:nhan_vien,sdt',
             'email' => 'required|email|unique:nhan_vien,email',
             'mat_khau' => 'required|min:6',
-            'vai_tro' => ['required', Rule::in(['quan_ly', 'phuc_vu', 'bep'])],
+            'vai_tro' => ['required', Rule::in(['quan_ly', 'phuc_vu', 'bep', 'le_tan'])],
             'trang_thai' => ['required', Rule::in([0,1,2])], // 0: nghỉ, 1: đang làm, 2: khóa
         ];
 
@@ -115,7 +115,7 @@ class NhanVienController extends Controller
             'ho_ten' => 'required|string|max:255',
             'sdt' => ['required', 'string', 'max:20', Rule::unique('nhan_vien', 'sdt')->ignore($nhanVien->id)],
             'email' => ['required', 'email', Rule::unique('nhan_vien', 'email')->ignore($nhanVien->id)],
-            'vai_tro' => ['required', Rule::in(['quan_ly', 'phuc_vu', 'bep'])],
+            'vai_tro' => ['required', Rule::in(['quan_ly', 'phuc_vu', 'bep', 'le_tan'])],
             'trang_thai' => ['required', Rule::in([0,1,2])], // 0: nghỉ, 1: đang làm, 2: khóa
         ];
 

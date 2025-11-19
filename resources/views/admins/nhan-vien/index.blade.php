@@ -32,6 +32,7 @@
                     <option value="quan_ly" {{ request('vai_tro') == 'quan_ly' ? 'selected' : '' }}>Quản lý</option>
                     <option value="bep" {{ request('vai_tro') == 'bep' ? 'selected' : '' }}>Bếp</option>
                     <option value="phuc_vu" {{ request('vai_tro') == 'phuc_vu' ? 'selected' : '' }}>Phục vụ</option>
+                    <option value="le_tan" {{ request('vai_tro') == 'le_tan' ? 'selected' : '' }}>Lễ tân</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -81,8 +82,10 @@
                                     <span class="badge badge-primary">Quản lý</span>
                                 @elseif($nv->vai_tro == 'bep')
                                     <span class="badge badge-warning">Bếp</span>
-                                @else
+                                @elseif($nv->vai_tro == 'phuc_vu')
                                     <span class="badge badge-info">Phục vụ</span>
+                                @elseif($nv->vai_tro == 'le_tan')
+                                    <span class="badge badge-success">Lễ tân</span>
                                 @endif
                             </td>
                             <td>
