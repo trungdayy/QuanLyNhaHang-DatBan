@@ -1,127 +1,65 @@
 @extends('layouts.restaurants.layout-shop')
-@section('title', 'Book a Table Online')
+@section('title', 'Đặt Bàn Online')
 @section('content')
 
-<div class="container-xxl py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+<div class="container py-5">
+    <h2 class="mb-4 text-center">Đặt Bàn Online</h2>
 
-            <h2 class="mb-4 text-center">Book a Table Online</h2>
+    {{-- Thông báo --}}
+    @if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+    <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+    @if($errors->any())
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
 
-            @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
+    <div class="row">
+        {{-- Form đặt bàn --}}
+        <div class="col-lg-6 mb-4">
+            @include('restaurants.booking._form', ['action' => route('booking.store'), 'method' => 'POST'])
+        </div>
+
+        {{-- Danh sách booking --}}
+        <div class="col-lg-6">
+            <h4>Danh sách đặt bàn của bạn</h4>
+            @if($datBans->isEmpty())
+            <p>Chưa có đặt bàn nào.</p>
+            @else
+            <ul class="list-group">
+                @foreach($datBans as $datBan)
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ $datBan->ten_khach }}</strong> - {{ $datBan->so_khach }} khách
+                        <br>Ngày giờ: {{ \Carbon\Carbon::parse($datBan->gio_den)->format('H:i d/m/Y') }}
+                        <br>Bàn: {{ $datBan->ban?->so_ban ?? 'Chưa chọn' }}
+                        <br>Trạng thái: <span class="badge bg-info">{{ $datBan->trang_thai }}</span>
+                    </div>
+                    <div>
+                        @if($datBan->trang_thai === 'cho_xac_nhan')
+                        <a href="{{ route('booking.edit', $datBan->id) }}" class="btn btn-sm btn-primary mb-1">Sửa</a>
+                        <form action="{{ route('booking.destroy', $datBan->id) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-sm btn-danger"
+                                onclick="return confirm('Bạn có chắc hủy?')">Hủy</button>
+                        </form>
+                        @endif
+                    </div>
+                </li>
+                @endforeach
+            </ul>
             @endif
-            @if(session('error'))
-                <div class="alert alert-danger">{{ session('error') }}</div>
-            @endif
-            @if($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <form action="{{ route('booking.store') }}" method="POST">
-                @csrf
-                <div class="row g-3">
-
-                    <!-- Tên khách -->
-                    <div class="col-md-6">
-                        <input type="text" name="ten_khach" class="form-control" placeholder="Your Name"
-                               value="{{ old('ten_khach') }}" required>
-                    </div>
-
-                    <!-- SĐT khách -->
-                    <div class="col-md-6">
-                        <input type="text" name="sdt_khach" class="form-control" placeholder="Phone Number"
-                               value="{{ old('sdt_khach') }}" required>
-                    </div>
-
-                    <!-- Số người -->
-                    <div class="col-md-6">
-                        <input type="number" name="so_khach" class="form-control" placeholder="Number of People"
-                               value="{{ old('so_khach', 1) }}" min="1" required>
-                    </div>
-
-                    <!-- Combo -->
-                    <div class="col-md-6">
-                        <select name="combo_id" class="form-select">
-                            <option value="">-- Choose Combo --</option>
-                            @foreach($combos as $combo)
-                                <option value="{{ $combo->id }}" {{ old('combo_id') == $combo->id ? 'selected' : '' }}>
-                                    {{ $combo->ten_combo }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Khu vực -->
-                    <div class="col-md-6">
-                        <select name="khu_vuc_id" id="khu_vuc_id" class="form-select">
-                            <option value="">-- Chọn khu vực --</option>
-                            @foreach($khuVucs as $kv)
-                                <option value="{{ $kv->id }}" {{ old('khu_vuc_id') == $kv->id ? 'selected' : '' }}>
-                                    {{ $kv->ten_khu_vuc }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Bàn -->
-                    <div class="col-md-6">
-                        <select name="ban_id" id="ban_id" class="form-select">
-                            <option value="">-- Chọn bàn (theo khu vực) --</option>
-                            @foreach($banAns as $ban)
-                                <option value="{{ $ban->id }}" data-khu="{{ $ban->khu_vuc_id }}"
-                                    {{ old('ban_id') == $ban->id ? 'selected' : '' }}>
-                                    Bàn {{ $ban->so_ban }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Ngày giờ -->
-                    <div class="col-md-6">
-                        <input type="datetime-local" name="gio_den" class="form-control" value="{{ old('gio_den') }}" required>
-                    </div>
-
-                    <!-- Ghi chú -->
-                    <div class="col-12">
-                        <textarea name="ghi_chu" class="form-control" placeholder="Special Request">{{ old('ghi_chu') }}</textarea>
-                    </div>
-
-                    <!-- Submit -->
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary w-100 py-3">Book Now</button>
-                    </div>
-
-                </div>
-            </form>
-
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const khuVucSelect = document.getElementById('khu_vuc_id');
-    const banSelect = document.getElementById('ban_id');
-
-    function filterBans() {
-        const selectedKhu = khuVucSelect.value;
-        Array.from(banSelect.options).forEach(option => {
-            if(option.value === "") return; // luôn hiển thị option mặc định
-            option.style.display = (option.dataset.khu === selectedKhu || selectedKhu === "") ? 'block' : 'none';
-        });
-        banSelect.value = ""; // reset chọn bàn khi đổi khu
-    }
-
-    khuVucSelect.addEventListener('change', filterBans);
-    filterBans();
-});
-</script>
 
 @endsection

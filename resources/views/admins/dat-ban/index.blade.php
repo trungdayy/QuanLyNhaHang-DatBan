@@ -148,6 +148,7 @@
                     <tr>
                         <th>Mã</th>
                         <th>Khách hàng</th>
+                        <th>Emai khách hàng</th>
                         <th>Điện thoại</th>
                         <th>Combo</th>
                         <th>Bàn</th>
@@ -161,6 +162,7 @@
                         <tr>
                             <td>{{ $datBan->ma_dat_ban ?? $datBan->id }}</td>
                             <td>{{ $datBan->ten_khach }}</td>
+                            <td>{{ $datBan->email_khach }}</td>
                             <td>{{ $datBan->sdt_khach }}</td>
                             <td>{!! $datBan->comboBuffet->ten_combo ?? 'N/A' !!}</td>
                             <td>{{ $datBan->banAn->so_ban ?? 'N/A' }}</td>

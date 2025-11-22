@@ -14,6 +14,7 @@ class DatBan extends Model
     protected $fillable = [
         'ma_dat_ban',
         'ten_khach',
+        'email_khach',
         'sdt_khach',
         'so_khach',
         'ban_id',

@@ -9,19 +9,22 @@ use App\Models\ComboBuffet;
 use App\Models\KhuVuc;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use App\Mail\BookingOtpMail;
 
 class BookingController extends Controller
 {
-    /** TRANG CHÍNH: Hiển thị danh sách booking của khách và form chọn phương thức đặt bàn */
+    /** TRANG CHÍNH: danh sách booking của khách */
     public function index()
     {
         $sdt = session('sdt_khach', null);
-        $datBans = $sdt ? DatBan::where('sdt_khach', $sdt)->orderByDesc('created_at')->get() : collect();
+        $datBans = $sdt
+            ? DatBan::where('sdt_khach', $sdt)->orderByDesc('created_at')->get()
+            : collect();
 
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
-        // Chỉ loại bàn đang bận hoặc đã đặt
-        $banAns = BanAn::whereNotIn('trang_thai', ['dang_su_dung', 'da_dat'])->get();
+        $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         $khuVucs = KhuVuc::all();
 
         return view('restaurants.booking.index', compact('datBans', 'sdt', 'combos', 'banAns', 'khuVucs'));
@@ -31,17 +34,29 @@ class BookingController extends Controller
     public function create()
     {
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
-        $banAns = BanAn::whereNotIn('trang_thai', ['dang_su_dung', 'da_dat'])->get();
+        $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         $khuVucs = KhuVuc::all();
 
         return view('restaurants.booking.create', compact('combos', 'banAns', 'khuVucs'));
     }
 
-    /** LƯU ĐẶT BÀN MỚI */
+    /** AJAX: lấy bàn theo khu vực */
+    public function getBansByKhuVuc($khu_vuc_id)
+    {
+        $banAns = BanAn::where('khu_vuc_id', $khu_vuc_id)
+            ->whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])
+            ->orderBy('so_ban')
+            ->get();
+
+        return response()->json($banAns);
+    }
+
+    /** LƯU ĐẶT BÀN MỚI + Gửi OTP nếu có email */
     public function store(Request $request)
     {
         $request->validate([
             'ten_khach' => 'required|string|max:255',
+            'email_khach' => 'nullable|email|max:255',
             'sdt_khach' => 'required|string|max:20',
             'so_khach' => 'required|integer|min:1',
             'combo_id' => 'nullable|exists:combo_buffet,id',
@@ -50,15 +65,13 @@ class BookingController extends Controller
             'ghi_chu' => 'nullable|string',
         ]);
 
-        // Lưu session số điện thoại
         session(['sdt_khach' => $request->sdt_khach]);
-
         $combo_id = $request->combo_id ?: null;
         $ban_id = $request->ban_id ?: null;
 
-        // Kiểm tra trùng bàn nếu có chọn bàn
+        // Kiểm tra trùng bàn
         if ($ban_id) {
-            $duration = 120; // phút
+            $duration = 120;
             $gioDen = Carbon::parse($request->gio_den);
 
             $conflict = DatBan::where('ban_id', $ban_id)
@@ -66,8 +79,7 @@ class BookingController extends Controller
                 ->whereBetween('gio_den', [
                     $gioDen->copy()->subMinutes($duration - 1),
                     $gioDen->copy()->addMinutes($duration - 1)
-                ])
-                ->first();
+                ])->first();
 
             if ($conflict) {
                 $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
@@ -77,9 +89,10 @@ class BookingController extends Controller
 
         $maDatBan = 'DB-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
 
-        DatBan::create([
+        $datBan = DatBan::create([
             'ma_dat_ban' => $maDatBan,
             'ten_khach' => $request->ten_khach,
+            'email_khach' => $request->email_khach,
             'sdt_khach' => $request->sdt_khach,
             'so_khach' => $request->so_khach,
             'combo_id' => $combo_id,
@@ -91,6 +104,26 @@ class BookingController extends Controller
             'la_dat_online' => 1,
             'trang_thai' => 'cho_xac_nhan',
         ]);
+
+        // Nếu có email → gửi OTP
+        if ($request->email_khach) {
+            $otp = rand(100000, 999999);
+
+            // Lưu OTP chuẩn với OtpController
+            session([
+                "otp.booking.{$request->email_khach}" => [
+                    'code' => $otp,
+                    'booking_id' => $datBan->id,
+                    'expires_at' => now()->addMinutes(5)
+                ],
+                "otp.booking_email" => $request->email_khach
+            ]);
+
+            // Gửi email OTP
+            Mail::to($request->email_khach)->send(new BookingOtpMail($otp));
+
+            return redirect()->route('otp.form')->with('success', 'Mã OTP đã gửi tới email của bạn.');
+        }
 
         return redirect()->route('booking.success')->with('success', 'Đặt bàn thành công! Chờ nhà hàng xác nhận.');
     }
@@ -106,7 +139,10 @@ class BookingController extends Controller
         }
 
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
-        $banAns = BanAn::whereNotIn('trang_thai', ['dang_su_dung', 'da_dat'])->get();
+        $banAns = BanAn::where(function ($q) use ($datBan) {
+            $q->whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])
+                ->orWhere('id', $datBan->ban_id);
+        })->get();
         $khuVucs = KhuVuc::all();
 
         return view('restaurants.booking.edit', compact('datBan', 'combos', 'banAns', 'khuVucs'));
@@ -124,6 +160,7 @@ class BookingController extends Controller
 
         $request->validate([
             'ten_khach' => 'required|string|max:255',
+            'email_khach' => 'nullable|email|max:255',
             'sdt_khach' => 'required|string|max:20',
             'so_khach' => 'required|integer|min:1',
             'combo_id' => 'nullable|exists:combo_buffet,id',
@@ -135,7 +172,6 @@ class BookingController extends Controller
         $combo_id = $request->combo_id ?: null;
         $ban_id = $request->ban_id ?: null;
 
-        // Kiểm tra trùng bàn
         if ($ban_id) {
             $duration = 120;
             $gioDen = Carbon::parse($request->gio_den);
@@ -146,8 +182,7 @@ class BookingController extends Controller
                 ->whereBetween('gio_den', [
                     $gioDen->copy()->subMinutes($duration - 1),
                     $gioDen->copy()->addMinutes($duration - 1)
-                ])
-                ->first();
+                ])->first();
 
             if ($conflict) {
                 $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
@@ -157,6 +192,7 @@ class BookingController extends Controller
 
         $datBan->update([
             'ten_khach' => $request->ten_khach,
+            'email_khach' => $request->email_khach,
             'sdt_khach' => $request->sdt_khach,
             'so_khach' => $request->so_khach,
             'combo_id' => $combo_id,
@@ -182,13 +218,57 @@ class BookingController extends Controller
         return redirect()->route('booking')->with('success', 'Đơn đã được hủy.');
     }
 
+    /** TRANG CHỌN PHƯƠNG THỨC THANH TOÁN */
+    public function paymentMethod($booking_id)
+    {
+        $datBan = DatBan::findOrFail($booking_id);
+        $sdt = session('sdt_khach', null);
+
+        if ($datBan->sdt_khach !== $sdt) {
+            return redirect()->route('booking')->with('error', 'Bạn không có quyền truy cập đơn này.');
+        }
+
+        return view('restaurants.booking.payment-method', compact('datBan'));
+    }
+
+    /** Các phương thức thanh toán demo */
+    public function payMomo($booking_id)
+    {
+        $datBan = DatBan::findOrFail($booking_id);
+        return view('restaurants.pay.pay-momo', compact('datBan'));
+    }
+
+    public function payVNPay($booking_id)
+    {
+        $datBan = DatBan::findOrFail($booking_id);
+        return view('restaurants.pay.pay-vnpay', compact('datBan'));
+    }
+
+    public function payCash($booking_id)
+    {
+        $datBan = DatBan::findOrFail($booking_id);
+        return view('restaurants.pay.pay-cash', compact('datBan'));
+    }
+
+    public function payBank($booking_id)
+    {
+        $datBan = DatBan::findOrFail($booking_id);
+        return view('restaurants.pay.pay-bank', compact('datBan'));
+    }
+
+    public function payVietQR($booking_id)
+    {
+        $datBan = DatBan::findOrFail($booking_id);
+        return view('restaurants.pay.pay-vietqr', compact('datBan'));
+    }
+
     /** TRANG THÀNH CÔNG */
     public function success()
     {
         $sdt = session('sdt_khach', null);
         $datBans = $sdt ? DatBan::where('sdt_khach', $sdt)->orderByDesc('created_at')->get() : collect();
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
-        $banAns = BanAn::whereNotIn('trang_thai', ['dang_su_dung', 'da_dat'])->get();
+        $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         $khuVucs = KhuVuc::all();
 
         return view('restaurants.booking.index', compact('datBans', 'sdt', 'combos', 'banAns', 'khuVucs'))

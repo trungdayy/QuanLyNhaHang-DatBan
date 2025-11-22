@@ -36,6 +36,10 @@
                                 <input class="form-control" type="text" name="ten_khach" value="{{ old('ten_khach') }}" required>
                             </div>
                             <div class="form-group col-md-3">
+                                <label class="control-label">Email Khách Hàng</label>
+                                <input class="form-control" type="email" name="email_khach" value="{{ old('email_khach') }}">
+                            </div>
+                            <div class="form-group col-md-3">
                                 <label class="control-label">Số Điện Thoại (*)</label>
                                 <input class="form-control" type="text" name="sdt_khach" value="{{ old('sdt_khach') }}" required>
                             </div>

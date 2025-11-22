@@ -86,4 +86,14 @@ class ComboBuffet extends Model
             ? $this->thoi_gian_ket_thuc->format('d/m/Y H:i')
             : '—';
     }
+
+    public function danhSachMon()
+    {
+        return $this->belongsToMany(
+            MonAn::class,
+            'mon_trong_combo',   // bảng pivot
+            'combo_id',          // FK ở pivot trỏ về combo
+            'mon_an_id'          // FK ở pivot trỏ về món ăn
+        )->withPivot(['gioi_han_so_luong', 'phu_phi_goi_them']);
+    }
 }
