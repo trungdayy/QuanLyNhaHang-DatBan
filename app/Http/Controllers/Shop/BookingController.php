@@ -31,14 +31,26 @@ class BookingController extends Controller
     }
 
     /** FORM ĐẶT BÀN ONLINE */
-    public function create()
+    public function create(Request $request)
     {
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
         $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         $khuVucs = KhuVuc::all();
 
-        return view('restaurants.booking.create', compact('combos', 'banAns', 'khuVucs'));
+        $selectedCombo = null;
+        if ($request->has('combo_id')) {
+            $selectedCombo = ComboBuffet::find($request->combo_id);
+        }
+
+        return view('restaurants.booking.create', compact(
+            'combos',
+            'banAns',
+            'khuVucs',
+            'selectedCombo'
+        ));
     }
+
+
 
     /** AJAX: lấy bàn theo khu vực */
     public function getBansByKhuVuc($khu_vuc_id)
