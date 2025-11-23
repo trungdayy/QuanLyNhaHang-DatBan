@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB; // Thêm thư viện DB để dùng Transaction
+use Illuminate\Support\Facades\DB;
 
 class DatBanController extends Controller
 {

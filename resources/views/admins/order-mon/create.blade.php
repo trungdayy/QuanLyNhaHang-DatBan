@@ -21,7 +21,7 @@
                         data-banid="{{ $db->banAn->id ?? '' }}"
                         data-sokhach="{{ $db->so_khach }}"
                         data-giacombo="{{ $db->comboBuffet?->gia_co_ban ?? 0 }}"
-                        data-somon="{{ $db->comboBuffet?->monTrongCombo?->count() ?? 0 }}">
+                        data-somon="{{ $db->comboBuffet?->monTrongCombo?->sum('gioi_han_so_luong') ?? 0 }}">
                         {{ $db->ma_dat_ban }} - {{ $db->ten_khach }}
                         {{ $db->comboBuffet ? $db->comboBuffet->ten_combo : '❌ chưa có combo' }}
                     </option>

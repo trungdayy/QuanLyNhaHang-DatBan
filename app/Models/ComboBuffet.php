@@ -36,40 +36,56 @@ class ComboBuffet extends Model
     public function getTrangThaiDisplayAttribute()
     {
         switch ($this->trang_thai) {
-            case 'dang_ban': return 'Đang bán';
-            case 'ngung_ban': return 'Ngừng bán';
-            default: return '—';
+            case 'dang_ban':
+                return 'Đang bán';
+            case 'ngung_ban':
+                return 'Ngừng bán';
+            default:
+                return '—';
         }
     }
 
     public function getTrangThaiBadgeAttribute()
     {
         switch ($this->trang_thai) {
-            case 'dang_ban': return 'bg-success';
-            case 'ngung_ban': return 'bg-danger text-white';
-            default: return 'bg-secondary';
+            case 'dang_ban':
+                return 'bg-success';
+            case 'ngung_ban':
+                return 'bg-danger text-white';
+            default:
+                return 'bg-secondary';
         }
     }
 
     public function getLoaiComboDisplayAttribute()
     {
         switch ($this->loai_combo) {
-            case 'nguoi_lon': return 'Người lớn';
-            case 'tre_em': return 'Trẻ em';
-            case 'vip': return 'VIP';
-            case 'khuyen_mai': return 'Khuyến mãi';
-            default: return '—';
+            case 'nguoi_lon':
+                return 'Người lớn';
+            case 'tre_em':
+                return 'Trẻ em';
+            case 'vip':
+                return 'VIP';
+            case 'khuyen_mai':
+                return 'Khuyến mãi';
+            default:
+                return '—';
         }
     }
 
     public function getLoaiComboBadgeAttribute()
     {
         switch ($this->loai_combo) {
-            case 'nguoi_lon': return 'badge-primary';
-            case 'tre_em': return 'badge-info';
-            case 'vip': return 'badge-warning text-dark';
-            case 'khuyen_mai': return 'badge-danger';
-            default: return 'badge-secondary';
+            case 'nguoi_lon':
+                return 'badge-primary';
+            case 'tre_em':
+                return 'badge-info';
+            case 'vip':
+                return 'badge-warning text-dark';
+            case 'khuyen_mai':
+                return 'badge-danger';
+            default:
+                return 'badge-secondary';
         }
     }
 
@@ -86,4 +102,15 @@ class ComboBuffet extends Model
             ? $this->thoi_gian_ket_thuc->format('d/m/Y H:i')
             : '—';
     }
+public function danhSachMon()
+{
+    return $this->belongsToMany(
+        MonAn::class,         // Model món ăn
+        'mon_trong_combo',    // Bảng pivot
+        'combo_id',           // FK ở pivot trỏ về combo
+        'mon_an_id'           // FK ở pivot trỏ về món ăn
+    )->withPivot(['gioi_han_so_luong', 'phu_phi_goi_them']); // nếu có thêm thông tin
+}
+
+    
 }

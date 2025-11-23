@@ -8,7 +8,7 @@ class HomeController extends Controller
 {
     public function index()
     {
-        return view('layouts.Shop.layout-shop');
+        return view('layouts.restaurants.layout-shop');
     }
 
 }
