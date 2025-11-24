@@ -55,7 +55,7 @@
                                     @if ($status === 'trong' && !$isHeld)
                                         <span class="badge badge-status badge-trong">Trống</span>
                                     @elseif($status === 'dang_phuc_vu' || $status === 'khach_da_den')
-                                        <span class="badge badge-status badge-co-khach">Có khách</span>
+                                        <span class="badge badge-status badge-co-khach">Đang phục vụ</span>
                                     @elseif ($status === 'da_dat' && $isHeld)
                                         <span class="badge badge-status badge-giu" data-countdown="{{ $ban->giu_den }}">
                                             Đang giữ...

@@ -27,6 +27,8 @@ use App\Http\Controllers\Shop\MomoController;
 use App\Http\Controllers\Shop\ComboClientController;
 use App\Http\Controllers\Shop\NhanVien\KhuVuc\NhanVienBanAnController;
 use App\Http\Controllers\Shop\NhanVien\NhanVienOrderMonController;
+use App\Http\Controllers\Shop\Bep\BepController;
+
 
 // ===== PHẦN THÊM MỚI 1: KHAI BÁO CONTROLLER =====
 use App\Http\Controllers\Shop\Oderqr\OrderController;
@@ -235,9 +237,9 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
 // ==========================================================
 // ===== MÀN HÌNH BẾP (CHỈ ROUTE CHÍNH) =====
 // ==========================================================
-Route::prefix('bep')->name('bep.')->controller(OrderController::class)->group(function () {
-    // Route chính: Trang hiển thị các món cần chế biến / trạng thái order
-    Route::get('/', 'showKitchenDashboard')->name('dashboard');
+Route::prefix('bep')->name('bep.')->group(function () {
+    Route::get('/', [BepController::class, 'dashboard'])->name('dashboard');
+    Route::post('/update-status', [BepController::class, 'updateMonStatus'])->name('update-status');
 });
 
 
@@ -287,4 +289,11 @@ Route::prefix('oderqr')->group(function () {
     Route::get('order/status/{datBanId}', [OrderController::class, 'getOrderStatus']);
 
     Route::get('list', [OrderController::class, 'showQrListPage'])->name('oderqr.list');
+});
+
+
+
+// ===== PHẦN THÊM MỚI 3: ROUTE TRUY CẬP NHANH (DÙNG CHO DEMO) =====
+Route::get('/tong', function () {
+    return view('quick-access');
 });

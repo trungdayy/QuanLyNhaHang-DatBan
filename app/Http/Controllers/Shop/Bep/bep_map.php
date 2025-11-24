@@ -1,0 +1,61 @@
+<?php // đòi hỏi phải được sửa csdl để không phải fix cứng menu món // ALTER TABLE mon_an ADD loai_bep ENUM('nong', 'nuong', 'lanh', 'nuoc') NULL;
+return[
+// Khu nóng (các món kho, xào, cơm, phở, lẩu, canh…)
+    'Bún chả Hà Nội' => 'nong',
+    'Cá kho tộ' => 'nong',
+    'Bò lúc lắc khoai tây' => 'nong',
+    'Phở bò tái nạm' => 'nong',
+    'Bò kho bánh mì' => 'nong',
+    'Cơm chiên dương châu' => 'nong',
+    'Sườn non rim mặn ngọt' => 'nong',
+    'Gà hấp hành' => 'nong',
+    'Lẩu thái hải sản' => 'nong',
+    'Lẩu bò sa tế' => 'nong',
+    'Cá chẽm hấp xì dầu' => 'nong',
+    'Mì xào hải sản' => 'nong',
+    'Hủ tiếu Nam Vang' => 'nong',
+    'Cơm tấm sườn bì chả trứng' => 'nong',
+    'Canh chua cá lóc' => 'nong',
+    'Cá hồi áp chảo sốt bơ chanh' => 'nong',
+
+    // Khu nướng (các món chiên/nướng/quay)
+    'Khoai tây chiên bơ tỏi' => 'nuong',
+    'Chả cá chiên giòn' => 'nuong',
+    'Nem chua rán' => 'nuong',
+    'Chả giò rế' => 'nuong',
+    'Tôm sú nướng muối ớt' => 'nuong',
+    'Gà nướng mật ong' => 'nuong',
+    'Vịt quay Bắc Kinh' => 'nuong',
+    'Thịt ba chỉ quay giòn bì' => 'nuong',
+    'Bánh chuối nướng' => 'nuong',
+
+    // Khu lạnh (các món gỏi, salad, súp, chè, kem, rau câu…)
+    'Gỏi cuốn tôm thịt' => 'lanh',
+    'Gỏi bò bóp thấu' => 'lanh',
+    'Salad cá ngừ' => 'lanh',
+    'Gỏi ngó sen tôm thịt' => 'lanh',
+    'Súp hải sản' => 'lanh',
+    'Súp bí đỏ kem tươi' => 'lanh',
+    'Chè khúc bạch' => 'lanh',
+    'Chè ba màu' => 'lanh',
+    'Rau câu dừa' => 'lanh',
+    'Bánh flan' => 'lanh',
+    'Bánh da lợn' => 'lanh',
+    'Bánh bò hấp' => 'lanh',
+    'Sương sáo sữa tươi' => 'lanh',
+    'Kem dừa' => 'lanh',
+    'Trái cây thập cẩm' => 'lanh',
+
+    // Nước uống
+    'Trà đào cam sả' => 'nuoc',
+    'Sinh tố bơ' => 'nuoc',
+    'Nước ép cam' => 'nuoc',
+    'Nước ép dưa hấu' => 'nuoc',
+    'Cà phê sữa đá' => 'nuoc',
+    'Cà phê đen nóng' => 'nuoc',
+    'Trà sữa trân châu đường đen' => 'nuoc',
+    'Nước chanh tươi' => 'nuoc',
+    'Nước mía sầu riêng' => 'nuoc',
+    'Soda việt quất' => 'nuoc',
+];
+?>
