@@ -50,9 +50,7 @@ class OrderController extends Controller
         ]);
     }
 
-
-
-public function startOrder(Request $request)
+    public function startOrder(Request $request)
     {
         // 1. Validate dữ liệu
         $validator = Validator::make($request->all(), [
@@ -79,14 +77,15 @@ public function startOrder(Request $request)
         $tenKhachInput = $request->input('ten_khach') ?: 'Khách Vãng Lai';
         $sdtKhachInput = $request->input('sdt_khach') ?: '0';
 
-        // 💡 THIẾT LẬP MÚI GIỜ VIỆT NAM
-        $nowVN = Carbon::now('Asia/Ho_Chi_Minh'); 
+        // --- KHẮC PHỤC LỖI GIỜ: Lấy giờ VN và chuyển thành chuỗi ---
+        $nowObj = Carbon::now('Asia/Ho_Chi_Minh');
+        $nowString = $nowObj->toDateTimeString(); // Chuỗi giờ VN chính xác
 
         // 3. Tìm đơn đặt bàn
         $datBan = DatBan::where('ban_id', $banId)
             ->whereIn('trang_thai', ['khach_da_den', 'da_xac_nhan'])
-            // 💡 SỬA: Lấy ngày hôm nay theo giờ Việt Nam (tránh lỗi qua ngày mới lúc 0h-7h sáng)
-            ->whereDate('gio_den', $nowVN->toDateString()) 
+            // Tìm theo ngày hiện tại (VN)
+            ->whereDate('gio_den', $nowObj->toDateString()) 
             ->orderBy('gio_den', 'asc')
             ->first();
 
@@ -96,15 +95,17 @@ public function startOrder(Request $request)
             $thoiLuongPhut = $combo ? $combo->thoi_luong_phut : 120;
 
             $datBan = DatBan::create([
-                'ma_dat_ban' => 'QR' . $nowVN->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2))),
+                'ma_dat_ban' => 'QR' . $nowObj->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2))),
                 'ten_khach' => $tenKhachInput, 
                 'sdt_khach' => $sdtKhachInput,
                 'so_khach' => $soKhach,
                 'ban_id' => $banId,
                 'combo_id' => $comboId,
-                'gio_den' => $nowVN, // 💡 SỬA: Lưu giờ VN
+                'gio_den' => $nowString, // Lưu chuỗi giờ VN
                 'thoi_luong_phut' => $thoiLuongPhut,
                 'trang_thai' => 'khach_da_den',
+                'created_at' => $nowString, // 💡 FIX: Lưu ngày tạo theo giờ VN
+                'updated_at' => $nowString, // 💡 FIX: Lưu ngày cập nhật theo giờ VN
             ]);
             
             $ban->update(['trang_thai' => 'dang_phuc_vu']);
@@ -115,7 +116,8 @@ public function startOrder(Request $request)
                 'combo_id' => $comboId,
                 'so_khach' => $soKhach,
                 'trang_thai' => 'khach_da_den',
-                'gio_den' => $nowVN, // 💡 SỬA: Cập nhật lại giờ vào là giờ VN hiện tại
+                'gio_den' => $nowString, // Cập nhật lại giờ vào là giờ VN hiện tại
+                'updated_at' => $nowString, // 💡 FIX: Cập nhật giờ update
             ];
 
             if ($request->filled('ten_khach')) {
@@ -133,9 +135,16 @@ public function startOrder(Request $request)
         if ($comboId) {
             $comboItems = MonTrongCombo::where('combo_id', $comboId)->get();
             
+            // Tạo hoặc tìm OrderMon và ép buộc giờ tạo là giờ VN
             $orderMon = OrderMon::firstOrCreate(
                 ['dat_ban_id' => $datBan->id, 'trang_thai' => 'dang_xu_li'],
-                ['ban_id' => $datBan->ban_id, 'tong_mon' => 0, 'tong_tien' => 0]
+                [
+                    'ban_id' => $datBan->ban_id, 
+                    'tong_mon' => 0, 
+                    'tong_tien' => 0,
+                    'created_at' => $nowString, // 💡 FIX: OrderMon ngày tạo
+                    'updated_at' => $nowString  // 💡 FIX: OrderMon ngày cập nhật
+                ]
             );
 
             $hasItems = ChiTietOrder::where('order_id', $orderMon->id)->exists();
@@ -151,8 +160,9 @@ public function startOrder(Request $request)
                             'so_luong' => $datBan->so_khach,
                             'loai_mon' => 'combo',
                             'trang_thai' => 'cho_bep',
-                            'created_at' => $nowVN, // 💡 SỬA: Giờ VN
-                            'updated_at' => $nowVN, // 💡 SỬA: Giờ VN
+                            'ghi_chu' => null,
+                            'created_at' => $nowString, // Lưu chuỗi giờ VN
+                            'updated_at' => $nowString, // Lưu chuỗi giờ VN
                         ];
                     }
                 }
@@ -198,6 +208,7 @@ public function startOrder(Request $request)
 
         if (!$datBan) return response()->json(['message' => 'Bàn này chưa sẵn sàng phục vụ.'], 404);
 
+        // Tính thời gian còn lại
         $thoiGianConLaiPhut = null;
         if ($datBan->gio_den && $datBan->thoi_luong_phut) {
             $gioKetThuc = Carbon::parse($datBan->gio_den)->addMinutes($datBan->thoi_luong_phut);
@@ -252,9 +263,19 @@ public function startOrder(Request $request)
             return response()->json(['message' => 'Phiếu đặt bàn không hợp lệ hoặc đã đóng.'], 403);
         }
 
+        // Lấy giờ VN hiện tại
+        $nowString = Carbon::now('Asia/Ho_Chi_Minh')->toDateTimeString();
+
+        // Tạo OrderMon với ngày tạo là giờ VN
         $orderMon = OrderMon::firstOrCreate(
             ['dat_ban_id' => $datBanId, 'trang_thai' => 'dang_xu_li'],
-            ['ban_id' => $datBan->ban_id, 'tong_mon' => 0, 'tong_tien' => 0]
+            [
+                'ban_id' => $datBan->ban_id, 
+                'tong_mon' => 0, 
+                'tong_tien' => 0,
+                'created_at' => $nowString, // 💡 FIX: Ngày tạo OrderMon
+                'updated_at' => $nowString  // 💡 FIX: Ngày update OrderMon
+            ]
         );
 
         foreach ($items as $item) {
@@ -268,6 +289,8 @@ public function startOrder(Request $request)
                 'loai_mon' => $item['loai_mon'],
                 'trang_thai' => 'cho_bep',
                 'ghi_chu' => $item['ghi_chu'],
+                'created_at' => $nowString, // 💡 FIX: Ngày tạo Chi tiết
+                'updated_at' => $nowString  // 💡 FIX: Ngày update Chi tiết
             ]);
         }
 
@@ -305,4 +328,3 @@ public function startOrder(Request $request)
         return view('shop.oderqr.list', compact('banAns', 'selectedBan'));
     }
 }
-

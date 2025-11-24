@@ -28,6 +28,7 @@ use App\Http\Controllers\Shop\ComboClientController;
 use App\Http\Controllers\Shop\NhanVien\KhuVuc\NhanVienBanAnController;
 use App\Http\Controllers\Shop\NhanVien\NhanVienOrderMonController;
 use App\Http\Controllers\Shop\Bep\BepController;
+use App\Http\Controllers\Shop\NhanVien\NVDatBanController;
 
 
 // ===== PHẦN THÊM MỚI 1: KHAI BÁO CONTROLLER =====
@@ -213,9 +214,21 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
         Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
     });
 
-    
+
+// DatBan NhanVien
+Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
+Route::get('/dat-ban/create', [NVDatBanController::class, 'create'])->name('datban.create');
+Route::post('/dat-ban/store', [NVDatBanController::class, 'store'])->name('datban.store');
+
+// Đã sửa: Đồng bộ với tên phương thức Controller (thayDoiTrangThai) và sử dụng Model Binding ({datBan})
+Route::post('/dat-ban/{datBan}/thay-doi-trang-thai', [NVDatBanController::class, 'thayDoiTrangThai'])->name('datban.thaydoitrangthai');
+
+Route::get('/dat-ban/check-ban-trong', [NVDatBanController::class, 'ajaxCheckBanTrong'])->name('datban.check_ban');
+
+
+
     //gọi món tạo order
-        Route::get('/order', [NhanVienOrderMonController::class, 'index'])->name('order.index');
+    Route::get('/order', [NhanVienOrderMonController::class, 'index'])->name('order.index');
     Route::post('/order/mo-order', [NhanVienOrderMonController::class, 'moOrder'])->name('order.mo-order');
 
     // 👉 NEW: Bắt buộc chọn combo trước

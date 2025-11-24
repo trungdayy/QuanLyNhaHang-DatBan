@@ -114,6 +114,27 @@
             }
         }
     });
+
+    // --- PHẦN ĐÃ SỬA LỖI ---
+    // Khởi tạo DateTimePicker (Sửa 'now' thành 'new Date()')
+    // Nếu giao diện của bạn dùng class .date và .time
+    $('.date').datetimepicker({
+        format: 'L',
+        date: new Date() // Đã sửa
+    });
+    $('.time').datetimepicker({
+        format: 'LT',
+        date: new Date() // Đã sửa
+    });
+
+    // Nếu giao diện dùng ID cụ thể như #date3, #time3 (thường thấy ở template này)
+    $('#date3').datetimepicker({
+        format: 'L',
+        date: new Date() // Đã sửa
+    });
+    $('#time3').datetimepicker({
+        format: 'LT',
+        date: new Date() // Đã sửa
+    });
     
 })(jQuery);
-
