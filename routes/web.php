@@ -119,7 +119,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     //voucher
     Route::resource('voucher', VoucherController::class)->except(['show']);
-
+    // AJAX ROUTE CHO BÀN ĂN
+    Route::get('ban-an/ajax-list', [App\Http\Controllers\Admin\BanAnController::class, 'ajaxList'])
+        ->name('ban-an.ajax');
 
 
     // NHÂN VIÊN 
@@ -215,15 +217,15 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
     });
 
 
-// DatBan NhanVien
-Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
-Route::get('/dat-ban/create', [NVDatBanController::class, 'create'])->name('datban.create');
-Route::post('/dat-ban/store', [NVDatBanController::class, 'store'])->name('datban.store');
+    // DatBan NhanVien
+    Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
+    Route::get('/dat-ban/create', [NVDatBanController::class, 'create'])->name('datban.create');
+    Route::post('/dat-ban/store', [NVDatBanController::class, 'store'])->name('datban.store');
 
-// Đã sửa: Đồng bộ với tên phương thức Controller (thayDoiTrangThai) và sử dụng Model Binding ({datBan})
-Route::post('/dat-ban/{datBan}/thay-doi-trang-thai', [NVDatBanController::class, 'thayDoiTrangThai'])->name('datban.thaydoitrangthai');
+    // Đã sửa: Đồng bộ với tên phương thức Controller (thayDoiTrangThai) và sử dụng Model Binding ({datBan})
+    Route::post('/dat-ban/{datBan}/thay-doi-trang-thai', [NVDatBanController::class, 'thayDoiTrangThai'])->name('datban.thaydoitrangthai');
 
-Route::get('/dat-ban/check-ban-trong', [NVDatBanController::class, 'ajaxCheckBanTrong'])->name('datban.check_ban');
+    Route::get('/dat-ban/check-ban-trong', [NVDatBanController::class, 'ajaxCheckBanTrong'])->name('datban.check_ban');
 
 
 

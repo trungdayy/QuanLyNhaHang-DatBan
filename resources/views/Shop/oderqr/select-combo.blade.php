@@ -255,88 +255,93 @@
                     </div>
                 @endif
 
-                <form action="{{ route('oderqr.start_order') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="ma_qr" value="{{ $qrKey }}">
-                    <input type="hidden" name="combo_id" id="selected-combo-id">
+<form action="{{ route('oderqr.start_order') }}" method="POST">
+    @csrf
+    <input type="hidden" name="ma_qr" value="{{ $qrKey }}">
+    <input type="hidden" name="combo_id" id="selected-combo-id">
+    
+    {{-- 🔥 THÊM DÒNG NÀY: Truyền dat_ban_id nếu đã có đơn --}}
+    @if($datBan)
+        <input type="hidden" name="dat_ban_id" value="{{ $datBan->id }}">
+    @endif
 
-                    <div class="section-label"><i class="fa-solid fa-user-group"></i> Thông Tin Khách Hàng</div>
+    <div class="section-label"><i class="fa-solid fa-user-group"></i> Thông Tin Khách Hàng</div>
 
-                    @if($datBan && $datBan->ten_khach && $datBan->ten_khach !== 'Khách Vãng Lai')
-                        <div class="datban-info">
-                            <div class="info-row"><strong>Khách hàng</strong> <span>{{ $datBan->ten_khach }}</span></div>
-                            <div class="info-row"><strong>SĐT</strong> <span>{{ $datBan->sdt_khach }}</span></div>
-                            <div class="info-row"><strong>Số lượng</strong> <span>{{ $datBan->so_khach }} người</span></div>
-                            <div class="info-row"><strong>Giờ đến</strong> <span>{{ \Carbon\Carbon::parse($datBan->gio_den)->format('H:i d/m') }}</span></div>
+    @if($datBan && $datBan->ten_khach && $datBan->ten_khach !== 'Khách Vãng Lai')
+        <div class="datban-info">
+            <div class="info-row"><strong>Khách hàng</strong> <span>{{ $datBan->ten_khach }}</span></div>
+            <div class="info-row"><strong>SĐT</strong> <span>{{ $datBan->sdt_khach }}</span></div>
+            <div class="info-row"><strong>Số lượng</strong> <span>{{ $datBan->so_khach }} người</span></div>
+            <div class="info-row"><strong>Giờ đến</strong> <span>{{ \Carbon\Carbon::parse($datBan->gio_den)->format('H:i d/m') }}</span></div>
+        </div>
+        <input type="hidden" name="so_khach" value="{{ $datBan->so_khach }}">
+        <input type="hidden" name="ten_khach" value="{{ $datBan->ten_khach }}">
+        <input type="hidden" name="sdt_khach" value="{{ $datBan->sdt_khach }}">
+    @else
+        <div class="input-grid">
+            <div class="form-group">
+                <label>Họ và Tên (*)</label>
+                <input type="text" class="form-control" name="ten_khach" placeholder="Ví dụ: Anh Nam" required value="{{ old('ten_khach') }}">
+            </div>
+            <div class="form-group">
+                <label>Số Điện Thoại (*)</label>
+                <input type="text" class="form-control" name="sdt_khach" placeholder="Ví dụ: 098..." required value="{{ old('sdt_khach') }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Số lượng khách ăn (*)</label>
+            <input type="number" class="form-control" name="so_khach" min="1" placeholder="Nhập số người" required value="{{ old('so_khach', 1) }}">
+        </div>
+    @endif
+
+    <div class="section-label" style="margin-top: 40px;"><i class="fa-solid fa-book-open"></i> Chọn Gói Buffet</div>
+    
+    <div class="combo-list">
+        @foreach ($combos as $combo)
+            <div class="combo-option" data-combo-id="{{ $combo->id }}">
+                <div class="combo-content-wrapper">
+                    <div class="combo-header">
+                        <div class="combo-img-box">
+                            @if ($combo->anh)
+                                <img src="{{ url('uploads/' . $combo->anh) }}" class="combo-img" onerror="this.style.display='none';this.parentNode.innerHTML='<i class=\'fa-solid fa-utensils\' style=\'color:#ccc; font-size:1.5rem\'></i>'">
+                            @else
+                                <i class="fa-solid fa-utensils" style="color:#ccc; font-size:1.5rem"></i>
+                            @endif
                         </div>
-                        <input type="hidden" name="so_khach" value="{{ $datBan->so_khach }}">
-                        <input type="hidden" name="ten_khach" value="{{ $datBan->ten_khach }}">
-                        <input type="hidden" name="sdt_khach" value="{{ $datBan->sdt_khach }}">
-                    @else
-                        <div class="input-grid">
-                            <div class="form-group">
-                                <label>Họ và Tên (*)</label>
-                                <input type="text" class="form-control" name="ten_khach" placeholder="Ví dụ: Anh Nam" required value="{{ old('ten_khach') }}">
-                            </div>
-                            <div class="form-group">
-                                <label>Số Điện Thoại (*)</label>
-                                <input type="text" class="form-control" name="sdt_khach" placeholder="Ví dụ: 098..." required value="{{ old('sdt_khach') }}">
+                        <div class="combo-info">
+                            <div class="combo-name">{{ $combo->ten_combo }}</div>
+                            <div class="combo-meta">
+                                <span class="combo-price">{{ number_format($combo->gia_co_ban) }}đ</span>
+                                <span><i class="fa-regular fa-clock"></i> {{ $combo->thoi_luong_phut }} phút</span>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Số lượng khách ăn (*)</label>
-                            <input type="number" class="form-control" name="so_khach" min="1" placeholder="Nhập số người" required value="{{ old('so_khach', 1) }}">
-                        </div>
-                    @endif
-
-                    <div class="section-label" style="margin-top: 40px;"><i class="fa-solid fa-book-open"></i> Chọn Gói Buffet</div>
-                    
-                    <div class="combo-list">
-                        @foreach ($combos as $combo)
-                            <div class="combo-option" data-combo-id="{{ $combo->id }}">
-                                <div class="combo-content-wrapper">
-                                    <div class="combo-header">
-                                        <div class="combo-img-box">
-                                            @if ($combo->anh)
-                                                <img src="{{ url('uploads/' . $combo->anh) }}" class="combo-img" onerror="this.style.display='none';this.parentNode.innerHTML='<i class=\'fa-solid fa-utensils\' style=\'color:#ccc; font-size:1.5rem\'></i>'">
-                                            @else
-                                                <i class="fa-solid fa-utensils" style="color:#ccc; font-size:1.5rem"></i>
-                                            @endif
-                                        </div>
-                                        <div class="combo-info">
-                                            <div class="combo-name">{{ $combo->ten_combo }}</div>
-                                            <div class="combo-meta">
-                                                <span class="combo-price">{{ number_format($combo->gia_co_ban) }}đ</span>
-                                                <span><i class="fa-regular fa-clock"></i> {{ $combo->thoi_luong_phut }} phút</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @if ($combo->monTrongCombo->isNotEmpty())
-                                    <div class="combo-details-wrapper">
-                                        <div class="combo-details-inner">
-                                            <div style="font-size:0.85rem; font-weight:700; color:#888; margin-bottom:8px;">
-                                                <i class="fa-solid fa-list-check"></i> THỰC ĐƠN BAO GỒM:
-                                            </div>
-                                            <div class="dish-list">
-                                                @foreach ($combo->monTrongCombo as $item)
-                                                    @if ($item->monAn)
-                                                        <div class="dish-tag"><i class="fa-solid fa-check"></i> {{ $item->monAn->ten_mon }}</div>
-                                                    @endif
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-                        @endforeach
                     </div>
+                </div>
 
-                    <button type="submit" class="btn-submit">
-                        Xác Nhận & Gọi Món <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </form>
+                @if ($combo->monTrongCombo->isNotEmpty())
+                    <div class="combo-details-wrapper">
+                        <div class="combo-details-inner">
+                            <div style="font-size:0.85rem; font-weight:700; color:#888; margin-bottom:8px;">
+                                <i class="fa-solid fa-list-check"></i> THỰC ĐƠN BAO GỒM:
+                            </div>
+                            <div class="dish-list">
+                                @foreach ($combo->monTrongCombo as $item)
+                                    @if ($item->monAn)
+                                        <div class="dish-tag"><i class="fa-solid fa-check"></i> {{ $item->monAn->ten_mon }}</div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        @endforeach
+    </div>
+
+    <button type="submit" class="btn-submit">
+        Xác Nhận & Gọi Món <i class="fa-solid fa-arrow-right"></i>
+    </button>
+</form>
             </div>
         </div>
     </main>

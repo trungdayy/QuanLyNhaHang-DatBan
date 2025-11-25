@@ -914,7 +914,7 @@
                 ten_mon: name,
                 so_luong: 1,
                 ghi_chu: '',
-                loai_mon: type
+                loai_mon: 'goi_them'
             });
             renderCart();
             showToast(`Đã thêm ${name}`);

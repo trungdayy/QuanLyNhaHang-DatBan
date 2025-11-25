@@ -12,13 +12,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 
 class DatBanController extends Controller
 {
     /** ===========================
-     * HIỂN THỊ DANH SÁCH ĐẶT BÀN (CÓ LỌC & TÌM KIẾM)
-     * =========================== */
+     *  HIỂN THỊ DANH SÁCH ĐẶT BÀN (CÓ LỌC & TÌM KIẾM)
+     *  =========================== */
     public function index(Request $request)
     {
         try {
@@ -86,7 +85,6 @@ class DatBanController extends Controller
     {
         $request->validate([
             'ten_khach' => 'required|string|max:255',
-            'email_khach' => 'required|email|max:255', // <-- thêm validate email
             'sdt_khach' => 'required|string|max:20',
             'so_khach' => 'required|integer|min:1',
             'ban_id' => 'required|exists:ban_an,id',
@@ -94,58 +92,31 @@ class DatBanController extends Controller
             'gio_den' => 'required|date',
             'tien_coc' => 'nullable|numeric|min:0',
             'ghi_chu' => 'nullable|string',
-            'trang_thai' => ['nullable', Rule::in(['cho_xac_nhan', 'da_xac_nhan', 'khach_da_den'])],
         ]);
 
-        $duration = 120; // Thời lượng mặc định 2 tiếng
+        $duration = 120; // thời lượng 2 tiếng
         $newStart = Carbon::parse($request->gio_den);
-        $newEnd = $newStart->copy()->addMinutes($duration);
-        $now = Carbon::now();
 
-        $banAn = BanAn::find($request->ban_id);
-
-        if (!$banAn || $banAn->trang_thai === 'khong_su_dung') {
-            return back()->with('error', 'Bàn này đang tạm ngưng phục vụ (Hỏng/Bảo trì). Vui lòng chọn bàn khác.');
-        }
-
-        if ($banAn->trang_thai === 'dang_phuc_vu') {
-            $duKienKhachCuXong = $now->copy()->addMinutes($duration);
-            if ($newStart < $duKienKhachCuXong) {
-                 return back()->with('error', 'Bàn này HIỆN TẠI đang có khách ăn. Không thể đặt vào giờ này.');
-            }
-        }
-
+        // Kiểm tra trùng giờ đặt bàn
         $conflict = DatBan::where('ban_id', $request->ban_id)
             ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
-            ->where(function ($query) use ($newStart, $newEnd) {
-                $query->where('gio_den', '<', $newEnd)
-                      ->whereRaw("DATE_ADD(gio_den, INTERVAL thoi_luong_phut MINUTE) > ?", [$newStart]);
-            })
+            ->whereBetween('gio_den', [
+                $newStart->copy()->subMinutes($duration - 1),
+                $newStart->copy()->addMinutes($duration - 1)
+            ])
             ->first();
 
         if ($conflict) {
             $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
-            return back()->with('error', "Bàn này đã bị đặt trước vào lúc $gioBiTrung. Vui lòng chọn giờ khác.");
+            return back()->with('error', "Bàn này đã được đặt vào lúc $gioBiTrung. Vui lòng chọn giờ khác.");
         }
 
-        DB::beginTransaction();
         try {
             $maDatBan = 'DB-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
-            $trangThai = $request->trang_thai ?? 'cho_xac_nhan';
-
-            $nhanVienId = null;
-            if ($trangThai === 'khach_da_den') {
-                $nhanVien = NhanVien::where('trang_thai', 1)
-                    ->where('vai_tro', 'Phục vụ')
-                    ->inRandomOrder()
-                    ->first();
-                $nhanVienId = $nhanVien ? $nhanVien->id : null;
-            }
 
             DatBan::create([
                 'ma_dat_ban' => $maDatBan,
                 'ten_khach' => $request->ten_khach,
-                'email_khach' => $request->email_khach, // <-- thêm email_khach
                 'sdt_khach' => $request->sdt_khach,
                 'so_khach' => $request->so_khach,
                 'ban_id' => $request->ban_id,
@@ -154,30 +125,14 @@ class DatBanController extends Controller
                 'thoi_luong_phut' => $duration,
                 'tien_coc' => $request->tien_coc ?? 0,
                 'ghi_chu' => $request->ghi_chu,
-                'trang_thai' => $trangThai,
+                'trang_thai' => 'cho_xac_nhan',
                 'la_dat_online' => 0,
-                'nhan_vien_id' => $nhanVienId
             ]);
 
-            if ($trangThai === 'khach_da_den') {
-                $banAn->trang_thai = 'dang_phuc_vu';
-                $banAn->save();
-            } 
-            elseif ($trangThai === 'da_xac_nhan') {
-                $limitTime = $now->copy()->addMinutes(30);
-                if ($newStart >= $now && $newStart <= $limitTime && $banAn->trang_thai === 'trong') {
-                    $banAn->trang_thai = 'da_dat';
-                    $banAn->save();
-                }
-            }
-
-            DB::commit();
-            return redirect()->route('admin.dat-ban.index')->with('success', "Tạo đơn thành công! Mã: $maDatBan");
-
+            return redirect()->route('admin.dat-ban.index')->with('success', "Tạo đơn đặt bàn thành công! Mã: $maDatBan");
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Lỗi lưu đặt bàn: " . $e->getMessage());
-            return back()->with('error', 'Lỗi hệ thống, không thể tạo đơn.');
+            Log::error("Lỗi khi lưu đặt bàn: " . $e->getMessage());
+            return back()->with('error', 'Không thể lưu đặt bàn.');
         }
     }
 
@@ -222,7 +177,6 @@ class DatBanController extends Controller
 
         $request->validate([
             'ten_khach' => 'required|string|max:255',
-            'email_khach' => 'required|email|max:255', // <-- thêm validate email
             'sdt_khach' => 'required|string|max:20',
             'so_khach' => 'required|integer|min:1',
             'ban_id' => 'required|exists:ban_an,id',
@@ -235,6 +189,7 @@ class DatBanController extends Controller
         $duration = 120;
         $newStart = Carbon::parse($request->gio_den);
 
+        // Kiểm tra trùng giờ đặt bàn (bỏ qua chính nó)
         $conflict = DatBan::where('ban_id', $request->ban_id)
             ->where('id', '!=', $id)
             ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
@@ -252,7 +207,6 @@ class DatBanController extends Controller
         try {
             $datBan->update([
                 'ten_khach' => $request->ten_khach,
-                'email_khach' => $request->email_khach, // <-- thêm email_khach
                 'sdt_khach' => $request->sdt_khach,
                 'so_khach' => $request->so_khach,
                 'ban_id' => $request->ban_id,
@@ -298,69 +252,46 @@ class DatBanController extends Controller
         }
     }
 
-    /** =================================================
-     * CẬP NHẬT TRẠNG THÁI ĐẶT BÀN & TRẠNG THÁI BÀN ĂN
-     * ================================================= */
+    /** Cập nhật trạng thái đặt bàn */
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
             'trang_thai_moi' => ['required', Rule::in(['cho_xac_nhan', 'da_xac_nhan', 'khach_da_den', 'hoan_tat', 'huy'])]
         ]);
 
-        DB::beginTransaction();
-
         try {
             $datBan = DatBan::findOrFail($id);
             $newStatus = $request->trang_thai_moi;
-            $banAn = BanAn::find($datBan->ban_id);
 
-            if ($newStatus === 'khach_da_den' && !$datBan->nhan_vien_id) {
+            // Khi khách đến -> gán ngẫu nhiên nhân viên phục vụ đang hoạt động
+            if ($newStatus === 'khach_da_den') {
                 $nhanVien = NhanVien::where('trang_thai', 1)
                     ->where('vai_tro', 'Phục vụ')
                     ->inRandomOrder()
                     ->first();
-                if ($nhanVien) {
-                    $datBan->nhan_vien_id = $nhanVien->id;
-                }
+                if ($nhanVien) $datBan->nhan_vien_id = $nhanVien->id;
             }
 
-            $datBan->trang_thai = $newStatus;
-            $datBan->save();
+            $datBan->update(['trang_thai' => $newStatus]);
 
+            // Cập nhật trạng thái bàn ăn tương ứng
+            $banAn = $datBan->banAn;
             if ($banAn) {
                 if ($newStatus === 'khach_da_den') {
-                    $banAn->trang_thai = 'dang_phuc_vu';
-                    $banAn->save();
-                } elseif ($newStatus === 'da_xac_nhan') {
-                    if ($banAn->trang_thai === 'trong') {
-                        $banAn->trang_thai = 'da_dat';
-                        $banAn->save();
-                    }
+                    $banAn->update(['trang_thai' => 'dang_phuc_vu']);
                 } elseif (in_array($newStatus, ['hoan_tat', 'huy'])) {
-                    $isServingOthers = DatBan::where('ban_id', $banAn->id)
+                    $hasOther = DatBan::where('ban_id', $banAn->id)
                         ->where('id', '!=', $datBan->id)
-                        ->where('trang_thai', 'khach_da_den')
+                        ->whereIn('trang_thai', ['da_xac_nhan', 'khach_da_den'])
                         ->exists();
-
-                    if ($isServingOthers) {
-                        $banAn->trang_thai = 'dang_phuc_vu';
-                    } else {
-                        $isReserved = DatBan::where('ban_id', $banAn->id)
-                            ->where('id', '!=', $datBan->id)
-                            ->where('trang_thai', 'da_xac_nhan')
-                            ->exists();
-                        $banAn->trang_thai = $isReserved ? 'da_dat' : 'trong';
-                    }
-                    $banAn->save();
+                    if (!$hasOther) $banAn->update(['trang_thai' => 'trong']);
                 }
             }
 
-            DB::commit();
             return back()->with('success', 'Cập nhật trạng thái thành công!');
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error("Lỗi cập nhật trạng thái: " . $e->getMessage());
-            return back()->with('error', 'Không thể cập nhật trạng thái. Lỗi hệ thống.');
+            return back()->with('error', 'Không thể cập nhật trạng thái.');
         }
     }
 
@@ -377,6 +308,7 @@ class DatBanController extends Controller
         $duration = 120;
         $newStart = Carbon::parse($selectedTime);
 
+        // Tìm các bàn đang được đặt trong khung giờ
         $conflictingIds = DatBan::whereNotIn('trang_thai', ['huy', 'hoan_tat'])
             ->whereBetween('gio_den', [
                 $newStart->copy()->subMinutes($duration - 1),
@@ -386,6 +318,7 @@ class DatBanController extends Controller
             ->pluck('ban_id')
             ->toArray();
 
+        // Lấy danh sách bàn trống
         $availableTables = BanAn::where('trang_thai', '!=', 'khong_su_dung')
             ->whereNotIn('id', $conflictingIds)
             ->get();

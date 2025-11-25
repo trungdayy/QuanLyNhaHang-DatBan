@@ -312,4 +312,13 @@ class BanAnController extends Controller
         $banAns = BanAn::orderBy('id')->get();
         return view('admins.qr_generator', ['banAns' => $banAns]);
     }
+
+    public function ajaxList()
+{
+    // Copy logic lấy dữ liệu giống hàm index của bạn
+    $khuVucs = \App\Models\KhuVuc::with('banAns')->get(); 
+    
+    // Trả về view partial mà chúng ta vừa tạo ở Bước 1
+    return view('admins.ban-an.partials.list_ban_an', compact('khuVucs'))->render();
+}
 }
