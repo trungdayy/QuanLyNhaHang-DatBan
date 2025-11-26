@@ -153,6 +153,7 @@
                         <th>Combo</th>
                         <th>Bàn</th>
                         <th>Giờ đến</th>
+                        <th>Đã cọc</th>
                         <th>Trạng thái</th>
                         <th>Hành động</th>
                     </tr>
@@ -172,6 +173,7 @@
                                     <div class="ngay">{{ \Carbon\Carbon::parse($datBan->gio_den)->format('d/m/Y') }}</div>
                                 @else N/A @endif
                             </td>
+                            <td>{{ number_format($datBan->tien_coc ?? 0, 0, ',', '.') }} VND</td>
                             <td>
                                 @php
                                     $statusColor = [

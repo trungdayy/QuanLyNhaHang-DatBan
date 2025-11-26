@@ -26,7 +26,6 @@ use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Shop\BookingController;
 use App\Http\Controllers\Shop\ComboClientController;
 use App\Http\Controllers\Shop\OtpController;
-use App\Http\Controllers\Shop\MomoController;
 
 
 /*
@@ -67,20 +66,13 @@ Route::prefix('/')->group(function () {
 
     // ==== Các phương thức thanh toán ====
     Route::get('booking/{booking_id}/pay-cash', [BookingController::class, 'payCash'])->name('booking.pay_cash');
-    Route::get('booking/{booking_id}/pay-bank', [BookingController::class, 'payBank'])->name('booking.pay_bank');
+    Route::get('booking/{booking_id}/pay-os', [BookingController::class, 'payOS'])->name('booking.pay_os'); // đúng với controller
     Route::get('booking/{booking_id}/pay-vnpay', [BookingController::class, 'payVNPay'])->name('booking.pay_vnpay');
     Route::get('booking/{booking_id}/pay-vietqr', [BookingController::class, 'payVietQR'])->name('booking.pay_vietqr');
-    Route::get('booking/{booking_id}/pay-momo', [BookingController::class, 'payMomo'])->name('booking.pay_momo');
 
-    Route::post('/booking/momo/{booking_id}', [MomoController::class, 'createPayment']);
-    Route::get('/booking/momo-return', [MomoController::class, 'handleReturn']);
-    Route::post('/booking/momo-notify', [MomoController::class, 'handleNotify']);
-
-    // Khi MoMo redirect khách về sau thanh toán
-    Route::get('booking/momo-return', [BookingController::class, 'momoReturn'])->name('booking.momo_return');
-
-    // Khi MoMo gửi callback (IPN) để thông báo kết quả thanh toán
-    Route::post('booking/momo-notify', [BookingController::class, 'momoNotify'])->name('booking.momo_notify');
+    // Callback và cancel PayOS
+    Route::get('payment/cancel', [BookingController::class, 'cancel'])->name('booking.pay-os.cancel');
+    Route::get('payment/success', [BookingController::class, 'success'])->name('booking.pay-os.success');
 });
 
 
