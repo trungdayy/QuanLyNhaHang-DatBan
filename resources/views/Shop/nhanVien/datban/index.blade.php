@@ -1,228 +1,301 @@
-@extends('layouts.Shop.layout-nhanvien')
+@extends('layouts.shop.layout-nhanvien')
 @section('title', 'Quản lý Đặt Bàn')
 
 @section('content')
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>Danh sách đặt bàn</h4>
-        <a href="{{ route('nhanVien.datban.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Tạo đặt bàn
-        </a>
-    </div>
+    {{-- 1. IMPORT FONTS --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 
-    {{-- Hiển thị thông báo (nếu có) --}}
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
+    {{-- 2. CSS STYLING (Design System) --}}
+    <style>
+        :root {
+            --primary: #fea116; --primary-dark: #d98a12;
+            --dark: #0f172b; --white: #ffffff;
+            --text-main: #1e293b; --text-sub: #64748b;
+            --bg-light: #f8f9fa;
+            --radius: 8px;
+            --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+            --anim-fast: 0.2s ease;
+        }
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
+        body { font-family: 'Nunito', sans-serif; background-color: var(--bg-light); color: var(--text-main); }
+        h4, h5, strong, .font-heading { font-family: 'Heebo', sans-serif; }
+
+        /* --- HEADER & BUTTONS --- */
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .page-title { color: var(--dark); font-weight: 800; font-size: 1.5rem; text-transform: uppercase; margin: 0; }
+
+        .btn-create {
+            background: var(--primary); color: var(--white); border: none; padding: 10px 20px;
+            border-radius: 6px; font-weight: 700; font-family: 'Heebo'; text-transform: uppercase;
+            font-size: 0.85rem; box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3); transition: var(--anim-fast);
+            text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-create:hover { background: var(--primary-dark); transform: translateY(-2px); color: var(--white); }
+
+        /* --- FILTER CARD --- */
+        .card-filter {
+            background: var(--white); border-radius: var(--radius); border: 1px solid #f1f5f9;
+            box-shadow: var(--shadow-card); overflow: hidden; margin-bottom: 24px;
+        }
+        .filter-header {
+            background: var(--dark); color: var(--white); padding: 12px 20px;
+            font-family: 'Heebo'; font-weight: 700; font-size: 0.95rem; text-transform: uppercase;
+            background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        .filter-body { padding: 20px; }
+        
+        .form-label-custom { font-size: 0.8rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; margin-bottom: 5px; }
+        .form-control-custom, .form-select-custom {
+            border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; font-size: 0.9rem; width: 100%;
+        }
+        .form-control-custom:focus, .form-select-custom:focus {
+            outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(254, 161, 22, 0.1);
+        }
+
+        .btn-search { background: var(--dark); color: var(--white); border: none; }
+        .btn-reset { background: #e2e8f0; color: var(--text-sub); border: none; }
+        .btn-filter-action {
+            padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; transition: 0.2s;
+        }
+
+        /* --- TABLE STYLE --- */
+        .card-table { border: none; border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; background: var(--white); }
+        .custom-table thead th {
+            background: #f8fafc; color: var(--text-sub); font-weight: 700; text-transform: uppercase;
+            font-size: 0.75rem; border-bottom: 2px solid #e2e8f0; padding: 12px; text-align: center;
+        }
+        .custom-table tbody td {
+            vertical-align: middle; padding: 12px; border-bottom: 1px dashed #f1f5f9;
+            color: var(--text-main); font-size: 0.9rem;
+        }
+        .custom-table tbody tr:hover { background: #fdfdfd; }
+
+        /* --- BADGES --- */
+        .badge-pill { padding: 5px 10px; border-radius: 30px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; display: inline-block; }
+        .st-cho { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+        .st-xac-nhan { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .st-phuc-vu { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+        .st-hoan-tat { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .st-huy { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+        .tag-table { background: #f1f5f9; color: var(--dark); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; }
+
+        /* --- NÚT HÀNH ĐỘNG CÓ CHỮ (NEW STYLE) --- */
+        .btn-act-text {
+            border: none; padding: 6px 12px; border-radius: 6px;
+            font-size: 0.75rem; font-weight: 800; font-family: 'Heebo', sans-serif;
+            text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center;
+            gap: 6px; cursor: pointer; transition: 0.2s ease; white-space: nowrap; width: 100%; margin-bottom: 4px;
+        }
+
+        /* Màu sắc nút */
+        .btn-check { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; } 
+        .btn-check:hover { background: #166534; color: white; border-color: #166534; }
+
+        .btn-cancel { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; } 
+        .btn-cancel:hover { background: #991b1b; color: white; border-color: #991b1b; }
+
+        .btn-serve { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; } 
+        .btn-serve:hover { background: #9a3412; color: white; border-color: #9a3412; }
+
+        .btn-finish { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; } 
+        .btn-finish:hover { background: #475569; color: white; border-color: #475569; }
+
+        /* Countdown */
+        .countdown-timer { font-weight: 700; font-family: 'Heebo'; }
+        .blink-slow { animation: blinker 1.5s linear infinite; }
+        .blink-fast { animation: blinker 0.8s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.4; } }
+
+    </style>
+
+    <div class="container py-4">
+        
+        {{-- HEADER --}}
+        <div class="page-header">
+            <h4 class="page-title"><i class="fa-solid fa-clipboard-list text-primary"></i> Danh sách đặt bàn</h4>
+            <a href="{{ route('nhanVien.datban.create') }}" class="btn-create">
+                <i class="fa-solid fa-plus"></i> Tạo mới
+            </a>
+        </div>
+
+        {{-- FLASH MESSAGES --}}
+        @foreach(['success', 'error'] as $msg)
+            @if(session($msg))
+                <div class="alert alert-{{ $msg == 'success' ? 'success' : 'danger' }} alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="font-weight: 600;">
+                    <i class="fa-solid fa-{{ $msg == 'success' ? 'check-circle' : 'exclamation-triangle' }} me-2"></i> {{ session($msg) }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+        @endforeach
+
+        {{-- FILTER CARD --}}
+        <div class="card-filter">
+            <div class="filter-header"><i class="fa-solid fa-filter me-2"></i> Bộ lọc tìm kiếm</div>
+            <div class="filter-body">
+                <form action="" method="GET">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label-custom">Trạng thái</label>
+                            <select name="trang_thai" class="form-select-custom">
+                                <option value="">-- Tất cả --</option>
+                                <option value="cho_xac_nhan" {{ request('trang_thai')=='cho_xac_nhan'?'selected':'' }}>Chờ xác nhận</option>
+                                <option value="da_xac_nhan" {{ request('trang_thai')=='da_xac_nhan'?'selected':'' }}>Đã xác nhận</option>
+                                <option value="khach_da_den" {{ request('trang_thai')=='khach_da_den'?'selected':'' }}>Đang phục vụ</option>
+                                <option value="hoan_tat" {{ request('trang_thai')=='hoan_tat'?'selected':'' }}>Hoàn tất</option>
+                                <option value="huy" {{ request('trang_thai')=='huy'?'selected':'' }}>Đã hủy</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-custom">Mã đặt bàn</label>
+                            <input type="text" name="ma" class="form-control-custom" placeholder="Nhập mã..." value="{{ request('ma') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-custom">Số bàn</label>
+                            <input type="text" name="ban" class="form-control-custom" placeholder="VD: 10..." value="{{ request('ban') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label-custom">Khách hàng</label>
+                            <input type="text" name="khach" class="form-control-custom" placeholder="Tên hoặc SĐT..." value="{{ request('khach') }}">
+                        </div>
+                        
+                        <div class="col-12 mt-3 d-flex gap-2">
+                            <button type="submit" class="btn-filter-action btn-search">
+                                <i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm
+                            </button>
+                            <a href="{{ route('nhanVien.datban.index') }}" class="btn-filter-action btn-reset text-decoration-none">
+                                <i class="fa-solid fa-rotate-right me-1"></i> Đặt lại
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- TABLE CARD --}}
+        <div class="card-table">
             <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle mb-0">
-                    <thead class="table-light text-center">
+                <table class="table custom-table mb-0">
+                    <thead>
                         <tr>
-                            <th style="width: 50px;">Stt</th>
-                            <th>Mã Đặt bàn</th>
+                            <th style="width: 50px;">#</th>
+                            <th>Mã Đặt</th>
                             <th>Bàn</th>
-                            <th>Khách hàng</th>
-                            <th style="width: 80px;">Số khách</th>
+                            <th class="text-start">Khách hàng</th>
+                            <th>Số khách</th>
                             <th>Giờ đến</th>
-                            <th>Combo</th>
-                            <th style="width: 150px;">Thời gian còn lại</th>
-                            <th>Ghi chú</th>
+                            <th class="text-start">Combo</th>
+                            <th>Thời gian</th>
                             <th>Trạng thái</th>
-                            <th style="width: 180px;">Hành động</th>
+                            <th style="width: 140px;">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($ds as $index => $d)
-                            <tr class="{{ $d->trang_thai == 'huy' ? 'table-danger' : '' }} {{ $d->trang_thai == 'hoan_tat' ? 'table-light' : '' }}">
-                                <td class="text-center">{{ $index + 1 }}</td>
-                                <td class="fw-bold text-primary">{{ $d->ma_dat_ban }}</td>
-                                <td class="text-center">
-                                    @if ($d->banAn)
-                                        {{-- Hiển thị Bàn và Khu vực --}}
-                                        <span class="badge bg-dark">Bàn {{ $d->banAn->so_ban }}</span>
-                                        <br><small class="text-muted">{{ $d->banAn->khuVuc->ten_khu_vuc ?? '' }}</small>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    {{-- Hiển thị tên, SĐT và Email khách hàng --}}
-                                    <div class="fw-bold">{{ $d->ten_khach }}</div>
-                                    <small class="text-muted">{{ $d->sdt_khach }}</small>
-                                    @if ($d->email_khach)
-                                        <br><small class="text-info">{{ $d->email_khach }}</small>
-                                    @endif
-                                </td>
-                                <td class="text-center">{{ $d->so_khach }}</td>
-                                <td>
-                                    {{ $d->gio_den ? \Carbon\Carbon::parse($d->gio_den)->format('H:i d/m/Y') : '-' }}
-                                </td>
-                                <td>
-                                    @if ($d->comboBuffet)
-                                        {{ $d->comboBuffet->ten_combo }} <br>
-                                        <small class="text-muted">({{ $d->thoi_luong_phut ?? $d->comboBuffet->thoi_luong_phut }}p)</small>
-                                    @else
-                                        <span class="text-muted">Mặc định</span>
-                                    @endif
-                                </td>
+                        <tr style="{{ $d->trang_thai == 'huy' ? 'opacity: 0.6;' : '' }}">
+                            <td class="text-center text-muted fw-bold">{{ $index + 1 }}</td>
+                            <td class="text-center font-heading text-primary fw-bold">{{ $d->ma_dat_ban }}</td>
+                            <td class="text-center">
+                                @if ($d->banAn)
+                                    <span class="tag-table">Bàn {{ $d->banAn->so_ban }}</span>
+                                    <div class="small text-muted mt-1" style="font-size: 0.7rem;">{{ $d->banAn->khuVuc->ten_khu_vuc ?? '' }}</div>
+                                @else
+                                    <span class="text-muted small fst-italic">Chưa xếp</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ $d->ten_khach }}</div>
+                                <div class="small text-muted"><i class="fa-solid fa-phone me-1" style="font-size: 0.7rem;"></i>{{ $d->sdt_khach }}</div>
+                            </td>
+                            <td class="text-center fw-bold">{{ $d->so_khach }}</td>
+                            <td class="text-center small">
+                                @if($d->gio_den)
+                                    <div class="fw-bold">{{ \Carbon\Carbon::parse($d->gio_den)->format('H:i') }}</div>
+                                    <div class="text-muted">{{ \Carbon\Carbon::parse($d->gio_den)->format('d/m') }}</div>
+                                @else - @endif
+                            </td>
+                            <td>
+                                @if ($d->comboBuffet)
+                                    <span class="fw-bold text-dark">{{ $d->comboBuffet->ten_combo }}</span>
+                                    <span class="text-muted small">({{ $d->thoi_luong_phut ?? $d->comboBuffet->thoi_luong_phut }}p)</span>
+                                @else
+                                    <span class="text-muted small fst-italic">Chưa chọn</span>
+                                @endif
+                            </td>
 
-                                {{-- ĐẾM NGƯỢC THỜI GIAN BUFFET --}}
-<td class="text-center fw-bold">
-    @if ($d->trang_thai == 'khach_da_den')
-        @if ($d->comboBuffet)
-            @php
-                $orderDau = \App\Models\OrderMon::where('dat_ban_id', $d->id)
-                            ->orderBy('created_at', 'asc')->first();
-                $thoiLuong = $d->comboBuffet->thoi_luong_phut ?? 120;
-                $endTime = $orderDau ? \Carbon\Carbon::parse($orderDau->created_at)
-                            ->addMinutes($thoiLuong)->timestamp * 1000 : null;
-            @endphp
-
-            @if ($endTime)
-                <span class="countdown-timer" data-endtime="{{ $endTime }}">Tính giờ...</span>
-            @else
-                <span class="text-muted small">Chưa gọi món</span>
-            @endif
-        @else
-            <span class="text-muted small">Chưa chọn combo</span>
-        @endif
-    @elseif(in_array($d->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']))
-        <span class="text-muted small">Chưa đến</span>
-    @else
-        <span class="text-muted">-</span>
-    @endif
-</td>
-
-{{-- Script đồng hồ --}}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    function updateCountdowns() {
-        const timers = document.querySelectorAll('.countdown-timer');
-        const now = new Date().getTime();
-        const fiveMinutes = 5 * 60 * 1000;
-
-        timers.forEach(timer => {
-            const endTime = parseInt(timer.getAttribute('data-endtime'));
-            if (isNaN(endTime)) return;
-            const distance = endTime - now;
-
-            if (distance < 0) {
-                timer.innerHTML = "HẾT GIỜ";
-                timer.className = "countdown-timer text-danger fw-bold blink-fast";
-                return;
-            }
-
-            const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((distance % (1000 * 60)) / 1000);
-            
-            const timeString = `${h < 10 ? "0"+h : h}:${m < 10 ? "0"+m : m}:${s < 10 ? "0"+s : s}`;
-
-            if (distance <= fiveMinutes) {
-                timer.innerHTML = `${timeString} <br> <span class="badge bg-warning text-dark">Sắp hết</span>`;
-                timer.className = "countdown-timer text-warning fw-bold blink-slow";
-            } else {
-                timer.innerHTML = timeString;
-                timer.className = "countdown-timer text-success fw-bold";
-            }
-        });
-    }
-    setInterval(updateCountdowns, 1000);
-    updateCountdowns();
-});
-</script>
-
-<style>
-.blink-slow { animation: blinker 1.5s linear infinite; }
-.blink-fast { animation: blinker 0.8s linear infinite; }
-@keyframes blinker { 50% { opacity: 0.4; } }
-</style>
-
-
-                                <td>
-                                    <span class="d-inline-block text-truncate" style="max-width: 100px;" title="{{ $d->ghi_chu }}">
-                                        {{ $d->ghi_chu ?? '-' }}
-                                    </span>
-                                </td>
-
-                                <td class="text-center">
+                            {{-- COUNTDOWN --}}
+                            <td class="text-center small">
+                                @if ($d->trang_thai == 'khach_da_den' && $d->comboBuffet)
                                     @php
-                                        $statusLabels = [
-                                            'cho_xac_nhan' => ['text' => 'Chờ xác nhận', 'class' => 'bg-warning text-dark'],
-                                            'da_xac_nhan' => ['text' => 'Đã xác nhận', 'class' => 'bg-info text-dark'],
-                                            'khach_da_den' => ['text' => 'Đang phục vụ', 'class' => 'bg-success'],
-                                            'huy' => ['text' => 'Đã hủy', 'class' => 'bg-danger'],
-                                            'hoan_tat' => ['text' => 'Hoàn tất', 'class' => 'bg-secondary'],
-                                        ];
-                                        $status = $statusLabels[$d->trang_thai] ?? ['text' => $d->trang_thai, 'class' => 'bg-secondary'];
+                                        $orderDau = \App\Models\OrderMon::where('dat_ban_id', $d->id)->orderBy('created_at', 'asc')->first();
+                                        $thoiLuong = $d->comboBuffet->thoi_luong_phut ?? 120;
+                                        $endTime = $orderDau ? \Carbon\Carbon::parse($orderDau->created_at)->addMinutes($thoiLuong)->timestamp * 1000 : null;
                                     @endphp
-                                    <span class="badge {{ $status['class'] }}">{{ $status['text'] }}</span>
-                                </td>
+                                    @if ($endTime)
+                                        <span class="countdown-timer text-primary" data-endtime="{{ $endTime }}">...</span>
+                                    @else
+                                        <span class="text-muted">Chưa gọi món</span>
+                                    @endif
+                                @elseif(in_array($d->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']))
+                                    <span class="text-muted">Chưa đến</span>
+                                @else
+                                    -
+                                @endif
+                            </td>
 
-                                {{-- HÀNH ĐỘNG --}}
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        
-                                        {{-- TRƯỜNG HỢP 1: CHỜ XÁC NHẬN --}}
-                                        @if ($d->trang_thai == 'cho_xac_nhan')
-                                            {{-- Nút Xác nhận --}}
-                                            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                                                @csrf
-                                                <input type="hidden" name="trang_thai" value="da_xac_nhan">
-                                                <button type="submit" class="btn btn-sm btn-success" title="Xác nhận" onclick="return confirm('Xác nhận đơn này?')">
-                                                    <i class="bi bi-check-lg"></i> Xác nhận
-                                                </button>
-                                            </form>
-                                            
-                                            {{-- Nút Hủy --}}
-                                            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                                                @csrf
-                                                <input type="hidden" name="trang_thai" value="huy">
-                                                <button type="submit" class="btn btn-sm btn-danger" title="Hủy đơn" onclick="return confirm('Hủy đơn này?')">
-                                                    <i class="bi bi-x-lg"></i> Hủy
-                                                </button>
-                                            </form>
+                            {{-- STATUS --}}
+                            <td class="text-center">
+                                @php
+                                    $st = $d->trang_thai;
+                                    $badgeClass = 'bg-secondary text-white'; $badgeText = $st;
+                                    if($st == 'cho_xac_nhan') { $badgeClass = 'st-cho'; $badgeText = 'Chờ duyệt'; }
+                                    elseif($st == 'da_xac_nhan') { $badgeClass = 'st-xac-nhan'; $badgeText = 'Đã duyệt'; }
+                                    elseif($st == 'khach_da_den') { $badgeClass = 'st-phuc-vu'; $badgeText = 'Đang ăn'; }
+                                    elseif($st == 'hoan_tat') { $badgeClass = 'st-hoan-tat'; $badgeText = 'Hoàn tất'; }
+                                    elseif($st == 'huy') { $badgeClass = 'st-huy'; $badgeText = 'Hủy'; }
+                                @endphp
+                                <span class="badge-pill {{ $badgeClass }}">{{ $badgeText }}</span>
+                            </td>
 
-                                        {{-- TRƯỜNG HỢP 2: ĐÃ XÁC NHẬN (Khách đến) --}}
-                                        @elseif($d->trang_thai == 'da_xac_nhan')
-                                            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                                                @csrf
-                                                <input type="hidden" name="trang_thai" value="khach_da_den">
-                                                <button type="submit" class="btn btn-sm btn-primary w-100" onclick="return confirm('Khách đã đến?')">
-                                                    <i class="bi bi-person-check-fill"></i> Khách tới
-                                                </button>
-                                            </form>
+                            {{-- ACTIONS (BUTTONS WITH TEXT) --}}
+                            <td class="text-center">
+                                <div class="d-flex flex-column align-items-center gap-1" style="min-width: 110px;">
+                                    @if ($d->trang_thai == 'cho_xac_nhan')
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}" class="w-100">
+                                            @csrf <input type="hidden" name="trang_thai" value="da_xac_nhan">
+                                            <button type="submit" class="btn-act-text btn-check" onclick="return confirm('Xác nhận?')"><i class="fa-solid fa-check"></i> DUYỆT</button>
+                                        </form>
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}" class="w-100">
+                                            @csrf <input type="hidden" name="trang_thai" value="huy">
+                                            <button type="submit" class="btn-act-text btn-cancel" onclick="return confirm('Hủy?')"><i class="fa-solid fa-xmark"></i> HỦY</button>
+                                        </form>
 
-                                        {{-- TRƯỜNG HỢP 3: ĐANG PHỤC VỤ (Kết thúc) --}}
-                                        @elseif($d->trang_thai == 'khach_da_den')
-                                            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                                                @csrf
-                                                <input type="hidden" name="trang_thai" value="hoan_tat">
-                                                <button type="submit" class="btn btn-sm btn-secondary w-100" onclick="return confirm('Kết thúc bàn này?')">
-                                                    <i class="bi bi-flag-fill"></i> Kết thúc
-                                                </button>
-                                            </form>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
+                                    @elseif($d->trang_thai == 'da_xac_nhan')
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}" class="w-100">
+                                            @csrf <input type="hidden" name="trang_thai" value="khach_da_den">
+                                            <button type="submit" class="btn-act-text btn-serve" onclick="return confirm('Khách đã đến?')"><i class="fa-solid fa-utensils"></i> KHÁCH ĐẾN</button>
+                                        </form>
+
+                                    @elseif($d->trang_thai == 'khach_da_den')
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}" class="w-100">
+                                            @csrf <input type="hidden" name="trang_thai" value="hoan_tat">
+                                            <button type="submit" class="btn-act-text btn-finish" onclick="return confirm('Kết thúc?')"><i class="fa-solid fa-flag-checkered"></i> KẾT THÚC</button>
+                                        </form>
+                                    @else
+                                        <span class="text-muted small" style="font-style: italic;">--</span>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
                         @empty
-                            <tr>
-                                <td colspan="11" class="text-center py-4 text-muted">Chưa có dữ liệu đặt bàn nào.</td>
-                            </tr>
+                        <tr>
+                            <td colspan="10" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-inbox fa-2x mb-2 opacity-25"></i>
+                                <p class="fw-bold mb-0">Không tìm thấy dữ liệu đặt bàn.</p>
+                            </td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -230,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
-    {{-- Script đồng hồ (Giữ nguyên logic cũ) --}}
+    {{-- Script đồng hồ --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             function updateCountdowns() {
@@ -252,11 +325,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                     const s = Math.floor((distance % (1000 * 60)) / 1000);
-                    
                     const timeString = `${h < 10 ? "0"+h : h}:${m < 10 ? "0"+m : m}:${s < 10 ? "0"+s : s}`;
 
                     if (distance <= fiveMinutes) {
-                        timer.innerHTML = `${timeString} <br> <span class="badge bg-warning text-dark">Sắp hết</span>`;
+                        timer.innerHTML = `${timeString} <i class="fa-solid fa-triangle-exclamation"></i>`;
                         timer.className = "countdown-timer text-warning fw-bold blink-slow";
                     } else {
                         timer.innerHTML = timeString;
@@ -268,10 +340,4 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCountdowns();
         });
     </script>
-
-    <style>
-        .blink-slow { animation: blinker 1.5s linear infinite; }
-        .blink-fast { animation: blinker 0.8s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0.4; } }
-    </style>
 @endsection

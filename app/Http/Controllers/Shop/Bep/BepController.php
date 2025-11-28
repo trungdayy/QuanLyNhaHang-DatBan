@@ -22,11 +22,18 @@ public function dashboard(Request $request)
 
     // 2. Khởi tạo query
     $query = ChiTietOrder::with([
-        'orderMon.banAn:id,so_ban',
-        'orderMon.chiTietOrders', // Eager load để tính ưu tiên
-        'monAn:id,ten_mon,hinh_anh,danh_muc_id' // Lấy thêm danh_muc_id để debug nếu cần
-    ])
-    ->whereIn('trang_thai', ['cho_bep', 'dang_che_bien']);
+            'orderMon.banAn:id,so_ban',
+            'orderMon.chiTietOrders',
+            'monAn:id,ten_mon,hinh_anh,danh_muc_id'
+        ])
+        ->whereIn('trang_thai', ['cho_bep', 'dang_che_bien'])
+        // --- FIX QUAN TRỌNG ---
+        ->whereHas('orderMon', function ($q) {
+            $q->where('trang_thai', '!=', 'hoan_thanh');
+        })
+        ->whereHas('orderMon.datBan', function ($q) {
+            $q->where('trang_thai', '!=', 'hoan_tat');
+        });
 
     // 3. Lọc theo khu bếp (Sử dụng whereHas để lọc SQL trực tiếp)
     if ($request->filled('khu_bep')) {

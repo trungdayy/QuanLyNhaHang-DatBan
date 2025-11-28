@@ -1,109 +1,236 @@
 @extends('layouts.Shop.layout-nhanvien')
 
-@section('title', 'Order cho khách')
+@section('title', 'Chi tiết Order')
 
 @section('content')
-<main class="app-content">
+    {{-- 1. IMPORT FONTS --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 
-    {{-- Tiêu đề --}}
-    <div class="app-title mb-4 d-flex align-items-center gap-2">
-        <i class="bi bi-journal-text fs-3 text-primary"></i>
-        <h2 class="fw-bold mb-0">Order bàn {{ $order->banAn->so_ban }}</h2>
-    </div>
+    {{-- 2. CSS STYLING (Design System) --}}
+    <style>
+        :root {
+            --primary: #fea116; --primary-dark: #d98a12;
+            --dark: #0f172b; --white: #ffffff;
+            --success: #20d489; --danger: #ff4d4f; --info: #0dcaf0;
+            --text-main: #1e293b; --text-sub: #64748b;
+            --bg-light: #f8f9fa;
+            --radius: 8px;
+            --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        }
 
-    {{-- Thông tin bàn & order --}}
-    <div class="card shadow-sm mb-4 p-4 rounded-4 border-0" style="background: #f8f9fa;">
-        <h5 class="fw-semibold"><i class="bi bi-table"></i> Bàn số: {{ $order->banAn->so_ban }}</h5>
-        <p class="mb-1"><i class="bi bi-receipt"></i> Order ID: <b>{{ $order->id }}</b></p>
-        <p class="mb-1"><i class="bi bi-basket3"></i> Tổng món: <b>{{ $order->tong_mon }}</b></p>
-        <p class="mb-0"><i class="bi bi-currency-dollar"></i> Tổng tiền: <b>{{ number_format($order->tong_tien) }} đ</b></p>
-    </div>
+        body { font-family: 'Nunito', sans-serif; background-color: var(--bg-light); color: var(--text-main); }
+        h2, h3, h5, strong, .font-heading { font-family: 'Heebo', sans-serif; }
 
-    {{-- Nút chức năng --}}
-    <div class="mb-4 d-flex flex-wrap gap-2">
-        <a href="{{ route('nhanVien.chi-tiet-order.create', ['order_id' => $order->id]) }}"
-            class="btn btn-primary fw-semibold rounded-pill shadow-sm">
-            ➕ Thêm món
-        </a>
+        /* --- CARD STYLE --- */
+        .card-box {
+            border: none; border-radius: var(--radius); box-shadow: var(--shadow-card);
+            background: var(--white); margin-bottom: 24px; overflow: hidden; border: 1px solid #f1f5f9;
+        }
 
-        <form action="{{ route('nhanVien.order.gui-bep', $order->id) }}" method="POST" class="m-0">
-            @csrf
-            <button type="submit" class="btn btn-warning fw-semibold rounded-pill shadow-sm">📤 Gửi bếp</button>
-        </form>
-    </div>
+        .card-header-custom {
+            background: var(--dark); color: var(--white); padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        .header-title { font-family: 'Heebo', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 1rem; letter-spacing: 0.5px; }
 
-    {{-- Danh sách món --}}
-    <div class="card p-3 rounded-4 shadow-sm border-0" style="background: #ffffff;">
-        <h5 class="mb-3 fw-semibold">Danh sách món đã chọn</h5>
+        /* --- INFO ROW --- */
+        .info-row { display: flex; margin-bottom: 8px; align-items: center; }
+        .info-label { width: 140px; color: var(--text-sub); font-weight: 600; font-size: 0.9rem; }
+        .info-value { color: var(--dark); font-weight: 700; font-size: 1rem; }
+        .total-money { color: var(--primary); font-size: 1.2rem; font-weight: 800; font-family: 'Heebo'; }
 
-        @if($order->chiTietOrders->isEmpty())
-        <p class="text-muted">Chưa có món nào.</p>
-        @else
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Món ăn</th>
-                        <th>Số lượng</th>
-                        <th>Ghi chú</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($order->chiTietOrders as $ct)
-                    <tr>
-                        <td>{{ $ct->monAn->ten_mon }}</td>
-                        <td>{{ $ct->so_luong_hien_thi }}</td>
-                        <td>{{ $ct->ghi_chu }}</td>
-                        <td>
-                            <a href="{{ route('nhanVien.chi-tiet-order.edit', [$order->id, $ct->id]) }}"
-                                class="btn btn-sm btn-warning rounded-pill shadow-sm me-1 mb-1">Sửa</a>
+        /* --- TABLE STYLE --- */
+        .custom-table thead th {
+            background: #f1f5f9; color: var(--text-main); font-weight: 700; text-transform: uppercase;
+            font-size: 0.8rem; border-bottom: 2px solid #e2e8f0; padding: 12px;
+        }
+        .custom-table tbody td {
+            vertical-align: middle; padding: 12px; border-bottom: 1px dashed #f1f5f9;
+            color: var(--text-main); font-size: 0.95rem; font-weight: 600;
+        }
+        .custom-table tbody tr:hover { background: #f8fafc; }
 
-                            <form action="{{ route('nhanVien.chi-tiet-order.destroy', $ct->id) }}"
-                                method="POST" class="d-inline"
-                                onsubmit="return confirm('Bạn có chắc chắn muốn xóa món này không?');">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm btn-danger rounded-pill shadow-sm mb-1">Xóa</button>
-                            </form>
+        /* --- STATUS BADGES (Glassmorphism) --- */
+        .badge-pill {
+            padding: 6px 12px; border-radius: 30px; font-size: 0.75rem; font-weight: 800;
+            text-transform: uppercase; display: inline-block;
+        }
+        /* Chờ bếp: Vàng/Cam nhạt */
+        .st-cho-bep { background: rgba(254, 161, 22, 0.15); color: #b45309; border: 1px solid rgba(254, 161, 22, 0.3); }
+        /* Đang làm: Xanh dương nhạt */
+        .st-dang-lam { background: rgba(13, 202, 240, 0.15); color: #0891b2; border: 1px solid rgba(13, 202, 240, 0.3); }
+        /* Đã lên: Xanh Mint nhạt */
+        .st-da-len { background: rgba(32, 212, 137, 0.15); color: #059669; border: 1px solid rgba(32, 212, 137, 0.2); }
+        /* Hủy: Đỏ nhạt */
+        .st-huy { background: rgba(255, 77, 79, 0.1); color: #dc2626; border: 1px solid rgba(255, 77, 79, 0.2); }
 
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        /* --- BUTTONS --- */
+        .btn-custom {
+            border: none; border-radius: 6px; font-weight: 700; text-transform: uppercase;
+            font-family: 'Heebo', sans-serif; font-size: 0.85rem; padding: 8px 16px;
+            transition: 0.2s; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-back { background: #e2e8f0; color: var(--text-sub); }
+        .btn-back:hover { background: #cbd5e1; color: var(--dark); }
+
+        .btn-add { background: var(--primary); color: var(--white); box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3); }
+        .btn-add:hover { background: var(--primary-dark); transform: translateY(-2px); }
+
+        .btn-icon-small {
+            width: 32px; height: 32px; border-radius: 6px; display: inline-flex;
+            align-items: center; justify-content: center; border: none; transition: 0.2s;
+        }
+        .btn-edit { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+        .btn-edit:hover { background: #ffedd5; }
+        .btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+        .btn-delete:hover { background: #fee2e2; }
+
+    </style>
+
+    <div class="container py-4">
+        
+        {{-- FLASH MESSAGES --}}
+        @foreach (['success' => 'check-circle', 'warning' => 'exclamation-triangle', 'error' => 'times-circle'] as $msg => $icon)
+            @if(session($msg))
+                <div class="alert alert-{{ $msg == 'error' ? 'danger' : $msg }} mb-4 shadow-sm border-0 d-flex align-items-center gap-2" 
+                     style="font-weight: 600;">
+                    <i class="fa-solid fa-{{ $icon }}"></i> {{ session($msg) }}
+                </div>
+            @endif
+        @endforeach
+
+        {{-- HEADER PAGE --}}
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <a href="{{ route('nhanVien.order.index') }}" class="btn-custom btn-back mb-2" style="padding: 6px 12px; font-size: 0.75rem;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+                <h3 class="m-0 font-heading" style="color: var(--dark); font-weight: 800; font-size: 1.8rem;">
+                    ORDER BÀN {{ $order->banAn->so_ban }}
+                </h3>
+            </div>
+            <a href="{{ route('nhanVien.chi-tiet-order.create', ['order_id' => $order->id]) }}" class="btn-custom btn-add">
+                <i class="fa-solid fa-plus"></i> Thêm món
+            </a>
         </div>
-        @endif
+
+        <div class="row">
+            {{-- 1. THÔNG TIN CHUNG (CARD) --}}
+            <div class="col-md-4 order-md-2 mb-4">
+                <div class="card-box">
+                    <div class="card-header-custom">
+                        <span class="header-title"><i class="fa-solid fa-circle-info me-2"></i> Thông tin</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="info-row">
+                            <span class="info-label">Mã Order:</span>
+                            <span class="info-value">#{{ $order->id }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Bàn:</span>
+                            <span class="info-value">Số {{ $order->banAn->so_ban }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Combo:</span>
+                            <span class="info-value text-primary">{{ $order->datBan->comboBuffet->ten_combo ?? 'Gọi món lẻ' }}</span>
+                        </div>
+                        <hr style="border-color: #f1f5f9;">
+                        <div class="info-row">
+                            <span class="info-label">Tổng món:</span>
+                            <span class="info-value">{{ $order->tong_mon }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Tạm tính:</span>
+                            <span class="total-money">{{ number_format($order->tong_tien) }} đ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 2. DANH SÁCH MÓN (TABLE) --}}
+            <div class="col-md-8 order-md-1">
+                <div class="card-box">
+                    <div class="card-header-custom">
+                        <span class="header-title"><i class="fa-solid fa-utensils me-2"></i> Danh sách món</span>
+                    </div>
+                    
+                    @if ($order->chiTietOrders->isEmpty())
+                        <div class="p-5 text-center text-muted">
+                            <i class="fa-solid fa-basket-shopping fa-3x mb-3 opacity-25"></i>
+                            <p class="fw-bold">Chưa có món nào được gọi.</p>
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table custom-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Món ăn</th>
+                                        <th class="text-center">SL</th>
+                                        <th>Ghi chú</th>
+                                        <th class="text-center">Trạng thái</th>
+                                        <th class="text-end">Xử lý</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($order->chiTietOrders as $ct)
+                                        <tr>
+                                            <td>
+                                                <div style="font-weight: 700; color: var(--dark);">{{ $ct->monAn->ten_mon }}</div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span style="font-family:'Heebo'; font-weight:800; font-size:1rem; color: var(--primary);">x{{ $ct->so_luong_hien_thi }}</span>
+                                            </td>
+                                            <td>
+                                                @if($ct->ghi_chu)
+                                                    <small class="text-muted fst-italic"><i class="fa-regular fa-comment-dots"></i> {{ $ct->ghi_chu }}</small>
+                                                @else
+                                                    <span class="text-muted opacity-50">-</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @switch($ct->trang_thai)
+                                                    @case('cho_bep')
+                                                        <span class="badge-pill st-cho-bep">Chờ bếp</span>
+                                                        @break
+                                                    @case('dang_che_bien')
+                                                        <span class="badge-pill st-dang-lam">Đang làm</span>
+                                                        @break
+                                                    @case('da_len_mon')
+                                                        <span class="badge-pill st-da-len">Đã lên</span>
+                                                        @break
+                                                    @case('huy_mon')
+                                                        <span class="badge-pill st-huy">Đã hủy</span>
+                                                        @break
+                                                    @default
+                                                        <span class="badge bg-secondary">{{ $ct->trang_thai }}</span>
+                                                @endswitch
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{{ route('nhanVien.chi-tiet-order.edit', [$order->id, $ct->id]) }}" 
+                                                   class="btn-icon-small btn-edit" title="Sửa">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+
+                                                <form action="{{ route('nhanVien.chi-tiet-order.destroy', $ct->id) }}" method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Xóa món {{ $ct->monAn->ten_mon }}?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="btn-icon-small btn-delete ms-1" title="Xóa">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
-
-</main>
-
-{{-- CSS nâng cấp --}}
-<style>
-    .card {
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn {
-        transition: all 0.3s;
-    }
-
-    .btn:hover {
-        transform: translateY(-2px);
-    }
-
-    table th,
-    table td {
-        vertical-align: middle !important;
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: #f1f3f5;
-    }
-</style>
 @endsection

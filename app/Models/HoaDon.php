@@ -39,6 +39,7 @@ class HoaDon extends Model
 
     /**
      * Tính tiền phải thanh toán cuối cùng
+     * Công thức: Tổng tiền - Tiền giảm (Voucher) - Tiền cọc + Phụ thu
      */
     public function tinhDaThanhToan(): float
     {
@@ -46,8 +47,12 @@ class HoaDon extends Model
         $tongTien = $this->tong_tien ?? 0;
         $tienGiam = $this->tien_giam ?? 0;
         $phuThu = $this->phu_thu ?? 0;
+        $tienCoc = $this->datBan->tien_coc ?? 0;
 
-        return $tongTien - $tienGiam + $phuThu;
+        // Công thức: Tổng tiền - Voucher - Tiền cọc + Phụ thu
+        $phaiThanhToan = $tongTien - $tienGiam - $tienCoc + $phuThu;
+        
+        return max(0, $phaiThanhToan); // Không được âm
     }
     
     /**
