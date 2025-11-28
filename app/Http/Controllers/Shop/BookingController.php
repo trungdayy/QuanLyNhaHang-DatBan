@@ -10,8 +10,13 @@ use App\Models\KhuVuc;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Mail\BookingOtpMail;
+use App\Mail\InvoiceMail;
+use PayOS\PayOS;
+use PayOS\Models\V2\PaymentRequests\CreatePaymentLinkRequest;
+use App\Helpers\BookingHelper;
 
 class BookingController extends Controller
 {
@@ -33,42 +38,26 @@ class BookingController extends Controller
     /** FORM ĐẶT BÀN ONLINE */
     public function create(Request $request)
     {
-        
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
         $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         $khuVucs = KhuVuc::all();
 
-// Khởi tạo $datBan ngay cả khi tạo mới
-$datBan = new DatBan();
+        $selectedCombo = $request->combo_id ? ComboBuffet::find($request->combo_id) : null;
 
-if ($request->has('combo_id')) {
-    $datBan->combo_id = $request->combo_id;
-}
-
-return view('restaurants.booking.create', compact(
-    'combos',
-    'banAns',
-    'khuVucs',
-    'datBan'
-));
-
+        return view('restaurants.booking.create', compact('combos', 'banAns', 'khuVucs', 'selectedCombo'));
     }
-    
-
-
 
     /** AJAX: lấy bàn theo khu vực */
     public function getBansByKhuVuc($khu_vuc_id)
     {
         $banAns = BanAn::where('khu_vuc_id', $khu_vuc_id)
             ->whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])
-            ->orderBy('so_ban')
-            ->get();
+            ->orderBy('so_ban')->get();
 
         return response()->json($banAns);
     }
 
-    /** LƯU ĐẶT BÀN MỚI + Gửi OTP nếu có email */
+    /** LƯU ĐẶT BÀN + gửi OTP nếu có email */
     public function store(Request $request)
     {
         $request->validate([
@@ -90,7 +79,6 @@ return view('restaurants.booking.create', compact(
         if ($ban_id) {
             $duration = 120;
             $gioDen = Carbon::parse($request->gio_den);
-
             $conflict = DatBan::where('ban_id', $ban_id)
                 ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
                 ->whereBetween('gio_den', [
@@ -105,6 +93,8 @@ return view('restaurants.booking.create', compact(
         }
 
         $maDatBan = 'DB-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        $comboPrice = $combo_id ? ComboBuffet::find($combo_id)->gia_co_ban : 0;
+        $tienCoc = BookingHelper::calculateDeposit($comboPrice, $request->so_khach);
 
         $datBan = DatBan::create([
             'ma_dat_ban' => $maDatBan,
@@ -117,16 +107,13 @@ return view('restaurants.booking.create', compact(
             'gio_den' => $request->gio_den,
             'thoi_luong_phut' => 120,
             'ghi_chu' => $request->ghi_chu,
-            'tien_coc' => 0,
+            'tien_coc' => $tienCoc,
             'la_dat_online' => 1,
-            'trang_thai' => 'cho_xac_nhan',
+            'trang_thai' => 'cho_xac_nhan'
         ]);
 
-        // Nếu có email → gửi OTP
         if ($request->email_khach) {
             $otp = rand(100000, 999999);
-
-            // Lưu OTP chuẩn với OtpController
             session([
                 "otp.booking.{$request->email_khach}" => [
                     'code' => $otp,
@@ -135,104 +122,12 @@ return view('restaurants.booking.create', compact(
                 ],
                 "otp.booking_email" => $request->email_khach
             ]);
-
-            // Gửi email OTP
             Mail::to($request->email_khach)->send(new BookingOtpMail($otp));
-
             return redirect()->route('otp.form')->with('success', 'Mã OTP đã gửi tới email của bạn.');
         }
 
-        return redirect()->route('booking.success')->with('success', 'Đặt bàn thành công! Chờ nhà hàng xác nhận.');
-    }
-
-    /** FORM SỬA ĐƠN */
-    public function edit($id)
-    {
-        $datBan = DatBan::findOrFail($id);
-        $sdt = session('sdt_khach', null);
-
-        if (!in_array($datBan->trang_thai, ['cho_xac_nhan']) || $datBan->sdt_khach !== $sdt) {
-            return redirect()->route('booking')->with('error', 'Không thể sửa đơn này.');
-        }
-
-        $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
-        $banAns = BanAn::where(function ($q) use ($datBan) {
-            $q->whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])
-                ->orWhere('id', $datBan->ban_id);
-        })->get();
-        $khuVucs = KhuVuc::all();
-
-        return view('restaurants.booking.edit', compact('datBan', 'combos', 'banAns', 'khuVucs'));
-    }
-
-    /** CẬP NHẬT ĐƠN */
-    public function update(Request $request, $id)
-    {
-        $datBan = DatBan::findOrFail($id);
-        $sdt = session('sdt_khach', null);
-
-        if (!in_array($datBan->trang_thai, ['cho_xac_nhan']) || $datBan->sdt_khach !== $sdt) {
-            return back()->with('error', 'Không thể sửa đơn này.');
-        }
-
-        $request->validate([
-            'ten_khach' => 'required|string|max:255',
-            'email_khach' => 'nullable|email|max:255',
-            'sdt_khach' => 'required|string|max:20',
-            'so_khach' => 'required|integer|min:1',
-            'combo_id' => 'nullable|exists:combo_buffet,id',
-            'ban_id' => 'nullable|exists:ban_an,id',
-            'gio_den' => 'required|date',
-            'ghi_chu' => 'nullable|string',
-        ]);
-
-        $combo_id = $request->combo_id ?: null;
-        $ban_id = $request->ban_id ?: null;
-
-        if ($ban_id) {
-            $duration = 120;
-            $gioDen = Carbon::parse($request->gio_den);
-
-            $conflict = DatBan::where('ban_id', $ban_id)
-                ->where('id', '!=', $datBan->id)
-                ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
-                ->whereBetween('gio_den', [
-                    $gioDen->copy()->subMinutes($duration - 1),
-                    $gioDen->copy()->addMinutes($duration - 1)
-                ])->first();
-
-            if ($conflict) {
-                $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
-                return back()->withInput()->with('error', "Bàn đã được đặt lúc $gioBiTrung.");
-            }
-        }
-
-        $datBan->update([
-            'ten_khach' => $request->ten_khach,
-            'email_khach' => $request->email_khach,
-            'sdt_khach' => $request->sdt_khach,
-            'so_khach' => $request->so_khach,
-            'combo_id' => $combo_id,
-            'ban_id' => $ban_id,
-            'gio_den' => $request->gio_den,
-            'ghi_chu' => $request->ghi_chu,
-        ]);
-
-        return redirect()->route('booking')->with('success', 'Cập nhật đặt bàn thành công.');
-    }
-
-    /** HỦY ĐƠN */
-    public function destroy($id)
-    {
-        $datBan = DatBan::findOrFail($id);
-        $sdt = session('sdt_khach', null);
-
-        if (!in_array($datBan->trang_thai, ['cho_xac_nhan']) || $datBan->sdt_khach !== $sdt) {
-            return back()->with('error', 'Không thể hủy đơn này.');
-        }
-
-        $datBan->update(['trang_thai' => 'huy']);
-        return redirect()->route('booking')->with('success', 'Đơn đã được hủy.');
+        return redirect()->route('booking.payment_method', $datBan->id)
+            ->with('success', 'Đặt bàn thành công! Chọn phương thức thanh toán.');
     }
 
     /** TRANG CHỌN PHƯƠNG THỨC THANH TOÁN */
@@ -242,44 +137,88 @@ return view('restaurants.booking.create', compact(
         $sdt = session('sdt_khach', null);
 
         if ($datBan->sdt_khach !== $sdt) {
-            return redirect()->route('booking')->with('error', 'Bạn không có quyền truy cập đơn này.');
+            return redirect()->route('booking.index')->with('error', 'Bạn không có quyền truy cập đơn này.');
         }
 
         return view('restaurants.booking.payment-method', compact('datBan'));
     }
 
-    /** Các phương thức thanh toán demo */
-    public function payMomo($booking_id)
+    /** Thanh toán PayOS (SDK mới) */
+    public function payOS($booking_id)
     {
         $datBan = DatBan::findOrFail($booking_id);
-        return view('restaurants.pay.pay-momo', compact('datBan'));
+
+        $payOS = new PayOS(
+            clientId: env('PAYOS_CLIENT_ID'),
+            apiKey: env('PAYOS_API_KEY'),
+            checksumKey: env('PAYOS_CHECKSUM_KEY'),
+        );
+
+        // 1. Tạo orderCode kiểu int duy nhất
+        $orderCode = (int) round(microtime(true) * 1000);
+
+        // 2. Lưu vào DB
+        $datBan->update(['payos_order_code' => $orderCode]);
+
+        // 3. Tạo payment request
+        $paymentData = new CreatePaymentLinkRequest(
+            orderCode: $orderCode,
+            amount: $datBan->tien_coc ?: 50000,
+            description: substr("Pay #{$datBan->ma_dat_ban}", 0, 25),
+            returnUrl: env('PAYOS_RETURN_URL'),
+            cancelUrl: env('PAYOS_CANCEL_URL')
+        );
+
+        try {
+            $result = $payOS->paymentRequests->create($paymentData);
+            return redirect()->to($result->checkoutUrl);
+        } catch (\PayOS\Exceptions\APIException $e) {
+            return back()->with('error', 'Tạo đơn thanh toán thất bại: ' . $e->getMessage());
+        }
     }
 
-    public function payVNPay($booking_id)
+
+    /** Callback PayOS */
+    public function payOSCallback(Request $request)
     {
-        $datBan = DatBan::findOrFail($booking_id);
-        return view('restaurants.pay.pay-vnpay', compact('datBan'));
+        $orderCode = $request->query('orderCode');
+
+        if (!$orderCode) {
+            return redirect()->route('booking.index')->with('error', 'Callback không hợp lệ.');
+        }
+
+        $datBan = DatBan::where('payos_order_code', $orderCode)->first();
+
+        if (!$datBan) {
+            return redirect()->route('booking.index')->with('error', 'Booking không tồn tại.');
+        }
+
+        $status = strtoupper($request->query('status') ?? '');
+        if (in_array($status, ['SUCCESS', 'PAID'])) {
+            if ($datBan->trang_thai !== 'da_thanh_toan') {
+                $datBan->update([
+                    'trang_thai' => 'da_thanh_toan',
+                    'ngay_thanh_toan' => now(),
+                    'deposit_paid' => 1,
+                    'deposit_paid_at' => now(),
+                ]);
+
+                if ($datBan->email_khach) {
+                    try {
+                        Mail::to($datBan->email_khach)->send(new InvoiceMail($datBan));
+                    } catch (\Exception $e) {
+                        Log::error("Gửi InvoiceMail thất bại cho booking_id {$datBan->id}: " . $e->getMessage());
+                    }
+                }
+            }
+            return redirect()->route('booking.success')->with('success', 'Thanh toán PayOS thành công!');
+        }
+
+        return redirect()->route('booking.payment_method', $datBan->id)
+            ->with('error', 'Thanh toán chưa hoàn tất.');
     }
 
-    public function payCash($booking_id)
-    {
-        $datBan = DatBan::findOrFail($booking_id);
-        return view('restaurants.pay.pay-cash', compact('datBan'));
-    }
-
-    public function payBank($booking_id)
-    {
-        $datBan = DatBan::findOrFail($booking_id);
-        return view('restaurants.pay.pay-bank', compact('datBan'));
-    }
-
-    public function payVietQR($booking_id)
-    {
-        $datBan = DatBan::findOrFail($booking_id);
-        return view('restaurants.pay.pay-vietqr', compact('datBan'));
-    }
-
-    /** TRANG THÀNH CÔNG */
+    /** Trang thành công */
     public function success()
     {
         $sdt = session('sdt_khach', null);
@@ -289,6 +228,19 @@ return view('restaurants.booking.create', compact(
         $khuVucs = KhuVuc::all();
 
         return view('restaurants.booking.index', compact('datBans', 'sdt', 'combos', 'banAns', 'khuVucs'))
-            ->with('success', 'Đặt bàn thành công! Chờ nhà hàng xác nhận.');
+            ->with('success', 'Đặt bàn và thanh toán thành công!');
+    }
+
+    /** Thanh toán chuyển khoản / VietQR */
+    public function payVietQR($booking_id)
+    {
+        $datBan = DatBan::findOrFail($booking_id);
+        return view('restaurants.pay.pay-vietqr', compact('datBan'));
+    }
+
+    /** Hủy thanh toán */
+    public function cancel()
+    {
+        return redirect()->route('booking.index')->with('error', 'Thanh toán bị hủy.');
     }
 }
