@@ -313,12 +313,80 @@ class BanAnController extends Controller
         return view('admins.qr_generator', ['banAns' => $banAns]);
     }
 
+/**
+     * AJAX: Load danh sách bàn để cập nhật giao diện (Đã tích hợp Logic Realtime)
+     */
     public function ajaxList()
-{
-    // Copy logic lấy dữ liệu giống hàm index của bạn
-    $khuVucs = \App\Models\KhuVuc::with('banAns')->get(); 
-    
-    // Trả về view partial mà chúng ta vừa tạo ở Bước 1
-    return view('admins.ban-an.partials.list_ban_an', compact('khuVucs'))->render();
-}
+    {
+        // 1. Lấy Khu Vực kèm Bàn Ăn (Eager Loading) + Sắp xếp chuẩn
+        $khuVucs = KhuVuc::with(['banAns' => function($query) {
+            $query->orderBy('so_ban', 'asc'); // Sắp xếp bàn tăng dần
+        }])->orderBy('tang', 'asc')->get();   // Sắp xếp khu vực theo tầng
+
+        // 2. LOGIC TÍNH TOÁN TRẠNG THÁI (COPY TỪ HÀM INDEX SANG)
+        // Để đảm bảo khi AJAX load lại, trạng thái Bận/Trống/Đặt trước vẫn hiển thị đúng
+        $timezone = 'Asia/Ho_Chi_Minh';
+        $now = Carbon::now($timezone);
+        $limitTime = $now->copy()->addMinutes(30);
+
+        // Duyệt qua từng khu vực
+        foreach ($khuVucs as $khuVuc) {
+            // Duyệt qua từng bàn trong khu vực đó để update trạng thái
+            $khuVuc->banAns->transform(function ($ban) use ($now, $limitTime) {
+                
+                // Giữ nguyên logic Hỏng
+                if ($ban->trang_thai === 'khong_su_dung') {
+                    return $ban;
+                }
+
+                // --- BẮT ĐẦU TÍNH TOÁN (Giống hệt hàm index) ---
+                $trangThaiMoi = 'trong';
+                $thongTinBooking = null;
+
+                // Check khách đang ăn
+                $dangPhucVu = DatBan::where('ban_id', $ban->id)
+                    ->where('trang_thai', 'khach_da_den')
+                    ->first();
+
+                if ($dangPhucVu) {
+                    $trangThaiMoi = 'dang_phuc_vu';
+                    $thongTinBooking = "Đang phục vụ: {$dangPhucVu->ten_khach}";
+                } else {
+                    // Check khách sắp đến
+                    $sapToi = DatBan::where('ban_id', $ban->id)
+                        ->where('trang_thai', 'da_xac_nhan')
+                        ->where(function($q) use ($now, $limitTime) {
+                            $q->whereBetween('gio_den', [$now, $limitTime])
+                              ->orWhere(function($sub) use ($now) {
+                                  $sub->where('gio_den', '<', $now) 
+                                      ->where('gio_den', '>', $now->copy()->subMinutes(60));
+                              });
+                        })
+                        ->orderBy('gio_den', 'asc')
+                        ->first();
+
+                    if ($sapToi) {
+                        $trangThaiMoi = 'da_dat';
+                        $gioDen = Carbon::parse($sapToi->gio_den)->format('H:i');
+                        $thongTinBooking = "Khách: {$sapToi->ten_khach} ({$gioDen})";
+                    }
+                }
+
+                // Tự động sửa lỗi Data (Self-healing)
+                if ($ban->trang_thai !== $trangThaiMoi) {
+                    $ban->trang_thai = $trangThaiMoi;
+                    $ban->save();
+                }
+
+                // Gán thông tin hiển thị
+                $ban->booking_info = $thongTinBooking;
+
+                return $ban;
+            });
+        }
+
+        // 3. Trả về view partial
+        // Lưu ý: View 'list_ban_an' phải dùng biến $khuVucs để lặp
+        return view('admins.ban-an.partials.list_ban_an', compact('khuVucs'))->render();
+    }
 }
