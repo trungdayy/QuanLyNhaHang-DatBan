@@ -23,10 +23,19 @@
     @endif
 
     <div class="row">
-        {{-- Form đặt bàn --}}
-        <div class="col-lg-6 mb-4">
-            @include('restaurants.booking._form', ['action' => route('booking.store'), 'method' => 'POST'])
-        </div>
+      {{-- Form đặt bàn --}}
+    <div class="col-lg-6 mb-4">
+        @include('restaurants.booking._form', [
+        'action' => route('booking.store'),
+        'method' => 'POST',
+        'selectedKhuVucId' => $selectedKhuVucId ?? null,
+        'banAns' => $banAns ?? collect(),
+        'datBan' => null,
+        'combos' => $combos,
+        'khuVucs' => $khuVucs,
+        'selectedCombo' => null
+        ])
+    </div>
 
         {{-- Danh sách booking --}}
         <div class="col-lg-6">

@@ -9,10 +9,8 @@ class BanAn extends Model
 {
     use HasFactory;
 
-    // Tên bảng trong database
     protected $table = 'ban_an';
 
-    // Các cột có thể được gán giá trị hàng loạt (mass assignable)
     protected $fillable = [
         'khu_vuc_id',
         'so_ban',
@@ -22,13 +20,16 @@ class BanAn extends Model
         'trang_thai'
     ];
 
-
     public $timestamps = true;
-
 
     public function khuVuc()
     {
-
         return $this->belongsTo(KhuVuc::class, 'khu_vuc_id');
+    }
+
+    // Thêm relation datBans
+    public function datBans()
+    {
+        return $this->hasMany(DatBan::class, 'ban_id');
     }
 }

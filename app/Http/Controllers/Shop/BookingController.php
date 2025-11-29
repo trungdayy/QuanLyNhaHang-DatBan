@@ -32,30 +32,67 @@ class BookingController extends Controller
         $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         $khuVucs = KhuVuc::all();
 
-        return view('restaurants.booking.index', compact('datBans', 'sdt', 'combos', 'banAns', 'khuVucs'));
+        $selectedKhuVucId = null; // thêm dòng này
+
+        return view('restaurants.booking.index', compact('datBans', 'sdt', 'combos', 'banAns', 'khuVucs', 'selectedKhuVucId'));
     }
 
     /** FORM ĐẶT BÀN ONLINE */
     public function create(Request $request)
     {
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
-        $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         $khuVucs = KhuVuc::all();
+
+        $selectedKhuVucId = $request->khu_vuc_id ?? null;
+
+        // Chỉ load bàn nếu đã chọn khu vực
+        $selectedKhuVucId = $request->khu_vuc_id ?? null;
+
+        $banAns = collect();
+        if ($selectedKhuVucId) {
+            $banAns = BanAn::where('khu_vuc_id', $selectedKhuVucId)
+                ->where('trang_thai', 'trong') // chỉ lấy bàn trống
+                ->orderBy('so_ban')
+                ->get();
+        }
+
 
         $selectedCombo = $request->combo_id ? ComboBuffet::find($request->combo_id) : null;
 
-        return view('restaurants.booking.create', compact('combos', 'banAns', 'khuVucs', 'selectedCombo'));
+        return view('restaurants.booking.create', compact(
+            'combos',
+            'banAns',
+            'khuVucs',
+            'selectedCombo',
+            'selectedKhuVucId'
+        ));
     }
 
-    /** AJAX: lấy bàn theo khu vực */
-    public function getBansByKhuVuc($khu_vuc_id)
+    /** Lấy bàn trống theo khu vực (dành cho AJAX nếu vẫn muốn) */
+    // BookingController.php
+    public function getBansByKhuVuc(Request $request, $khu_vuc_id)
     {
-        $banAns = BanAn::where('khu_vuc_id', $khu_vuc_id)
-            ->whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])
-            ->orderBy('so_ban')->get();
+        try {
+            // Lấy ngày giờ khách chọn, default là now()
+            $gioDen = $request->query('gio_den') ? Carbon::parse($request->query('gio_den')) : now();
 
-        return response()->json($banAns);
+            // Lấy bàn trống theo khu vực và ngày đã chọn
+            $banAns = BanAn::where('khu_vuc_id', $khu_vuc_id)
+                ->whereDoesntHave('datBans', function ($q) use ($gioDen) {
+                    $q->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
+                        ->whereDate('gio_den', $gioDen->toDateString());
+                })
+                ->orderBy('so_ban')
+                ->get();
+
+            return response()->json($banAns);
+        } catch (\Exception $e) {
+            // Nếu có lỗi, trả về mảng rỗng thay vì HTML
+            return response()->json([], 500);
+        }
     }
+
+
 
     /** LƯU ĐẶT BÀN + gửi OTP nếu có email */
     public function store(Request $request)
@@ -126,6 +163,7 @@ class BookingController extends Controller
             return redirect()->route('otp.form')->with('success', 'Mã OTP đã gửi tới email của bạn.');
         }
 
+        $ban = BanAn::find($request->ban_id);
         return redirect()->route('booking.payment_method', $datBan->id)
             ->with('success', 'Đặt bàn thành công! Chọn phương thức thanh toán.');
     }
@@ -178,45 +216,68 @@ class BookingController extends Controller
     }
 
 
-    /** Callback PayOS */
+    /** 
+     * Callback PayOS sau khi khách thanh toán cọc thành công
+     */
+    /**
+     * Callback PayOS
+     */
     public function payOSCallback(Request $request)
     {
         $orderCode = $request->query('orderCode');
+        $status    = strtoupper($request->query('status') ?? '');
 
+        // 1. Kiểm tra orderCode hợp lệ
         if (!$orderCode) {
-            return redirect()->route('booking.index')->with('error', 'Callback không hợp lệ.');
+            return redirect()->route('booking.index')
+                ->with('error', 'Callback không hợp lệ (thiếu orderCode).');
         }
 
+        // 2. Tìm đặt bàn theo mã orderCode
         $datBan = DatBan::where('payos_order_code', $orderCode)->first();
 
         if (!$datBan) {
-            return redirect()->route('booking.index')->with('error', 'Booking không tồn tại.');
+            return redirect()->route('booking.index')
+                ->with('error', 'Không tìm thấy đơn đặt bàn.');
         }
 
-        $status = strtoupper($request->query('status') ?? '');
+        // 3. PayOS báo thành công
         if (in_array($status, ['SUCCESS', 'PAID'])) {
-            if ($datBan->trang_thai !== 'da_thanh_toan') {
-                $datBan->update([
-                    'trang_thai' => 'da_thanh_toan',
-                    'ngay_thanh_toan' => now(),
-                    'deposit_paid' => 1,
-                    'deposit_paid_at' => now(),
-                ]);
 
-                if ($datBan->email_khach) {
-                    try {
-                        Mail::to($datBan->email_khach)->send(new InvoiceMail($datBan));
-                    } catch (\Exception $e) {
-                        Log::error("Gửi InvoiceMail thất bại cho booking_id {$datBan->id}: " . $e->getMessage());
-                    }
+            // A. Nếu đang chờ xác nhận -> chuyển sang đã xác nhận
+            if ($datBan->trang_thai === 'cho_xac_nhan') {
+                $datBan->trang_thai = 'da_xac_nhan';
+                $datBan->save();
+            }
+
+            // B. Nếu đã xác nhận hoặc vừa xác nhận xong -> chuyển sang đã thanh toán
+            if ($datBan->trang_thai === 'da_xac_nhan') {
+                $datBan->trang_thai      = 'da_thanh_toan';
+                $datBan->ngay_thanh_toan = now();
+                $datBan->deposit_paid     = 1;
+                $datBan->deposit_paid_at  = now();
+                $datBan->save();
+            }
+
+            // C. Gửi email hóa đơn nếu có email
+            if (!empty($datBan->email_khach)) {
+                try {
+                    Mail::to($datBan->email_khach)->send(new InvoiceMail($datBan));
+                } catch (\Exception $e) {
+                    Log::error("Gửi InvoiceMail thất bại cho booking_id {$datBan->id}: " . $e->getMessage());
                 }
             }
-            return redirect()->route('booking.success')->with('success', 'Thanh toán PayOS thành công!');
+
+            // D. Điều hướng về trang success
+            return redirect()->route('booking.success')
+                ->with('success', 'Thanh toán PayOS thành công!');
         }
 
+        // 4. Nếu PayOS báo chưa thanh toán
         return redirect()->route('booking.payment_method', $datBan->id)
             ->with('error', 'Thanh toán chưa hoàn tất.');
     }
+
 
     /** Trang thành công */
     public function success()

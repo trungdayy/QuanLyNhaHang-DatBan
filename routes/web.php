@@ -51,7 +51,8 @@ Route::prefix('/')->group(function () {
     Route::get('booking/success', [BookingController::class, 'success'])->name('booking.success');
 
     // AJAX: lấy bàn theo khu vực
-    Route::get('booking/bans-by-khuvuc/{khu_vuc_id}', [BookingController::class, 'getBansByKhuVuc']);
+    Route::get('booking/bans-by-khuvuc/{khu_vuc_id}', [BookingController::class, 'getBansByKhuVuc'])
+        ->name('booking.getAvailableBans');
 
     // ==== OTP cho booking ====
     Route::prefix('otp')->group(function () {
