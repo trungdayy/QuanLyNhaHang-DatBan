@@ -21,7 +21,7 @@ use App\Http\Controllers\Admin\ChiTietOrderController;
 use App\Http\Controllers\Admin\OrderMonController;
 use App\Http\Controllers\Admin\HoaDonController;
 use App\Http\Controllers\Admin\VoucherController;
-use App\Http\Controllers\Shop\BookingController;
+use App\Http\Controllers\Shop\Booking\BookingController;
 use App\Http\Controllers\Shop\OtpController;
 use App\Http\Controllers\Shop\MomoController;
 use App\Http\Controllers\Shop\ComboClientController;
