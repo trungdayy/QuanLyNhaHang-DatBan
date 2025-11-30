@@ -26,7 +26,6 @@ Tài khoản: admin - Mật khẩu: 123456
 
 Cảm ơn bạn đã theo dõi 
 
-/=========================================/
 
 
 
@@ -52,8 +51,6 @@ https://javascriptobfuscator.com/Javascript-Obfuscator.aspx
 
 
 
-/* =========================================== */
-/* =========================================== */
 function validate() {
     var username = document.getElementById("username").value;
     var password = document.getElementById("password-field").value;
@@ -131,8 +128,6 @@ function validate() {
 
 /*  PHẦN NỘI DUNG KHÔI PHỤC MẬT KHẨU   */
 
-/* =========================================== */
-/* =========================================== */
 //  function validate() {
 //      var email = document.getElementById("email").value;
 //     if (email == null || email == "") {

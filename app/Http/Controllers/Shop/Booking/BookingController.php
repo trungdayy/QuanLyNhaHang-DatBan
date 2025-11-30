@@ -9,12 +9,7 @@ use Carbon\Carbon;
 
 class BookingController extends Controller
 {
-    /** ============================
-     *  HIỂN THỊ DANH SÁCH ĐẶT BÀN
-     *  ============================ */
-    /** ============================
-     *  HIỂN THỊ DANH SÁCH ĐẶT BÀN THEO SĐT
-     *  ============================ */
+    
     public function index(Request $request)
     {
         // Lấy số điện thoại khách từ query string hoặc session
@@ -37,17 +32,10 @@ class BookingController extends Controller
     }
 
 
-    /** ============================
-     *  TRANG TẠO MỚI
-     *  ============================ */
     public function create()
     {
         return view('restaurants.booking.create');
     }
-
-    /** ============================
-     *  LƯU ĐẶT BÀN
-     *  ============================ */
     public function store(Request $request)
     {
         $request->validate([
@@ -70,18 +58,12 @@ class BookingController extends Controller
             ->with('success', 'Tạo đặt bàn thành công!');
     }
 
-    /** ============================
-     *  TRANG CHỈNH SỬA
-     *  ============================ */
     public function edit($id)
     {
         $datBan = DatBan::findOrFail($id);
         return view('restaurants.booking.edit', compact('datBan'));
     }
 
-    /** ============================
-     *  CẬP NHẬT ĐẶT BÀN
-     *  ============================ */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -106,9 +88,6 @@ class BookingController extends Controller
             ->with('success', 'Cập nhật đặt bàn thành công!');
     }
 
-    /** ============================
-     *  XÓA ĐẶT BÀN
-     *  ============================ */
     public function destroy($id)
     {
         DatBan::destroy($id);

@@ -143,9 +143,7 @@
         .btn-payment { background: var(--primary); color: var(--white); box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3); }
         .btn-payment:hover { background: var(--primary-dark); transform: translateY(-2px); }
 
-        /* =========================================================
            CỘT PHẢI: CUSTOM LẠI THÀNH DẠNG CHỮ (TEXT ONLY)
-           ========================================================= */
         .incoming-item {
             background: var(--white);
             border-bottom: 1px dashed #e2e8f0;

@@ -34,7 +34,6 @@ use App\Http\Controllers\Shop\NhanVien\ThanhToanController;
 
 // ===== PHẦN THÊM MỚI 1: KHAI BÁO CONTROLLER =====
 use App\Http\Controllers\Shop\Oderqr\OrderController;
-// ===============================================
 
 
 /*
@@ -43,7 +42,6 @@ use App\Http\Controllers\Shop\Oderqr\OrderController;
 |--------------------------------------------------------------------------
 */
 
-// ==================== CLIENT SITE ====================
 Route::prefix('/')->group(function () {
 
     // Trang chủ
@@ -85,7 +83,6 @@ Route::prefix('/')->group(function () {
 });
 
 
-// ==================== ADMIN SITE ====================
 Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -188,9 +185,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 
 
-// ==========================================================
 // ===== MÀN Nhân Viên =====
-// ==========================================================
 
 Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
     Route::prefix('ban-an')->name('ban-an.')->group(function () {
@@ -255,9 +250,7 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
     });
 });
 
-// ==========================================================
 // ===== MÀN HÌNH BẾP (CHỈ ROUTE CHÍNH) =====
-// ==========================================================
 Route::prefix('bep')->name('bep.')->group(function () {
     Route::get('/', [BepController::class, 'dashboard'])->name('dashboard');
     Route::post('/update-status', [BepController::class, 'updateMonStatus'])->name('update-status');
@@ -268,9 +261,7 @@ Route::prefix('bep')->name('bep.')->group(function () {
 
 
 
-// ==========================================================
 // ===== PHẦN THÊM MỚI 2: NHÓM ROUTE "oderqr" (Đã thêm Combo Selection) =====
-// ==========================================================
 Route::prefix('oderqr')->group(function () {
 
     /**

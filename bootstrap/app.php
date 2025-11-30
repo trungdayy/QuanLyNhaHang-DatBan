@@ -15,7 +15,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'oderqr/*'
         ]);
-        // ===================================================
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

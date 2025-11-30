@@ -17,9 +17,6 @@ use Illuminate\Support\Facades\DB; // [MỚI] Để dùng Transaction
 
 class DatBanController extends Controller
 {
-    /** ===========================
-     * HIỂN THỊ DANH SÁCH ĐẶT BÀN (CÓ LỌC & TÌM KIẾM)
-     * =========================== */
     public function index(Request $request)
     {
         try {
