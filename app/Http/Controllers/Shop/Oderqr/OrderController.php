@@ -160,8 +160,7 @@ class OrderController extends Controller
                     'dat_ban_id' => $datBan->id,
                     'combo_id' => $item['id'],
                     'so_luong' => $item['so_luong'],
-                    'don_gia' => $comboModel->gia_co_ban,
-                    'thanh_tien' => $comboModel->gia_co_ban * $item['so_luong'],
+
                 ]);
             }
 

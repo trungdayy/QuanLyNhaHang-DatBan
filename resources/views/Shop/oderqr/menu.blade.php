@@ -75,8 +75,8 @@
         }
 
         /* =========================================
-               CỘT TRÁI
-               ========================================= */
+                   CỘT TRÁI
+                   ========================================= */
         #main-content {
             flex: 1;
             min-width: 0;
@@ -406,8 +406,8 @@
         }
 
         /* =========================================
-               CỘT PHẢI: GIỎ HÀNG
-               ========================================= */
+                   CỘT PHẢI: GIỎ HÀNG
+                   ========================================= */
         #cart-sidebar {
             width: 360px;
             flex-shrink: 0;
@@ -600,23 +600,23 @@
             pointer-events: none;
         }
 
-.toast {
-    pointer-events: auto;
-    background: var(--dark);
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 8px;
-    margin-top: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-left: 4px solid var(--primary);
+        .toast {
+            pointer-events: auto;
+            background: var(--dark);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid var(--primary);
 
-    opacity: 0;
-    transform: translateX(50px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
+            opacity: 0;
+            transform: translateX(50px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
 
 
         @keyframes slideInRight {
@@ -804,15 +804,15 @@
         }).format(a);
 
         // --- HÀM HIỂN THỊ THÔNG BÁO (SỬA LẠI) ---
- function showToast(msg, type = 'success') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
 
-    const iconClass = type === 'success' ? 'circle-check' : 'circle-exclamation';
-    const iconColor = type === 'success' ? '#20d489' : '#ff4d4f';
+            const iconClass = type === 'success' ? 'circle-check' : 'circle-exclamation';
+            const iconColor = type === 'success' ? '#20d489' : '#ff4d4f';
 
-    toast.innerHTML = `
+            toast.innerHTML = `
         <div style="display:flex; align-items:center; gap:12px; flex:1;">
             <i class="fa-solid fa-${iconClass}" style="color:${iconColor}; font-size:1.2rem;"></i>
             <span style="font-weight:600; line-height:1.4;">${msg}</span>
@@ -822,53 +822,85 @@
         </div>
     `;
 
-    container.appendChild(toast);
+            container.appendChild(toast);
 
-    // Show animation
-    requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(0)';
-    });
+            // Show animation
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(0)';
+            });
 
-    // Tự động tắt sau 10 giây
-    let autoRemove = setTimeout(() => hideToast(toast), 3000);
+            // Tự động tắt sau 10 giây
+            let autoRemove = setTimeout(() => hideToast(toast), 3000);
 
-    toast.onmouseenter = () => clearTimeout(autoRemove);
-    toast.onmouseleave = () => { autoRemove = setTimeout(() => hideToast(toast), 5000); };
+            toast.onmouseenter = () => clearTimeout(autoRemove);
+            toast.onmouseleave = () => {
+                autoRemove = setTimeout(() => hideToast(toast), 5000);
+            };
 
-    function hideToast(t) {
-        t.style.opacity = '0';
-        t.style.transform = 'translateX(50px)';
-        setTimeout(() => t.remove(), 300);
-    }
-}
+            function hideToast(t) {
+                t.style.opacity = '0';
+                t.style.transform = 'translateX(50px)';
+                setTimeout(() => t.remove(), 300);
+            }
+        }
 
 
-        async function loadSessionInfo() {
+async function loadSessionInfo() {
             try {
                 const res = await fetch(`/oderqr/session/table/${QR_KEY}`);
                 if (!res.ok) throw new Error('Lỗi tải bàn');
                 const data = await res.json();
 
+                // 1. Gán thông tin cơ bản
                 DAT_BAN_ID = data.dat_ban_info.id;
                 document.getElementById('ten-khach').innerText = data.dat_ban_info.ten_khach || 'Khách';
-                document.getElementById('so-nguoi').innerText = data.dat_ban_info.so_khach;
+                
+                // Tổng khách = người lớn + trẻ em (hoặc lấy từ DB nếu bạn đã lưu tổng)
+                // Ở controller mình lưu tổng vào 'nguoi_lon' tạm thời, hoặc cộng dồn
+                const tongKhach = parseInt(data.dat_ban_info.nguoi_lon || 0) + parseInt(data.dat_ban_info.tre_em || 0);
+                document.getElementById('so-nguoi').innerText = tongKhach > 0 ? tongKhach : (data.dat_ban_info.nguoi_lon || 0);
+                
                 bookingStartTime = data.dat_ban_info.gio_den;
                 bookingDuration = parseInt(data.dat_ban_info.thoi_luong_phut) || 0;
                 startCountdown();
 
-                const combo = data.dat_ban_info.combo_buffet;
-                if (combo) {
-                    document.getElementById('combo-display').style.display = 'flex';
-                    document.getElementById('combo-name').innerText = combo.ten_combo;
-                    document.getElementById('combo-details').innerText = `${formatMoney(combo.gia_co_ban)}`;
+                // 2. [CẬP NHẬT] Hiển thị danh sách các Combo đã chọn
+                const combos = data.selected_combos; // Mảng: [{ten: 'Combo 199k', sl: 2}, ...]
+                const displayBox = document.getElementById('combo-display');
+                
+                if (combos && combos.length > 0) {
+                    displayBox.style.display = 'block'; // Đổi sang block để hiển thị danh sách dọc
+                    
+                    // Tạo HTML danh sách combo
+                    let comboHtml = '';
+                    combos.forEach(c => {
+                        comboHtml += `
+                            <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:0.95rem;">
+                                <span><i class="fa-solid fa-check" style="color:var(--primary)"></i> ${c.ten}</span>
+                                <span style="font-weight:700; color:#fff;">x${c.sl}</span>
+                            </div>`;
+                    });
+
+                    // Gán vào khung hiển thị (ghi đè cấu trúc cũ)
+                    displayBox.innerHTML = `
+                        <div style="font-weight:700; color:var(--primary); margin-bottom:6px; font-size:1rem; border-bottom:1px dashed rgba(255,255,255,0.2); padding-bottom:4px;">
+                            <i class="fa-solid fa-crown"></i> GÓI BUFFET ĐÃ CHỌN
+                        </div>
+                        <div>${comboHtml}</div>
+                    `;
+                } else {
+                    displayBox.style.display = 'none';
                 }
 
+                // 3. Render Menu & Cart
                 renderMenu(data.menu);
                 renderCart();
                 loadOrderStatus();
             } catch (e) {
                 console.error(e);
+                // Nếu lỗi 404 (chưa có session), có thể redirect về trang chọn combo
+                // window.location.href = `/oderqr/select-combo/${QR_KEY}`; 
             }
         }
 

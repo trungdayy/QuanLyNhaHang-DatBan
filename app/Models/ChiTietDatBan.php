@@ -17,8 +17,6 @@ class ChiTietDatBan extends Model
         'dat_ban_id',
         'combo_id',
         'so_luong',
-        'don_gia',    // Giá tại thời điểm đặt
-        'thanh_tien'  // Tổng tiền (đơn giá * số lượng)
     ];
 
     /**
