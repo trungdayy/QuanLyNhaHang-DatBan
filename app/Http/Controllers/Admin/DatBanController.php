@@ -16,8 +16,8 @@ use Illuminate\Validation\Rule;
 class DatBanController extends Controller
 {
     /** ===========================
-     *  HIỂN THỊ DANH SÁCH ĐẶT BÀN (CÓ LỌC & TÌM KIẾM)
-     *  =========================== */
+     * HIỂN THỊ DANH SÁCH ĐẶT BÀN (CÓ LỌC & TÌM KIẾM)
+     * =========================== */
     public function index(Request $request)
     {
         try {
@@ -86,8 +86,14 @@ class DatBanController extends Controller
         $request->validate([
             'ten_khach' => 'required|string|max:255',
             'sdt_khach' => 'required|string|max:20',
-            'so_khach' => 'required|integer|min:1',
-            'ban_id' => 'required|exists:ban_an,id',
+            'nguoi_lon' => 'required|integer|min:1',
+            'tre_em'    => 'nullable|integer|min:0',
+            
+            'email_khach' => 'nullable|email|max:255',
+            
+            // 🔥 SỬA: Cho phép null (không chọn bàn)
+            'ban_id' => 'nullable|exists:ban_an,id', 
+            
             'combo_id' => 'nullable|exists:combo_buffet,id',
             'gio_den' => 'required|date',
             'tien_coc' => 'nullable|numeric|min:0',
@@ -97,18 +103,20 @@ class DatBanController extends Controller
         $duration = 120; // thời lượng 2 tiếng
         $newStart = Carbon::parse($request->gio_den);
 
-        // Kiểm tra trùng giờ đặt bàn
-        $conflict = DatBan::where('ban_id', $request->ban_id)
-            ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
-            ->whereBetween('gio_den', [
-                $newStart->copy()->subMinutes($duration - 1),
-                $newStart->copy()->addMinutes($duration - 1)
-            ])
-            ->first();
+        // 🔥 SỬA: Chỉ kiểm tra trùng nếu CÓ CHỌN BÀN
+        if ($request->ban_id) {
+            $conflict = DatBan::where('ban_id', $request->ban_id)
+                ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
+                ->whereBetween('gio_den', [
+                    $newStart->copy()->subMinutes($duration - 1),
+                    $newStart->copy()->addMinutes($duration - 1)
+                ])
+                ->first();
 
-        if ($conflict) {
-            $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
-            return back()->with('error', "Bàn này đã được đặt vào lúc $gioBiTrung. Vui lòng chọn giờ khác.");
+            if ($conflict) {
+                $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
+                return back()->with('error', "Bàn này đã được đặt vào lúc $gioBiTrung. Vui lòng chọn giờ khác hoặc bàn khác.");
+            }
         }
 
         try {
@@ -118,8 +126,13 @@ class DatBanController extends Controller
                 'ma_dat_ban' => $maDatBan,
                 'ten_khach' => $request->ten_khach,
                 'sdt_khach' => $request->sdt_khach,
-                'so_khach' => $request->so_khach,
-                'ban_id' => $request->ban_id,
+                'nguoi_lon' => $request->nguoi_lon,
+                'tre_em'    => $request->tre_em ?? 0,
+                'email_khach' => $request->email_khach,
+                
+                // Lưu null nếu không chọn bàn
+                'ban_id' => $request->ban_id, 
+                
                 'combo_id' => $request->combo_id,
                 'gio_den' => $request->gio_den,
                 'thoi_luong_phut' => $duration,
@@ -178,8 +191,13 @@ class DatBanController extends Controller
         $request->validate([
             'ten_khach' => 'required|string|max:255',
             'sdt_khach' => 'required|string|max:20',
-            'so_khach' => 'required|integer|min:1',
-            'ban_id' => 'required|exists:ban_an,id',
+            'nguoi_lon' => 'required|integer|min:1',
+            'tre_em'    => 'nullable|integer|min:0',
+            'email_khach' => 'nullable|email|max:255',
+            
+            // 🔥 SỬA: Cho phép null
+            'ban_id' => 'nullable|exists:ban_an,id', 
+            
             'combo_id' => 'nullable|exists:combo_buffet,id',
             'gio_den' => 'required|date',
             'tien_coc' => 'nullable|numeric|min:0',
@@ -189,27 +207,34 @@ class DatBanController extends Controller
         $duration = 120;
         $newStart = Carbon::parse($request->gio_den);
 
-        // Kiểm tra trùng giờ đặt bàn (bỏ qua chính nó)
-        $conflict = DatBan::where('ban_id', $request->ban_id)
-            ->where('id', '!=', $id)
-            ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
-            ->whereBetween('gio_den', [
-                $newStart->copy()->subMinutes($duration - 1),
-                $newStart->copy()->addMinutes($duration - 1)
-            ])
-            ->first();
+        // 🔥 SỬA: Chỉ kiểm tra trùng nếu CÓ CHỌN BÀN
+        if ($request->ban_id) {
+            $conflict = DatBan::where('ban_id', $request->ban_id)
+                ->where('id', '!=', $id)
+                ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
+                ->whereBetween('gio_den', [
+                    $newStart->copy()->subMinutes($duration - 1),
+                    $newStart->copy()->addMinutes($duration - 1)
+                ])
+                ->first();
 
-        if ($conflict) {
-            $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
-            return back()->with('error', "Bàn này đã được đặt vào lúc $gioBiTrung.");
+            if ($conflict) {
+                $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
+                return back()->with('error', "Bàn này đã được đặt vào lúc $gioBiTrung.");
+            }
         }
 
         try {
             $datBan->update([
                 'ten_khach' => $request->ten_khach,
                 'sdt_khach' => $request->sdt_khach,
-                'so_khach' => $request->so_khach,
+                'nguoi_lon' => $request->nguoi_lon,
+                'tre_em'    => $request->tre_em ?? 0,
+                'email_khach' => $request->email_khach,
+                
+                // Lưu null nếu không chọn bàn
                 'ban_id' => $request->ban_id,
+                
                 'combo_id' => $request->combo_id,
                 'gio_den' => $request->gio_den,
                 'ghi_chu' => $request->ghi_chu,
@@ -233,6 +258,7 @@ class DatBanController extends Controller
                 return back()->with('error', 'Không thể xóa khi khách đang ăn.');
             }
 
+            // Kiểm tra nếu có bàn thì mới cập nhật trạng thái bàn
             $banAn = $datBan->banAn;
             if ($banAn && in_array($datBan->trang_thai, ['da_xac_nhan', 'cho_xac_nhan'])) {
                 $other = DatBan::where('ban_id', $banAn->id)
@@ -266,7 +292,7 @@ class DatBanController extends Controller
             // Khi khách đến -> gán ngẫu nhiên nhân viên phục vụ đang hoạt động
             if ($newStatus === 'khach_da_den') {
                 $nhanVien = NhanVien::where('trang_thai', 1)
-                    ->where('vai_tro', 'Phục vụ')
+                    ->where('vai_tro', 'phuc_vu') 
                     ->inRandomOrder()
                     ->first();
                 if ($nhanVien) $datBan->nhan_vien_id = $nhanVien->id;
@@ -274,7 +300,7 @@ class DatBanController extends Controller
 
             $datBan->update(['trang_thai' => $newStatus]);
 
-            // Cập nhật trạng thái bàn ăn tương ứng
+            // Cập nhật trạng thái bàn ăn (nếu đơn có gán bàn)
             $banAn = $datBan->banAn;
             if ($banAn) {
                 if ($newStatus === 'khach_da_den') {
@@ -310,6 +336,7 @@ class DatBanController extends Controller
 
         // Tìm các bàn đang được đặt trong khung giờ
         $conflictingIds = DatBan::whereNotIn('trang_thai', ['huy', 'hoan_tat'])
+            ->whereNotNull('ban_id') // Chỉ xét đơn có bàn
             ->whereBetween('gio_den', [
                 $newStart->copy()->subMinutes($duration - 1),
                 $newStart->copy()->addMinutes($duration - 1)

@@ -17,14 +17,14 @@ class NhanVienBanAnController extends Controller
     public function index(Request $request)
     {
         $autoCancelAfter = 30; // phút
-    
+
         // Huỷ các đơn quá hạn
         $donQuahan = DatBan::where('trang_thai', 'da_xac_nhan')
             ->get()
-            ->filter(function($don) use ($autoCancelAfter) {
+            ->filter(function ($don) use ($autoCancelAfter) {
                 return now()->greaterThanOrEqualTo(Carbon::parse($don->gio_den)->addMinutes($autoCancelAfter));
             });
-    
+
         foreach ($donQuahan as $don) {
             $don->update(['trang_thai' => 'huy']);
             if ($don->banAn) {
@@ -35,37 +35,49 @@ class NhanVienBanAnController extends Controller
                 ]);
             }
         }
-    
+
         // Lấy khu vực + bàn
         $khuVucs = \App\Models\KhuVuc::with('banAns')->get();
-    
+
         $today = Carbon::today();
         $tomorrow = Carbon::tomorrow();
-    
-        // Lấy các đơn trong ngày + khách đã check-in
-        $datBansQuery = DatBan::whereBetween('gio_den', [$today, $tomorrow])
-            ->whereIn('trang_thai', ['da_xac_nhan', 'khach_da_den'])
-            ->with('banAn')
+
+        // --- Lấy danh sách đơn ---
+        $now = Carbon::now();
+        $thirtyMinutesLater = $now->copy()->addMinutes(30);
+
+        $datBansQuery = DatBan::with('banAn')
+            ->where(function ($q) use ($now, $thirtyMinutesLater) {
+                // 1. Đơn đã xác nhận — trong 30 phút tới
+                $q->where('trang_thai', 'da_xac_nhan')
+                    ->whereBetween('gio_den', [$now, $thirtyMinutesLater]);
+            })
+            ->orWhere(function ($q) use ($now) {
+                // 2. Đơn khách đã đến — giờ đến <= hiện tại
+                $q->where('trang_thai', 'khach_da_den')
+                    ->where('gio_den', '<=', $now);
+            })
             ->orderBy('gio_den', 'asc');
-    
+
+
         // Nếu có search
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $datBansQuery->where(function($q) use ($search) {
+            $datBansQuery->where(function ($q) use ($search) {
                 $q->where('ten_khach', 'like', "%{$search}%")
-                  ->orWhere('ma_dat_ban', 'like', "%{$search}%")
-                  ->orWhere('sdt_khach', 'like', "%{$search}%");
+                    ->orWhere('ma_dat_ban', 'like', "%{$search}%")
+                    ->orWhere('sdt_khach', 'like', "%{$search}%");
             });
         }
-    
+
         $datBans = $datBansQuery->get();
-    
+
         // Gắn thông tin khách đang ngồi vào bàn
         foreach ($khuVucs as $khu) {
             foreach ($khu->banAns as $ban) {
                 $khach = $datBans->where('ban_id', $ban->id)
-                                  ->where('trang_thai', 'khach_da_den')
-                                  ->first();
+                    ->where('trang_thai', 'khach_da_den')
+                    ->first();
                 if ($khach) {
                     $ban->khach_dang_ngoi = $khach->ten_khach;
                     $ban->gio_bat_dau = $khach->gio_den;
@@ -75,10 +87,10 @@ class NhanVienBanAnController extends Controller
                 }
             }
         }
-    
+
         return view('shop.nhanVien.ban_khuvuc', compact('khuVucs', 'datBans'));
     }
-    
+
 
     /**
      * Walk-in: khách tới trực tiếp, bàn trống
@@ -154,8 +166,8 @@ class NhanVienBanAnController extends Controller
         ]);
 
         $datBan = DatBan::where('ban_id', $ban->id)
-                        ->whereIn('trang_thai', ['da_xac_nhan', 'khach_da_den', 'da_dat'])
-                        ->first();
+            ->whereIn('trang_thai', ['da_xac_nhan', 'khach_da_den', 'da_dat'])
+            ->first();
 
         if ($datBan) {
             $datBan->update(['trang_thai' => 'huy']);

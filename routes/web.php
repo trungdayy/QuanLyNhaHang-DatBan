@@ -238,14 +238,22 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
     Route::put('chi-tiet-order/{ctId}', [NhanVienOrderMonController::class, 'update'])->name('chi-tiet-order.update');
     Route::delete('/chi-tiet-order/{id}', [NhanVienOrderMonController::class, 'destroy'])->name('chi-tiet-order.destroy');
 
-        // Thanh toán
+    // Thanh toán
     Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
+        // thanh toán từ danh sách bàn
         Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
         Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
+        // thanh toán từ bên order món
         Route::get('/order/{orderId}', 'thanhToan')->name('order');
         Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
+        // hóa đơn và in
         Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
         Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
+        // thanh toán vnpay
+        Route::get('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
+        Route::get('/vnpay/callback/{banId}', 'vnpayCallback')->name('vnpay.callback');
+
+
     });
 });
 

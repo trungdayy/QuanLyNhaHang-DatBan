@@ -377,43 +377,85 @@ class ThanhToanController extends Controller
     /**
      * Hiển thị hóa đơn
      */
-    public function hienThiHoaDon($hoaDonId)
+    public function hienThiHoaDon($id)
     {
         $hoaDon = HoaDon::with([
             'datBan.banAn.khuVuc',
-            'datBan.comboBuffet',
+            'datBan.comboBuffet.monTrongCombo.monAn',
             'datBan.orderMon.chiTietOrders.monAn',
             'voucher'
-        ])->findOrFail($hoaDonId);
+        ])->findOrFail($id);
 
-        $datBan = $hoaDon->datBan;
-        
-        // Tính giờ vào và giờ ra
-        $gioVao = $datBan->gio_den ? Carbon::parse($datBan->gio_den) : null;
-        $gioRa = $hoaDon->created_at; // Giờ ra = lúc tạo hóa đơn
-        $thoiGianPhucVu = $gioVao ? $gioVao->diffInMinutes($gioRa) : 0;
+        $gioVao = $hoaDon->datBan->gio_vao ? Carbon::parse($hoaDon->datBan->gio_vao) : null;
+        $gioRa  = $hoaDon->datBan->gio_ra  ? Carbon::parse($hoaDon->datBan->gio_ra)  : null;
 
-        // Tính tổng tiền: combo chính + món gọi thêm (sử dụng method tinhTienMonGoiThem)
+        $thoiGianPhucVu = $gioVao && $gioRa ? $gioRa->diffInMinutes($gioVao) : 0;
+
+        // --- Xử lý combo ---
         $tienComboChinh = 0;
-        if ($datBan->comboBuffet) {
-            $tienComboChinh = $datBan->comboBuffet->gia_co_ban * ($datBan->so_khach ?? 1);
+        if($hoaDon->datBan->comboBuffet) {
+            $tienComboChinh = ($hoaDon->datBan->comboBuffet->gia_co_ban ?? 0) * ($hoaDon->datBan->so_khach ?? 1);
         }
-        
-        // Tính tiền món gọi thêm (sử dụng method tinhTienMonGoiThem để đảm bảo logic đúng)
-        $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
-        
-        // Tổng tiền thực tế = combo chính + món gọi thêm
-        $tongTienThucTe = $tienComboChinh + $tongTienMonGoiThem;
-        
-        // Tổng tiền sau voucher
-        $tongTienSauVoucher = $tongTienThucTe - ($hoaDon->tien_giam ?? 0);
 
-        return view('Shop.nhanVien.thanh-toan.hien-thi-hoa-don', compact(
-            'hoaDon', 'gioVao', 'gioRa', 'thoiGianPhucVu', 
-            'tongTienThucTe', 'tongTienSauVoucher',
-            'tienComboChinh', 'tongTienMonGoiThem'
+        // --- Xử lý món gọi thêm ---
+        $monGoiThemList = [];
+        $tongTienMonGoiThem = 0;
+
+        $soKhach = $hoaDon->datBan->so_khach ?? 1;
+        $monTrongCombo = [];
+        if($hoaDon->datBan->comboBuffet) {
+            foreach($hoaDon->datBan->comboBuffet->monTrongCombo as $monCombo) {
+                $monTrongCombo[$monCombo->monAn->id] = [
+                    'gioiHan' => $monCombo->so_luong ?? 0,
+                    'phuPhi' => $monCombo->phu_phi_goi_them ?? 0,
+                ];
+            }
+        }
+
+        foreach($hoaDon->datBan->orderMon as $order) {
+            foreach($order->chiTietOrders as $ct) {
+                $monId = $ct->monAn->id;
+                $soLuong = $ct->so_luong;
+
+                if(isset($monTrongCombo[$monId])) {
+                    $gioiHan = $monTrongCombo[$monId]['gioiHan'] * $soKhach;
+                    $soLuongVuot = max(0, $soLuong - $gioiHan);
+                    $giaGoc = $soLuongVuot > 0 ? $ct->monAn->gia : 0;
+                    $phuPhi = $monTrongCombo[$monId]['phuPhi'];
+                } else {
+                    $soLuongVuot = $soLuong;
+                    $giaGoc = $ct->monAn->gia;
+                    $phuPhi = 0;
+                }
+
+                $thanhTien = ($giaGoc + $phuPhi) * $soLuongVuot;
+                $tongTienMonGoiThem += $thanhTien;
+
+                $monGoiThemList[$monId] = [
+                    'monAn' => $ct->monAn,
+                    'soLuongVuot' => $soLuongVuot,
+                    'giaGoc' => $giaGoc,
+                    'phuPhi' => $phuPhi,
+                    'thanhTien' => $thanhTien
+                ];
+            }
+        }
+
+        $tongTienThucTe = $tienComboChinh + $tongTienMonGoiThem;
+
+        return view('shop.nhanVien.thanh-toan.hien-thi-hoa-don', compact(
+            'hoaDon',
+            'gioVao',
+            'gioRa',
+            'thoiGianPhucVu',
+            'tienComboChinh',
+            'monGoiThemList',
+            'tongTienMonGoiThem',
+            'tongTienThucTe'
         ));
     }
+
+
 
     /**
      * Trang in hóa đơn
@@ -490,13 +532,18 @@ class ThanhToanController extends Controller
         foreach ($tongSoLuongMon as $monAnId => $tongSoLuong) {
             $monTrongComboItem = $monTrongCombo->get($monAnId);
             if ($monTrongComboItem) {
-                $gioiHan = $monTrongComboItem->gioi_han_so_luong ?? null;
-                if ($gioiHan !== null && $gioiHan > 0) {
-                    $soLuongVuotMon[$monAnId] = max(0, $tongSoLuong - $gioiHan);
+                $gioiHan = $monTrongComboItem->gioi_han_so_luong ?? 0;
+
+                // Nhân giới hạn với số combo khách đặt
+                $soCombo = $datBan->so_khach ?? 1; // hoặc số combo nếu có trường riêng
+                $gioiHanThucTe = $gioiHan * $soCombo;
+
+                if($gioiHanThucTe > 0){
+                    $soLuongVuotMon[$monAnId] = max(0, $tongSoLuong - $gioiHanThucTe);
                 } else {
-                    // Nếu không có giới hạn hoặc giới hạn = 0, coi như không có giới hạn
                     $soLuongVuotMon[$monAnId] = 0;
                 }
+
             } else {
                 // Món không có trong combo: không tính vượt quá
                 $soLuongVuotMon[$monAnId] = 0;
@@ -618,5 +665,56 @@ class ThanhToanController extends Controller
 
         return $phuThuThoiGian + $phuPhiGoiMon;
     }
-}
 
+    public function vnpayPayment(Request $request, $banId)
+    {
+        $ban = BanAn::findOrFail($banId);
+        $tongTien = $request->input('tong_tien'); // từ form hoặc tính lại
+        $vnp_TmnCode = env('VNP_TMNCODE'); // Merchant code
+        $vnp_HashSecret = env('VNP_HASHSECRET'); 
+        $vnp_Url = env('VNP_URL');
+        $vnp_Returnurl = route('nhanVien.thanh-toan.vnpay.callback', ['banId' => $banId]);
+
+        $vnp_TxnRef = time(); // mã giao dịch duy nhất
+        $vnp_OrderInfo = "Thanh toán bàn $ban->so_ban";
+        $vnp_Amount = $tongTien * 100; // VNPay nhận amount *100 (đơn vị là VND)
+        $vnp_Locale = 'vn';
+        $vnp_IpAddr = $request->ip();
+
+        $inputData = [
+            "vnp_Version" => "2.1.0",
+            "vnp_TmnCode" => $vnp_TmnCode,
+            "vnp_Amount" => $vnp_Amount,
+            "vnp_Command" => "pay",
+            "vnp_CreateDate" => date('YmdHis'),
+            "vnp_CurrCode" => "VND",
+            "vnp_IpAddr" => $vnp_IpAddr,
+            "vnp_Locale" => $vnp_Locale,
+            "vnp_OrderInfo" => $vnp_OrderInfo,
+            "vnp_ReturnUrl" => $vnp_Returnurl,
+            "vnp_TxnRef" => $vnp_TxnRef,
+        ];
+
+        ksort($inputData);
+        $query = http_build_query($inputData, '', '&', PHP_QUERY_RFC3986);
+        $vnp_SecureHash = hash_hmac('sha512', $query, $vnp_HashSecret);
+        $vnp_Url = $vnp_Url . "?" . $query . "&vnp_SecureHash=" . $vnp_SecureHash;
+
+        return redirect($vnp_Url);
+    }
+
+    public function vnpayCallback(Request $request, $banId)
+    {
+        $vnp_ResponseCode = $request->get('vnp_ResponseCode');
+        $ban = BanAn::findOrFail($banId);
+
+        if($vnp_ResponseCode == "00"){
+            $ban->trang_thai = 'da_thanh_toan';
+            $ban->save();
+            return redirect()->route('nhanVien.ban-an.index')->with('success','Thanh toán VNPay thành công!');
+        } else {
+            return redirect()->route('nhanVien.ban-an.index')->with('error','Thanh toán VNPay thất bại!');
+        }
+    }
+
+}

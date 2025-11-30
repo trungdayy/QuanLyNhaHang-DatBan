@@ -192,9 +192,9 @@ class NhanVienOrderMonController extends Controller
         return redirect()->back()->with('success', 'Đã xóa món!');
     }
 
-    public function orderPage($orderId)
+public function orderPage($orderId)
     {
-        $order = OrderMon::with(['banAn', 'chiTietOrders.monAn'])
+        $order = OrderMon::with(['banAn', 'datBan.comboBuffet', 'chiTietOrders.monAn'])
             ->findOrFail($orderId);
 
         // Nếu chưa chọn combo thì chuyển sang trang chọn combo
@@ -207,16 +207,40 @@ class NhanVienOrderMonController extends Controller
         // Lấy số lượng món combo (nếu có)
         $comboId = $order->datBan->combo_id ?? null;
         $soLuongMonTrongCombo = [];
+        $soKhach = $order->datBan->so_khach ?? 1;
+
         if ($comboId) {
             $monTrongCombo = MonTrongCombo::where('combo_id', $comboId)->get();
-            $soLuongMonTrongCombo = $monTrongCombo->pluck('gioi_han_so_luong', 'mon_an_id')->toArray();
+            $soLuongMonTrongCombo = $monTrongCombo->pluck('mon_an_id')->toArray();
+
+            foreach ($monTrongCombo as $item) {
+                $exists = $order->chiTietOrders
+                    ->where('mon_an_id', $item->mon_an_id)
+                    ->where('loai_mon', 'combo')
+                    ->first();
+
+                if (!$exists) {
+                    ChiTietOrder::create([
+                        'order_id'   => $orderId,
+                        'mon_an_id'  => $item->mon_an_id,
+                        'so_luong'   => $item->so_luong,
+                        'loai_mon'   => 'combo',
+                        'trang_thai' => 'cho_bep',
+                    ]);
+                }
+            }
+
+            $order->load('chiTietOrders.monAn');
         }
 
-        // Gắn số lượng hiển thị cho từng chi tiết order
-        $order->chiTietOrders->transform(function ($ct) use ($soLuongMonTrongCombo) {
-            $ct->so_luong_hien_thi = $ct->loai_mon === 'combo'
-                ? ($soLuongMonTrongCombo[$ct->mon_an_id] ?? $ct->so_luong)
-                : $ct->so_luong;
+
+        $order->chiTietOrders->transform(function ($ct) use ($soLuongMonTrongCombo, $soKhach) {
+            if ($ct->loai_mon === 'combo') {
+                $gioiHan = $soLuongMonTrongCombo[$ct->mon_an_id] ?? $ct->so_luong ?? 1;
+                $ct->so_luong_hien_thi = min($soKhach, $gioiHan);
+            } else {
+                $ct->so_luong_hien_thi = $ct->so_luong;
+            }
             return $ct;
         });
 

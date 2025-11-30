@@ -42,194 +42,182 @@ class OrderController extends Controller
             ->first();
 
         return view('shop.oderqr.select-combo', [
-            'maQr' => $ban->ma_qr, // dùng trong form
+            'maQr' => $ban->ma_qr,
             'tenBan' => $ban->so_ban,
             'combos' => $combos,
             'qrKey' => $qrKey,
-            'datBan' => $datBan,   // truyền xuống view
+            'datBan' => $datBan,
         ]);
     }
 
-public function startOrder(Request $request)
-{
-    // 1. Validate dữ liệu - THÊM dat_ban_id
-    $validator = Validator::make($request->all(), [
-        'ma_qr' => 'required|exists:ban_an,ma_qr',
-        'dat_ban_id' => 'nullable|exists:dat_ban,id', // 🔥 THÊM DÒNG NÀY
-        'combo_id' => 'nullable|exists:combo_buffet,id',
-        'so_khach' => 'required|integer|min:1',
-        'ten_khach' => 'nullable|string|max:255',
-        'sdt_khach' => 'nullable|string|max:20',
-    ]);
+    public function startOrder(Request $request)
+    {
+        // 1. Validate dữ liệu
+        $validator = Validator::make($request->all(), [
+            'ma_qr' => 'required|exists:ban_an,ma_qr',
+            'dat_ban_id' => 'nullable|exists:dat_ban,id',
+            'combo_id' => 'nullable|exists:combo_buffet,id',
+            'so_khach' => 'required|integer|min:1', // Tạm thời vẫn lấy input này làm người lớn
+            'ten_khach' => 'nullable|string|max:255',
+            'sdt_khach' => 'nullable|string|max:20',
+        ]);
 
-    if ($validator->fails()) {
-        return back()->withErrors($validator)->withInput();
-    }
-
-    // 2. Lấy thông tin bàn
-    $maQr = $request->input('ma_qr');
-    $ban = BanAn::where('ma_qr', $maQr)->first();
-    if (!$ban) return back()->withErrors(['ma_qr' => 'Mã QR không hợp lệ'])->withInput();
-
-    $banId = $ban->id;
-    $comboId = $request->input('combo_id');
-    $soKhach = $request->input('so_khach');
-    
-    $tenKhachInput = $request->input('ten_khach') ?: 'Khách Vãng Lai';
-    $sdtKhachInput = $request->input('sdt_khach') ?: '0';
-
-    // --- KHẮC PHỤC LỖI GIỜ: Lấy giờ VN và chuyển thành chuỗi ---
-    $nowObj = Carbon::now('Asia/Ho_Chi_Minh');
-    $nowString = $nowObj->toDateTimeString(); // Chuỗi giờ VN chính xác
-
-    // 3. 🔥 TÌM ĐƠN ĐẶT BÀN - ƯU TIÊN THEO dat_ban_id
-    $datBanId = $request->input('dat_ban_id');
-    $datBan = null;
-    
-    if ($datBanId) {
-        // Nếu có dat_ban_id từ form, tìm đúng đơn đó
-        $datBan = DatBan::where('id', $datBanId)
-            ->where('ban_id', $banId)
-            ->first();
-            
-        // Kiểm tra nếu đã có combo rồi
-        if ($datBan && !is_null($datBan->combo_id)) {
-            return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr])
-                ->with('info', 'Bàn này đã chọn combo. Vui lòng tiếp tục gọi món.');
-        }
-    }
-    
-    // Nếu không có dat_ban_id hoặc không tìm thấy, tìm theo bàn + ngày
-    if (!$datBan) {
-        $datBan = DatBan::where('ban_id', $banId)
-            ->whereIn('trang_thai', ['khach_da_den', 'da_xac_nhan'])
-            ->whereNull('combo_id') // Chỉ tìm đơn chưa có combo
-            ->whereDate('gio_den', $nowObj->toDateString())
-            ->orderBy('gio_den', 'desc') // Lấy đơn mới nhất
-            ->first();
-    }
-
-    // 💡 BỔ SUNG: Nếu không tìm thấy đơn chưa có combo, kiểm tra xem đã có đơn có combo đang phục vụ chưa
-    if (!$datBan) {
-        $existingOrderWithCombo = DatBan::where('ban_id', $banId)
-            ->whereIn('trang_thai', ['khach_da_den', 'da_xac_nhan'])
-            ->whereNotNull('combo_id')
-            ->whereDate('gio_den', $nowObj->toDateString()) 
-            ->first();
-
-        if ($existingOrderWithCombo) {
-            // Đã có đơn đang phục vụ VÀ đã chọn combo, không tạo đơn mới, chuyển hướng
-            return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr])
-                ->with('info', 'Bàn này đã được phục vụ và chọn combo. Vui lòng gọi món.');
-        }
-    }
-    
-    if ($datBan) {
-        // --- TRƯỜNG HỢP A: 🔥 CẬP NHẬT ĐƠN ĐÃ CÓ ---
-        $updateData = [
-            'combo_id' => $comboId,
-            'so_khach' => $soKhach,
-            'trang_thai' => 'khach_da_den',
-            'updated_at' => $nowString,
-        ];
-
-        if ($request->filled('ten_khach')) {
-            $updateData['ten_khach'] = $tenKhachInput;
-        }
-        if ($request->filled('sdt_khach')) {
-            $updateData['sdt_khach'] = $sdtKhachInput;
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
         }
 
-        // 🔥 CẬP NHẬT THỜI LƯỢNG NẾU CÓ COMBO
-        if ($comboId) {
-            $combo = ComboBuffet::find($comboId);
-            if ($combo) {
-                $updateData['thoi_luong_phut'] = $combo->thoi_luong_phut;
+        // 2. Lấy thông tin bàn
+        $maQr = $request->input('ma_qr');
+        $ban = BanAn::where('ma_qr', $maQr)->first();
+        if (!$ban) return back()->withErrors(['ma_qr' => 'Mã QR không hợp lệ'])->withInput();
+
+        $banId = $ban->id;
+        $comboId = $request->input('combo_id');
+        $soKhach = $request->input('so_khach'); 
+        
+        $tenKhachInput = $request->input('ten_khach') ?: 'Khách Vãng Lai';
+        $sdtKhachInput = $request->input('sdt_khach') ?: '0';
+
+        // Lấy giờ VN
+        $nowObj = Carbon::now('Asia/Ho_Chi_Minh');
+        $nowString = $nowObj->toDateTimeString();
+
+        // 3. TÌM ĐƠN ĐẶT BÀN
+        $datBanId = $request->input('dat_ban_id');
+        $datBan = null;
+        
+        if ($datBanId) {
+            $datBan = DatBan::where('id', $datBanId)->where('ban_id', $banId)->first();
+            if ($datBan && !is_null($datBan->combo_id)) {
+                return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr])
+                    ->with('info', 'Bàn này đã chọn combo. Vui lòng tiếp tục gọi món.');
             }
         }
-
-        $datBan->update($updateData);
-        $ban->update(['trang_thai' => 'dang_phuc_vu']);
-
-
-
-    } else {
-        // --- TRƯỜNG HỢP B: TẠO MỚI ---
-        $combo = $comboId ? ComboBuffet::find($comboId) : null;
-        $thoiLuongPhut = $combo ? $combo->thoi_luong_phut : 120;
-
-        $datBan = DatBan::create([
-            'ma_dat_ban' => 'QR' . $nowObj->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2))),
-            'ten_khach' => $tenKhachInput, 
-            'sdt_khach' => $sdtKhachInput,
-            'so_khach' => $soKhach,
-            'ban_id' => $banId,
-            'combo_id' => $comboId,
-            'gio_den' => $nowString, // Lưu chuỗi giờ VN
-            'thoi_luong_phut' => $thoiLuongPhut,
-            'trang_thai' => 'khach_da_den',
-            'created_at' => $nowString,
-            'updated_at' => $nowString,
-        ]);
         
-        $ban->update(['trang_thai' => 'dang_phuc_vu']);
-
-
-    }
-
-    // 4. Thêm món Combo
-    if ($comboId) {
-        $comboItems = MonTrongCombo::where('combo_id', $comboId)->get();
-        
-        // Tạo hoặc tìm OrderMon và ép buộc giờ tạo là giờ VN
-        $orderMon = OrderMon::firstOrCreate(
-            ['dat_ban_id' => $datBan->id, 'trang_thai' => 'dang_xu_li'],
-            [
-                'ban_id' => $datBan->ban_id, 
-                'tong_mon' => 0, 
-                'tong_tien' => 0,
-                'created_at' => $nowString, 
-                'updated_at' => $nowString 
-            ]
-        );
-
-        // 💡 SỬA LỖI: Kiểm tra $orderMon trước khi truy cập thuộc tính 'id'
-        if (is_null($orderMon)) {
-            // Rất có thể do lỗi $fillable hoặc Khóa ngoại, nên redirect và thông báo lỗi
-            return back()->with('error', 'Lỗi hệ thống: Không thể tạo phiếu gọi món (OrderMon).')->withInput();
+        if (!$datBan) {
+            $datBan = DatBan::where('ban_id', $banId)
+                ->whereIn('trang_thai', ['khach_da_den', 'da_xac_nhan'])
+                ->whereNull('combo_id')
+                ->whereDate('gio_den', $nowObj->toDateString())
+                ->orderBy('gio_den', 'desc')
+                ->first();
         }
 
-        // 🔥 KIỂM TRA: Chỉ thêm món combo nếu chưa có
-        $hasComboItems = ChiTietOrder::where('order_id', $orderMon->id)
-            ->where('loai_mon', 'combo')
-            ->exists();
+        if (!$datBan) {
+            $existingOrderWithCombo = DatBan::where('ban_id', $banId)
+                ->whereIn('trang_thai', ['khach_da_den', 'da_xac_nhan'])
+                ->whereNotNull('combo_id')
+                ->whereDate('gio_den', $nowObj->toDateString()) 
+                ->first();
+
+            if ($existingOrderWithCombo) {
+                return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr])
+                    ->with('info', 'Bàn này đã được phục vụ và chọn combo. Vui lòng gọi món.');
+            }
+        }
         
-        if (!$hasComboItems) {
-            $itemsToInsert = [];
-            foreach ($comboItems as $comboItem) {
-                $monAn = MonAn::find($comboItem->mon_an_id);
-                if ($monAn && $monAn->trang_thai === 'con') {
-                    $itemsToInsert[] = [
-                        'order_id' => $orderMon->id,
-                        'mon_an_id' => $comboItem->mon_an_id,
-                        'so_luong' => $datBan->so_khach,
-                        'loai_mon' => 'combo',
-                        'trang_thai' => 'cho_bep',
-                        'ghi_chu' => null,
-                        'created_at' => $nowString, 
-                        'updated_at' => $nowString,
-                    ];
+        if ($datBan) {
+            // --- TRƯỜNG HỢP A: CẬP NHẬT ĐƠN ĐÃ CÓ ---
+            $updateData = [
+                'combo_id' => $comboId,
+                'nguoi_lon' => $soKhach,
+                'tre_em' => 0, // Mặc định 0 nếu form chưa có input trẻ em
+                'trang_thai' => 'khach_da_den',
+                'updated_at' => $nowString,
+            ];
+
+            if ($request->filled('ten_khach')) {
+                $updateData['ten_khach'] = $tenKhachInput;
+            }
+            if ($request->filled('sdt_khach')) {
+                $updateData['sdt_khach'] = $sdtKhachInput;
+            }
+
+            if ($comboId) {
+                $combo = ComboBuffet::find($comboId);
+                if ($combo) {
+                    $updateData['thoi_luong_phut'] = $combo->thoi_luong_phut;
                 }
             }
-            if (!empty($itemsToInsert)) ChiTietOrder::insert($itemsToInsert);
+
+            $datBan->update($updateData);
+            $ban->update(['trang_thai' => 'dang_phuc_vu']);
+
+        } else {
+            // --- TRƯỜNG HỢP B: TẠO MỚI ---
+            $combo = $comboId ? ComboBuffet::find($comboId) : null;
+            $thoiLuongPhut = $combo ? $combo->thoi_luong_phut : 120;
+
+            $datBan = DatBan::create([
+                'ma_dat_ban' => 'QR' . $nowObj->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2))),
+                'ten_khach' => $tenKhachInput, 
+                'sdt_khach' => $sdtKhachInput,
+                'nguoi_lon' => $soKhach,
+                'tre_em' => 0,
+                'ban_id' => $banId,
+                'combo_id' => $comboId,
+                'gio_den' => $nowString,
+                'thoi_luong_phut' => $thoiLuongPhut,
+                'trang_thai' => 'khach_da_den',
+                'created_at' => $nowString,
+                'updated_at' => $nowString,
+            ]);
+            
+            $ban->update(['trang_thai' => 'dang_phuc_vu']);
         }
+
+        // 4. Thêm món Combo
+        if ($comboId) {
+            $comboItems = MonTrongCombo::where('combo_id', $comboId)->get();
+            
+            $orderMon = OrderMon::firstOrCreate(
+                ['dat_ban_id' => $datBan->id, 'trang_thai' => 'dang_xu_li'],
+                [
+                    'ban_id' => $datBan->ban_id, 
+                    'tong_mon' => 0, 
+                    'tong_tien' => 0,
+                    'created_at' => $nowString, 
+                    'updated_at' => $nowString 
+                ]
+            );
+
+            if (is_null($orderMon)) {
+                return back()->with('error', 'Lỗi hệ thống: Không thể tạo phiếu gọi món (OrderMon).')->withInput();
+            }
+
+            $hasComboItems = ChiTietOrder::where('order_id', $orderMon->id)
+                ->where('loai_mon', 'combo')
+                ->exists();
+            
+            if (!$hasComboItems) {
+                // 🔥 TÍNH TỔNG SỐ LƯỢNG NGƯỜI
+                $tongSoLuongNguoi = $datBan->nguoi_lon + $datBan->tre_em;
+
+                $itemsToInsert = [];
+                foreach ($comboItems as $comboItem) {
+                    $monAn = MonAn::find($comboItem->mon_an_id);
+                    if ($monAn && $monAn->trang_thai === 'con') {
+                        $itemsToInsert[] = [
+                            'order_id' => $orderMon->id,
+                            'mon_an_id' => $comboItem->mon_an_id,
+                            'so_luong' => $tongSoLuongNguoi, // 🔥 SỬ DỤNG TỔNG SỐ LƯỢNG
+                            'loai_mon' => 'combo',
+                            'trang_thai' => 'cho_bep',
+                            'ghi_chu' => null,
+                            'created_at' => $nowString, 
+                            'updated_at' => $nowString,
+                        ];
+                    }
+                }
+                if (!empty($itemsToInsert)) ChiTietOrder::insert($itemsToInsert);
+            }
+        }
+
+        // 5. Redirect
+        return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr]);
     }
 
-    // 5. Redirect
-    return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr]);
-}
-
-    // Hiển thị trang gọi món
+    // ... (Các hàm bên dưới giữ nguyên) ...
     public function showGoiMonPage($qrKey)
     {
         $ban = $this->findBanAnByQrKey($qrKey);
@@ -250,7 +238,6 @@ public function startOrder(Request $request)
         ]);
     }
 
-    // API lấy thông tin session
     public function getSessionInfo($qrKey)
     {
         $ban = $this->findBanAnByQrKey($qrKey);
@@ -263,7 +250,6 @@ public function startOrder(Request $request)
 
         if (!$datBan) return response()->json(['message' => 'Bàn này chưa sẵn sàng phục vụ.'], 404);
 
-        // Tính thời gian còn lại
         $thoiGianConLaiPhut = null;
         if ($datBan->gio_den && $datBan->thoi_luong_phut) {
             $gioKetThuc = Carbon::parse($datBan->gio_den)->addMinutes($datBan->thoi_luong_phut);
@@ -294,7 +280,6 @@ public function startOrder(Request $request)
         ]);
     }
 
-    // API gửi order
     public function submitOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -318,18 +303,16 @@ public function startOrder(Request $request)
             return response()->json(['message' => 'Phiếu đặt bàn không hợp lệ hoặc đã đóng.'], 403);
         }
 
-        // Lấy giờ VN hiện tại
         $nowString = Carbon::now('Asia/Ho_Chi_Minh')->toDateTimeString();
 
-        // Tạo OrderMon với ngày tạo là giờ VN
         $orderMon = OrderMon::firstOrCreate(
             ['dat_ban_id' => $datBanId, 'trang_thai' => 'dang_xu_li'],
             [
                 'ban_id' => $datBan->ban_id, 
                 'tong_mon' => 0, 
                 'tong_tien' => 0,
-                'created_at' => $nowString, // 💡 FIX: Ngày tạo OrderMon
-                'updated_at' => $nowString  // 💡 FIX: Ngày update OrderMon
+                'created_at' => $nowString,
+                'updated_at' => $nowString 
             ]
         );
 
@@ -344,8 +327,8 @@ public function startOrder(Request $request)
                 'loai_mon' => $item['loai_mon'],
                 'trang_thai' => 'cho_bep',
                 'ghi_chu' => $item['ghi_chu'],
-                'created_at' => $nowString, // 💡 FIX: Ngày tạo Chi tiết
-                'updated_at' => $nowString  // 💡 FIX: Ngày update Chi tiết
+                'created_at' => $nowString,
+                'updated_at' => $nowString
             ]);
         }
 
@@ -355,7 +338,6 @@ public function startOrder(Request $request)
         ], 201);
     }
 
-    // API xem trạng thái tất cả món đã gọi
     public function getOrderStatus(Request $request, $datBanId)
     {
         $chiTietMonAn = ChiTietOrder::whereHas('orderMon', function ($query) use ($datBanId) {
@@ -375,7 +357,6 @@ public function startOrder(Request $request)
 
     public function showQrListPage(Request $request)
     {
-        // Lấy tất cả bàn ăn
         $banAns = BanAn::all();
         $selectedBanId = $request->query('ban') ?? ($banAns->first()?->id ?? null);
         $selectedBan = $banAns->find($selectedBanId);

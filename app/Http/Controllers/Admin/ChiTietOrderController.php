@@ -14,7 +14,7 @@ class ChiTietOrderController extends Controller
     /**
      * Hiển thị danh sách món trong 1 đơn hàng hoặc tất cả đơn
      */
-    public function index(Request $request)
+public function index(Request $request)
     {
         $orderId = $request->query('order_id');
 
@@ -31,6 +31,10 @@ class ChiTietOrderController extends Controller
 
             // Lấy combo_id của bàn để xác định món trong combo
             $comboId = $order->datBan->combo_id ?? null;
+            
+            // ✅ MỚI: Lấy số người từ đặt bàn (mặc định 1 nếu không có)
+            $soNguoi = $order->datBan->so_nguoi ?? 1;
+
             $soLuongMonTrongCombo = [];
 
             if ($comboId) {
@@ -42,7 +46,14 @@ class ChiTietOrderController extends Controller
             foreach ($order->chiTietOrders as $ct) {
                 if ($ct->loai_mon === 'combo') {
                     $ct->loai_mon_hien_thi = 'Combo';
-                    $ct->so_luong_hien_thi = $soLuongMonTrongCombo[$ct->mon_an_id] ?? $ct->so_luong;
+                    
+                    // ✅ SỬA LOGIC: Định lượng 1 người * Số người
+                    if (isset($soLuongMonTrongCombo[$ct->mon_an_id])) {
+                        $ct->so_luong_hien_thi = $soLuongMonTrongCombo[$ct->mon_an_id] * $soNguoi;
+                    } else {
+                        $ct->so_luong_hien_thi = $ct->so_luong;
+                    }
+                    
                 } else {
                     $ct->loai_mon_hien_thi = 'Gọi thêm';
                     $ct->so_luong_hien_thi = $ct->so_luong;

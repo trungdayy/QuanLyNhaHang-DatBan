@@ -2,8 +2,7 @@
 
 @section('title', 'Sửa món')
 
-@section('content')
-    {{-- 1. IMPORT FONTS --}}
+{{-- 1. IMPORT FONTS --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 
@@ -35,14 +34,14 @@
             background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
             background-size: 20px 20px;
         }
-        
+
         .dish-name-header {
             font-family: 'Heebo'; font-weight: 800; font-size: 1.4rem; text-transform: uppercase; margin: 0;
         }
 
         /* --- FORM ELEMENTS --- */
         .form-group { margin-bottom: 20px; }
-        
+
         .form-label-custom {
             font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-sub);
             margin-bottom: 8px; display: block;
@@ -75,7 +74,7 @@
 
         /* --- BUTTONS --- */
         .btn-group-action { display: flex; gap: 10px; margin-top: 30px; }
-        
+
         .btn-submit {
             flex: 2; border: none; padding: 12px; border-radius: 6px;
             background: var(--primary); color: var(--white);
@@ -96,8 +95,9 @@
 
     </style>
 
+@section('content')
     <div class="container py-5">
-        
+
         <div class="edit-card">
             <div class="edit-card-header">
                 <h3 class="dish-name-header">Sửa món</h3>
@@ -107,7 +107,7 @@
             <div class="card-body p-4">
                 {{-- Preview món ăn --}}
                 <div class="dish-preview">
-                    <img src="{{ asset($ct->monAn->hinh_anh ?? 'https://placehold.co/100x100?text=IMG') }}" 
+                    <img src="{{ asset($ct->monAn->hinh_anh ?? 'https://placehold.co/100x100?text=IMG') }}"
                          alt="{{ $ct->monAn->ten_mon }}" class="preview-img">
                     <div class="preview-info">
                         <h5>{{ $ct->monAn->ten_mon }}</h5>
@@ -126,9 +126,9 @@
                     {{-- 1. SỐ LƯỢNG --}}
                     <div class="form-group">
                         <label class="form-label-custom">Số lượng</label>
-                        
+
                         @if($ct->loai_mon === 'goi_them')
-                            <input type="number" name="so_luong" class="form-control-custom" 
+                            <input type="number" name="so_luong" class="form-control-custom"
                                    value="{{ old('so_luong', $ct->so_luong) }}" min="1" required>
                         @else
                             <input type="number" class="form-control-custom" value="{{ $ct->so_luong }}" readonly>
@@ -142,8 +142,8 @@
                     {{-- 2. GHI CHÚ --}}
                     <div class="form-group">
                         <label class="form-label-custom">Ghi chú bếp</label>
-                        <input type="text" name="ghi_chu" class="form-control-custom" 
-                               value="{{ old('ghi_chu', $ct->ghi_chu) }}" 
+                        <input type="text" name="ghi_chu" class="form-control-custom"
+                               value="{{ old('ghi_chu', $ct->ghi_chu) }}"
                                placeholder="VD: Không hành, ít cay...">
                     </div>
 
@@ -160,5 +160,24 @@
             </div>
         </div>
 
-    </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success rounded-pill shadow-sm px-4">Cập nhật</button>
+            <a href="{{ route('nhanVien.order.page', $order->id) }}" class="btn btn-secondary rounded-pill shadow-sm px-4">Hủy</a>
+        </div>
+    </form>
+</main>
+
+{{-- CSS bổ sung nhẹ để UI thêm sang --}}
+<style>
+    .form-control:focus {
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.25);
+        border-color: #0d6efd;
+    }
+
+    button.btn:hover,
+    a.btn:hover {
+        transform: translateY(-2px);
+        transition: all 0.2s;
+    }
+</style>
 @endsection

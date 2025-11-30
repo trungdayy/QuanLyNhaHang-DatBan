@@ -792,6 +792,80 @@
         // Start
         initSnake();
         requestAnimationFrame(loop);
+
+            // --- MOUSE LIGHT EFFECT VÀNG NHẸ ---
+    const mouseLights = [];
+
+    document.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        mouseLights.push({
+            x: x,
+            y: y,
+            radius: 8 + Math.random() * 4, // nhỏ thôi
+            alpha: 0.15 + Math.random() * 0.1, // mờ nhẹ
+            color: '#FFD700' // vàng
+        });
+    });
+
+    function drawMouseLights() {
+        for (let i = mouseLights.length - 1; i >= 0; i--) {
+            const light = mouseLights[i];
+            ctx.save();
+            ctx.globalAlpha = light.alpha;
+            ctx.fillStyle = light.color;
+            ctx.shadowBlur = 10; // nhẹ
+            ctx.shadowColor = light.color;
+            ctx.beginPath();
+            ctx.arc(light.x, light.y, light.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            light.alpha -= 0.01;
+            light.radius *= 0.95;
+
+            if (light.alpha <= 0) mouseLights.splice(i, 1);
+        }
+    }
+
+    // --- Kết hợp vào main loop ---
+    const originalLoop = loop;
+    loop = function(timestamp) {
+        requestAnimationFrame(loop);
+        const dt = timestamp - lastTime;
+        lastTime = timestamp;
+
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.globalCompositeOperation = 'source-over';
+
+        if (currentGame === 'snake') {
+            snakeAccumulator += dt;
+            if (snakeAccumulator > 1000 / snakeSpeed) {
+                updateSnakeGame();
+                snakeAccumulator = 0;
+            }
+            drawSnakeGame();
+        } else {
+            handleShooterInput();
+            updateShooter();
+            drawShooterGame();
+        }
+
+        // Fireworks
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+            fireworks[i].update();
+            fireworks[i].draw();
+            if (fireworks[i].alpha <= 0) fireworks.splice(i, 1);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Draw mouse lights
+        drawMouseLights();
+    };
     </script>
 
 </body>

@@ -224,23 +224,24 @@
                                                     if($monTrongComboItem) {
                                                         // Món thuộc combo
                                                         if($gioiHan !== null && $gioiHan > 0) {
-                                                            // Có giới hạn
-                                                            $soLuongVuot = max(0, $tongSoLuong - $gioiHan);
+                                                            // Nhân giới hạn theo số combo
+                                                            $soCombo = $datBan->so_khach ?? 1; // số combo thực tế
+                                                            $gioiHanThucTe = $gioiHan * $soCombo;
+                                                            // Số lượng vượt thực tế
+                                                            $soLuongVuot = max(0, $tongSoLuong - $gioiHanThucTe);
                                                             
                                                             if($soLuongVuot > 0) {
-                                                                // Vượt giới hạn: tính tiền cho phần vượt + phụ phí
+                                                                // Vượt giới hạn: tính tiền cho phần vượt + phụ phí nhân theo số lượng vượt
                                                                 $donGiaHienThi = $ctFirst->monAn->gia ?? 0;
-                                                                $tienMon = $donGiaHienThi * $soLuongVuot;
-                                                                
-                                                                // Tính phụ phí món
                                                                 $phuPhiMon = $monTrongComboItem->phu_phi_goi_them ?? 0;
-                                                                if($phuPhiMon > 0) {
-                                                                    $tienMon += $phuPhiMon * $soLuongVuot;
-                                                                    $coPhuPhi = true;
-                                                                }
-                                                                
+
+                                                                // Tổng tiền món = (giá + phụ phí) * số lượng vượt
+                                                                $tienMon = ($donGiaHienThi + $phuPhiMon) * $soLuongVuot;
+                                                                $coPhuPhi = $phuPhiMon > 0;
+
                                                                 $tongTienGoiThem += $tienMon;
-                                                            } else {
+                                                            }       
+                                                            else {
                                                                 // Trong giới hạn: giá = 0 (combo đã bao gồm)
                                                                 $donGiaHienThi = 0;
                                                                 $tienMon = 0;
@@ -263,7 +264,7 @@
                                                         {{ $ctFirst->monAn->ten_mon ?? 'N/A' }}
                                                         @if($monTrongComboItem)
                                                             <span class="badge bg-warning">Món combo</span>
-                                                            @if($gioiHan !== null && $tongSoLuong > $gioiHan)
+                                                            @if($soLuongVuot > 0)
                                                                 <span class="badge bg-danger">Vượt giới hạn</span>
                                                             @endif
                                                         @else
@@ -273,20 +274,30 @@
                                                     <td class="text-center">
                                                         {{ $soLuongHienThi }}
                                                         @if($monTrongComboItem && $gioiHan !== null)
-                                                            <br><small class="text-muted">(Giới hạn: {{ $gioiHan }})</small>
+                                                            <br>
+                                                            @php
+                                                                $soCombo = $datBan->so_khach ?? 1; // hoặc số combo thực tế
+                                                                $gioiHanThucTe = $gioiHan * $soCombo;
+                                                            @endphp
+                                                            <small class="text-muted">(Giới hạn: {{ $gioiHanThucTe }})</small>
+
                                                         @endif
                                                     </td>
                                                     <td class="text-end">
                                                         @if($donGiaHienThi > 0)
                                                             {{ number_format($donGiaHienThi) }} đ
                                                             @if($coPhuPhi)
-                                                                <br><small class="text-danger">+ Phụ phí: {{ number_format($monTrongComboItem->phu_phi_goi_them ?? 0) }} đ</small>
+                                                                <br>
+                                                                <small class="text-danger">
+                                                                    + Phụ phí: {{ number_format(($monTrongComboItem->phu_phi_goi_them ?? 0) * $soLuongVuot) }} đ
+                                                                </small>
                                                             @endif
                                                         @else
                                                             <span class="text-success">0 đ</span>
                                                             <br><small class="text-muted">(Đã bao gồm trong combo)</small>
                                                         @endif
                                                     </td>
+
                                                     <td class="text-end fw-bold">
                                                         @if($tienMon > 0)
                                                             {{ number_format($tienMon) }} đ
@@ -366,6 +377,15 @@
                                                     <label class="form-check-label w-100" for="the_ATM">
                                                         <i class="bi bi-credit-card-2-front text-info fs-3 d-block mb-2"></i>
                                                         <strong>Thẻ ATM</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check border rounded p-3 h-100 payment-method-card">
+                                                    <input class="form-check-input" type="radio" name="phuong_thuc_tt" id="vnpay" value="vnpay">
+                                                    <label class="form-check-label w-100" for="vnpay">
+                                                        <i class="bi bi-credit-card text-warning fs-3 d-block mb-2"></i>
+                                                        <strong>VNPay</strong>
                                                     </label>
                                                 </div>
                                             </div>
@@ -678,6 +698,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Tính toán ban đầu
     tinhToan();
+
+
+    document.getElementById('thanhToanForm').addEventListener('submit', function(e){
+        const vnpayRadio = document.getElementById('vnpay');
+        if(vnpayRadio.checked){
+            e.preventDefault();
+            // Gửi form qua route VNPay
+            this.action = '{{ route("nhanVien.thanh-toan.vnpay.payment", $ban->id) }}';
+            this.submit();
+        }
+    });
+
 });
 </script>
 
@@ -707,4 +739,3 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 @endsection
-
