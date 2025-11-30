@@ -85,20 +85,24 @@ class DashboardController extends Controller
 
         // ------------------ 3. BỔ SUNG: COMBO & KHÁCH HÀNG (Từ Controller 2) ------------------
 
-        // Combo bán chạy
+// Combo bán chạy (ĐÃ SỬA: Dùng bảng dat_ban_combo)
         $totalDatBan = DatBan::count();
-        $comboBanChay = DB::table('dat_ban')
-            ->join('hoa_don', 'hoa_don.dat_ban_id', '=', 'dat_ban.id')
-            ->join('combo_buffet', 'combo_buffet.id', '=', 'dat_ban.combo_id')
+        
+        $comboBanChay = DB::table('dat_ban_combo') // Bắt đầu từ bảng chi tiết
+            ->join('dat_ban', 'dat_ban.id', '=', 'dat_ban_combo.dat_ban_id')
+            ->join('combo_buffet', 'combo_buffet.id', '=', 'dat_ban_combo.combo_id')
             ->select(
                 'combo_buffet.id',
                 'combo_buffet.ten_combo',
-                DB::raw('COUNT(hoa_don.id) as so_luot_ban'),
-                DB::raw('SUM(hoa_don.tong_tien) as tong_doanh_thu'),
-                DB::raw('COUNT(dat_ban.id) as tong_luot_dat'),
-                DB::raw('SUM(CASE WHEN dat_ban.trang_thai = "huy" THEN 1 ELSE 0 END) as so_luot_huy')
+                // Đếm tổng số lượng suất bán ra
+                DB::raw('SUM(dat_ban_combo.so_luong) as so_luot_ban'),
+                // Tính doanh thu dựa trên số lượng * giá vé (chính xác hơn lấy tổng hóa đơn)
+                DB::raw('SUM(dat_ban_combo.so_luong * combo_buffet.gia_co_ban) as tong_doanh_thu'),
+                // Đếm số đơn đặt có chứa combo này
+                DB::raw('COUNT(DISTINCT dat_ban.id) as tong_luot_dat'),
+                // Đếm số đơn bị hủy
+                DB::raw('COUNT(DISTINCT CASE WHEN dat_ban.trang_thai = "huy" THEN dat_ban.id ELSE NULL END) as so_luot_huy')
             )
-            ->whereNotNull('dat_ban.combo_id')
             ->groupBy('combo_buffet.id', 'combo_buffet.ten_combo')
             ->orderByDesc('so_luot_ban')
             ->take(4)
@@ -198,15 +202,17 @@ class DashboardController extends Controller
             }
         }
 
-        // ------------------ 2. BIỂU ĐỒ DOANH THU THEO LOẠI COMBO ------------------
+// ------------------ 2. BIỂU ĐỒ DOANH THU THEO LOẠI COMBO ------------------
         $comboTypes = ['nguoi_lon', 'tre_em', 'vip', 'khuyen_mai'];
         $comboLabels = ['Người lớn', 'Trẻ em', 'VIP', 'Khuyến mãi'];
         $comboData = [];
 
         foreach ($comboTypes as $type) {
-            $query = DB::table('hoa_don as hd')
-                ->join('dat_ban as db', 'hd.dat_ban_id', '=', 'db.id')
-                ->join('combo_buffet as cb', 'db.combo_id', '=', 'cb.id')
+            // SỬA: Join qua bảng dat_ban_combo
+            $query = DB::table('dat_ban_combo as dbc')
+                ->join('dat_ban as db', 'dbc.dat_ban_id', '=', 'db.id')
+                ->join('combo_buffet as cb', 'dbc.combo_id', '=', 'cb.id')
+                ->join('hoa_don as hd', 'hd.dat_ban_id', '=', 'db.id') // Join hóa đơn để lấy ngày tháng
                 ->where('cb.loai_combo', $type);
 
             if ($filter == 'day') {
@@ -217,7 +223,8 @@ class DashboardController extends Controller
                 $query->whereYear('hd.created_at', '>=', $thisYear - 5);
             }
 
-            $comboData[] = (int) $query->sum('hd.tong_tien');
+            // Tính tổng tiền = số lượng suất * giá vé (Vì 1 hóa đơn có thể có nhiều combo khác loại)
+            $comboData[] = (int) $query->sum(DB::raw('dbc.so_luong * cb.gia_co_ban'));
         }
 
         // ------------------ 3. BIỂU ĐỒ KHUNG GIỜ ĐẶT BÀN ------------------

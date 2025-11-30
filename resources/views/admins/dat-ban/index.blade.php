@@ -33,6 +33,10 @@
         margin-left: 6px;
         font-size: 0.85rem;
     }
+    .combo-list-col { 
+        text-align: left !important; /* Đảm bảo căn trái cho danh sách combo */
+        min-width: 180px; 
+    }
     @media (max-width: 768px) {
         .filter-card .row > div { margin-bottom: 10px; }
     }
@@ -91,6 +95,7 @@
                         <select name="combo_id" class="form-control">
                             <option value="">-- Tất cả --</option>
                             @foreach($combosAll ?? [] as $c)
+                                {{-- Value là ID combo để Controller dùng whereHas truy vấn --}}
                                 <option value="{{ $c->id }}" {{ request('combo_id') == $c->id ? 'selected':'' }}>{!! $c->ten_combo !!}</option>
                             @endforeach
                         </select>
@@ -151,7 +156,8 @@
                         <th>Điện thoại</th>
                         <th>Email</th>
                         <th>Combo</th>
-                        <th>Bàn / Khu vực</th> <th>Giờ đến</th>
+                        <th>Bàn / Khu vực</th> 
+                        <th>Giờ đến</th>
                         <th>Trạng thái</th>
                         <th>Hành động</th>
                     </tr>
@@ -163,7 +169,25 @@
                             <td>{{ $datBan->ten_khach }}</td>
                             <td>{{ $datBan->sdt_khach }}</td>
                             <td>{{ $datBan->email_khach }}</td>
-                            <td>{!! $datBan->comboBuffet->ten_combo ?? 'N/A' !!}</td>
+                            
+                            {{-- [SỬA ĐOẠN NÀY] Hiển thị nhiều Combo --}}
+                            <td class="combo-list-col">
+                                @if($datBan->chiTietDatBan->isNotEmpty())
+                                    @foreach($datBan->chiTietDatBan as $chiTiet)
+                                        @if($chiTiet->combo)
+                                            <span class="badge bg-info text-dark mb-1 d-block text-start" style="font-weight: 500;">
+                                                <i class="fas fa-tags me-1"></i> 
+                                                {{ $chiTiet->combo->ten_combo }} 
+                                                (<strong style="font-weight: 700;">x{{ $chiTiet->so_luong }}</strong>)
+                                            </span>
+                                        @else
+                                            <span class="badge bg-secondary mb-1">Combo đã xóa</span>
+                                        @endif
+                                    @endforeach
+                                @else
+                                    <span class="text-muted">Không có combo</span>
+                                @endif
+                            </td>
                             
                             <td>
                                 <div class="fw-bold">{{ $datBan->banAn->so_ban ?? 'N/A' }}</div>
@@ -203,7 +227,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="text-center text-muted">Không có đơn đặt bàn nào.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted">Không có đơn đặt bàn nào.</td></tr>
                     @endforelse
                 </tbody>
             </table>

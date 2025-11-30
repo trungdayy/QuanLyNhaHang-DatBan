@@ -9,7 +9,7 @@
         border: 1px solid #ddd;
         border-radius: 5px;
         background-color: #f9f9f9;
-        margin-bottom: 15px; /* Thêm khoảng cách */
+        margin-bottom: 15px;
     }
     .info-box h5 {
         font-weight: bold;
@@ -26,10 +26,16 @@
         color: #333;
     }
     .status-update-form {
-        background-color: #f0f8ff; /* Màu nền nhẹ */
+        background-color: #f0f8ff;
         border: 1px solid #bce8f1;
         border-radius: 5px;
         padding: 20px;
+    }
+    /* Thêm style cho badge combo */
+    .combo-list-detail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
     }
 </style>
 @endsection
@@ -77,7 +83,10 @@
                                     <h5><i class="fas fa-user mr-2"></i> Thông Tin Khách Hàng</h5>
                                     <p><strong>Tên Khách Hàng:</strong> {{ $datBan->ten_khach }}</p>
                                     <p><strong>Số Điện Thoại:</strong> {{ $datBan->sdt_khach }}</p>
-                                    <p><strong>Số Lượng Khách:</strong> {{ $datBan->so_khach }} người</p>
+                                    
+                                    {{-- [SỬA] Hiển thị chi tiết số lượng khách --}}
+                                    <p><strong>Người Lớn:</strong> {{ $datBan->nguoi_lon }} người</p>
+                                    <p><strong>Trẻ Em:</strong> {{ $datBan->tre_em }} bé</p>
                                 </div>
                             </div>
 
@@ -88,7 +97,6 @@
                                     <p><strong>Mã Đặt Bàn:</strong> {{ $datBan->ma_dat_ban }}</p>
                                     <p><strong>Giờ Đến:</strong> {{ $datBan->gio_den ? \Carbon\Carbon::parse($datBan->gio_den)->format('H:i \n\g\à\y d/m/Y') : 'N/A' }}</p>
                                     
-                                    {{-- 💡 ĐÃ THÊM: HIỂN THỊ TIỀN CỌC --}}
                                     <p><strong>Tiền Cọc:</strong> {{ number_format($datBan->tien_coc ?? 0) }} đ</p>
                                     
                                     <p><strong>Trạng Thái Hiện Tại:</strong> 
@@ -112,10 +120,25 @@
                             {{-- Cột Thông Tin Bàn & Combo --}}
                             <div class="col-md-6">
                                 <div class="info-box">
-                                    <h5><i class="fas fa-chair mr-2"></i> Bàn & Combo</h5>
+                                    <h5><i class="fas fa-utensils mr-2"></i> Bàn & Combo</h5>
                                     <p><strong>Bàn Đã Chọn:</strong> {{ $datBan->banAn->so_ban ?? 'N/A' }}</p>
                                     <p><strong>Khu Vực:</strong> {{ $datBan->banAn->khuVuc->ten_khu_vuc ?? 'N/A' }}</p>
-                                    <p><strong>Combo:</strong> {!! $datBan->comboBuffet->ten_combo ?? '<em>Không chọn combo</em>' !!}</p>
+                                    
+                                    {{-- [SỬA LỚN] Hiển thị tất cả combo đã chọn --}}
+                                    <p><strong>Combo Đã Chọn:</strong></p>
+                                    <div class="combo-list-detail">
+                                        @forelse ($datBan->chiTietDatBan as $chiTiet)
+                                            @if ($chiTiet->combo)
+                                                <span class="badge bg-success mb-1">
+                                                    {{ $chiTiet->combo->ten_combo }} (x{{ $chiTiet->so_luong }})
+                                                </span>
+                                            @else
+                                                <span class="badge bg-danger mb-1">Combo đã xóa (x{{ $chiTiet->so_luong }})</span>
+                                            @endif
+                                        @empty
+                                            <span class="text-muted">Không chọn combo</span>
+                                        @endforelse
+                                    </div>
                                 </div>
                             </div>
                             

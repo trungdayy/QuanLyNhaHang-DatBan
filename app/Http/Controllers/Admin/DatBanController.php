@@ -7,11 +7,13 @@ use App\Models\DatBan;
 use App\Models\BanAn;
 use App\Models\ComboBuffet;
 use App\Models\NhanVien;
+use App\Models\ChiTietDatBan; // [MỚI] Model bảng trung gian
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB; // [MỚI] Để dùng Transaction
 
 class DatBanController extends Controller
 {
@@ -21,7 +23,8 @@ class DatBanController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = DatBan::with(['comboBuffet', 'banAn', 'nhanVien']);
+            // [SỬA] Eager load quan hệ mới: chiTietDatBan.combo
+            $query = DatBan::with(['chiTietDatBan.combo', 'banAn', 'nhanVien']);
 
             // Tìm kiếm theo tên, SĐT, mã đặt bàn
             if ($request->filled('q')) {
@@ -38,9 +41,11 @@ class DatBanController extends Controller
                 $query->where('trang_thai', $request->status);
             }
 
-            // Lọc theo combo buffet
+            // [SỬA] Lọc theo combo buffet (Logic mới: Dùng whereHas truy vấn bảng con)
             if ($request->filled('combo_id')) {
-                $query->where('combo_id', $request->combo_id);
+                $query->whereHas('chiTietDatBan', function ($q) use ($request) {
+                    $q->where('combo_id', $request->combo_id);
+                });
             }
 
             // Lọc theo bàn ăn
@@ -83,27 +88,28 @@ class DatBanController extends Controller
     /** Lưu đơn đặt bàn mới */
     public function store(Request $request)
     {
+        // 1. Validate
         $request->validate([
             'ten_khach' => 'required|string|max:255',
             'sdt_khach' => 'required|string|max:20',
             'nguoi_lon' => 'required|integer|min:1',
             'tre_em'    => 'nullable|integer|min:0',
-            
             'email_khach' => 'nullable|email|max:255',
-            
-            // 🔥 SỬA: Cho phép null (không chọn bàn)
-            'ban_id' => 'nullable|exists:ban_an,id', 
-            
-            'combo_id' => 'nullable|exists:combo_buffet,id',
-            'gio_den' => 'required|date',
-            'tien_coc' => 'nullable|numeric|min:0',
-            'ghi_chu' => 'nullable|string',
+            'ban_id'    => 'nullable|exists:ban_an,id',
+            'gio_den'   => 'required|date',
+            'tien_coc'  => 'nullable|numeric|min:0',
+            'ghi_chu'   => 'nullable|string',
+
+            // [MỚI] Validate mảng combos
+            'combos'    => 'nullable|array', 
+            'combos.*.id' => 'required|exists:combo_buffet,id',
+            'combos.*.so_luong' => 'required|integer|min:1',
         ]);
 
-        $duration = 120; // thời lượng 2 tiếng
+        $duration = 120; // 120 phút mặc định
         $newStart = Carbon::parse($request->gio_den);
 
-        // 🔥 SỬA: Chỉ kiểm tra trùng nếu CÓ CHỌN BÀN
+        // 2. Kiểm tra trùng lịch (Nếu có chọn bàn)
         if ($request->ban_id) {
             $conflict = DatBan::where('ban_id', $request->ban_id)
                 ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
@@ -115,25 +121,25 @@ class DatBanController extends Controller
 
             if ($conflict) {
                 $gioBiTrung = Carbon::parse($conflict->gio_den)->format('H:i d/m/Y');
-                return back()->with('error', "Bàn này đã được đặt vào lúc $gioBiTrung. Vui lòng chọn giờ khác hoặc bàn khác.");
+                return back()->with('error', "Bàn này đã được đặt vào lúc $gioBiTrung. Vui lòng chọn giờ khác hoặc bàn khác.")->withInput();
             }
         }
 
+        // 3. Xử lý lưu DB (Dùng Transaction)
+        DB::beginTransaction();
         try {
             $maDatBan = 'DB-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
 
-            DatBan::create([
+            // A. Tạo DatBan
+            $datBan = DatBan::create([
                 'ma_dat_ban' => $maDatBan,
                 'ten_khach' => $request->ten_khach,
                 'sdt_khach' => $request->sdt_khach,
                 'nguoi_lon' => $request->nguoi_lon,
                 'tre_em'    => $request->tre_em ?? 0,
                 'email_khach' => $request->email_khach,
-                
-                // Lưu null nếu không chọn bàn
-                'ban_id' => $request->ban_id, 
-                
-                'combo_id' => $request->combo_id,
+                'ban_id' => $request->ban_id,
+                // 'combo_id' => null, // [QUAN TRỌNG] Đã bỏ cột này
                 'gio_den' => $request->gio_den,
                 'thoi_luong_phut' => $duration,
                 'tien_coc' => $request->tien_coc ?? 0,
@@ -142,10 +148,26 @@ class DatBanController extends Controller
                 'la_dat_online' => 0,
             ]);
 
+            // B. Lưu Chi Tiết Combo (Nếu có chọn)
+            if ($request->filled('combos')) {
+                foreach ($request->combos as $item) {
+                    // Logic tính giá tiền nếu cần, ở đây chỉ lưu số lượng theo yêu cầu của bạn
+                    ChiTietDatBan::create([
+                        'dat_ban_id' => $datBan->id,
+                        'combo_id'   => $item['id'],
+                        'so_luong'   => $item['so_luong'],
+                        // 'don_gia' => ..., // Đã bỏ theo yêu cầu
+                    ]);
+                }
+            }
+
+            DB::commit(); // Lưu tất cả thành công
             return redirect()->route('admin.dat-ban.index')->with('success', "Tạo đơn đặt bàn thành công! Mã: $maDatBan");
+
         } catch (\Exception $e) {
+            DB::rollBack(); // Có lỗi thì hoàn tác
             Log::error("Lỗi khi lưu đặt bàn: " . $e->getMessage());
-            return back()->with('error', 'Không thể lưu đặt bàn.');
+            return back()->with('error', 'Không thể lưu đặt bàn.')->withInput();
         }
     }
 
@@ -153,7 +175,8 @@ class DatBanController extends Controller
     public function show($id)
     {
         try {
-            $datBan = DatBan::with(['banAn', 'comboBuffet', 'nhanVien'])->findOrFail($id);
+            // [SỬA] Load quan hệ chiTietDatBan
+            $datBan = DatBan::with(['banAn', 'chiTietDatBan.combo', 'nhanVien'])->findOrFail($id);
             return view('admins.dat-ban.show', compact('datBan'));
         } catch (\Exception $e) {
             Log::error("Lỗi khi xem chi tiết đặt bàn: " . $e->getMessage());
@@ -165,7 +188,9 @@ class DatBanController extends Controller
     public function edit($id)
     {
         try {
-            $datBan = DatBan::findOrFail($id);
+            // Load kèm chi tiết để fill vào form
+            $datBan = DatBan::with('chiTietDatBan')->findOrFail($id);
+            
             if (in_array($datBan->trang_thai, ['hoan_tat', 'huy'])) {
                 return redirect()->route('admin.dat-ban.index')->with('error', 'Không thể sửa đơn đã hoàn tất hoặc hủy.');
             }
@@ -188,26 +213,28 @@ class DatBanController extends Controller
             return back()->with('error', 'Không thể sửa đơn đã hoàn tất hoặc hủy.');
         }
 
+        // 1. Validate
         $request->validate([
             'ten_khach' => 'required|string|max:255',
             'sdt_khach' => 'required|string|max:20',
             'nguoi_lon' => 'required|integer|min:1',
             'tre_em'    => 'nullable|integer|min:0',
             'email_khach' => 'nullable|email|max:255',
+            'ban_id'    => 'nullable|exists:ban_an,id',
+            'gio_den'   => 'required|date',
+            'tien_coc'  => 'nullable|numeric|min:0',
+            'ghi_chu'   => 'nullable|string',
             
-            // 🔥 SỬA: Cho phép null
-            'ban_id' => 'nullable|exists:ban_an,id', 
-            
-            'combo_id' => 'nullable|exists:combo_buffet,id',
-            'gio_den' => 'required|date',
-            'tien_coc' => 'nullable|numeric|min:0',
-            'ghi_chu' => 'nullable|string',
+            // [MỚI] Validate mảng combos
+            'combos'    => 'nullable|array',
+            'combos.*.id' => 'required|exists:combo_buffet,id',
+            'combos.*.so_luong' => 'required|integer|min:1',
         ]);
 
         $duration = 120;
         $newStart = Carbon::parse($request->gio_den);
 
-        // 🔥 SỬA: Chỉ kiểm tra trùng nếu CÓ CHỌN BÀN
+        // 2. Check trùng lịch
         if ($request->ban_id) {
             $conflict = DatBan::where('ban_id', $request->ban_id)
                 ->where('id', '!=', $id)
@@ -224,26 +251,43 @@ class DatBanController extends Controller
             }
         }
 
+        // 3. Update DB (Transaction)
+        DB::beginTransaction();
         try {
+            // A. Update thông tin chung
             $datBan->update([
                 'ten_khach' => $request->ten_khach,
                 'sdt_khach' => $request->sdt_khach,
                 'nguoi_lon' => $request->nguoi_lon,
                 'tre_em'    => $request->tre_em ?? 0,
                 'email_khach' => $request->email_khach,
-                
-                // Lưu null nếu không chọn bàn
                 'ban_id' => $request->ban_id,
-                
-                'combo_id' => $request->combo_id,
+                // 'combo_id' => ... // Bỏ
                 'gio_den' => $request->gio_den,
                 'ghi_chu' => $request->ghi_chu,
                 'tien_coc' => $request->tien_coc ?? 0,
                 'thoi_luong_phut' => $duration,
             ]);
 
+            // B. Sync Combos (Xóa cũ thêm mới)
+            // Xóa hết chi tiết cũ của đơn này
+            ChiTietDatBan::where('dat_ban_id', $id)->delete();
+
+            // Thêm lại combo mới chọn
+            if ($request->filled('combos')) {
+                foreach ($request->combos as $item) {
+                    ChiTietDatBan::create([
+                        'dat_ban_id' => $datBan->id,
+                        'combo_id'   => $item['id'],
+                        'so_luong'   => $item['so_luong'],
+                    ]);
+                }
+            }
+
+            DB::commit();
             return redirect()->route('admin.dat-ban.index')->with('success', 'Cập nhật thành công!');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("Lỗi khi cập nhật: " . $e->getMessage());
             return back()->with('error', 'Không thể cập nhật đặt bàn.');
         }
@@ -258,9 +302,10 @@ class DatBanController extends Controller
                 return back()->with('error', 'Không thể xóa khi khách đang ăn.');
             }
 
-            // Kiểm tra nếu có bàn thì mới cập nhật trạng thái bàn
+            // Kiểm tra trạng thái bàn để mở lại bàn
             $banAn = $datBan->banAn;
             if ($banAn && in_array($datBan->trang_thai, ['da_xac_nhan', 'cho_xac_nhan'])) {
+                // Kiểm tra xem bàn này có đơn nào khác đang chờ không
                 $other = DatBan::where('ban_id', $banAn->id)
                     ->where('id', '!=', $datBan->id)
                     ->whereIn('trang_thai', ['da_xac_nhan', 'khach_da_den'])
@@ -270,6 +315,8 @@ class DatBanController extends Controller
                 }
             }
 
+            // ChiTietDatBan sẽ tự xóa theo nếu thiết lập cascade ở DB, 
+            // nhưng DatBan::delete() vẫn hoạt động bình thường.
             $datBan->delete();
             return redirect()->route('admin.dat-ban.index')->with('success', 'Xóa thành công!');
         } catch (\Exception $e) {
@@ -289,7 +336,7 @@ class DatBanController extends Controller
             $datBan = DatBan::findOrFail($id);
             $newStatus = $request->trang_thai_moi;
 
-            // Khi khách đến -> gán ngẫu nhiên nhân viên phục vụ đang hoạt động
+            // Gán nhân viên ngẫu nhiên khi khách đến
             if ($newStatus === 'khach_da_den') {
                 $nhanVien = NhanVien::where('trang_thai', 1)
                     ->where('vai_tro', 'phuc_vu') 
@@ -300,7 +347,7 @@ class DatBanController extends Controller
 
             $datBan->update(['trang_thai' => $newStatus]);
 
-            // Cập nhật trạng thái bàn ăn (nếu đơn có gán bàn)
+            // Cập nhật trạng thái bàn ăn
             $banAn = $datBan->banAn;
             if ($banAn) {
                 if ($newStatus === 'khach_da_den') {
@@ -334,9 +381,9 @@ class DatBanController extends Controller
         $duration = 120;
         $newStart = Carbon::parse($selectedTime);
 
-        // Tìm các bàn đang được đặt trong khung giờ
+        // Tìm các bàn bận
         $conflictingIds = DatBan::whereNotIn('trang_thai', ['huy', 'hoan_tat'])
-            ->whereNotNull('ban_id') // Chỉ xét đơn có bàn
+            ->whereNotNull('ban_id')
             ->whereBetween('gio_den', [
                 $newStart->copy()->subMinutes($duration - 1),
                 $newStart->copy()->addMinutes($duration - 1)
