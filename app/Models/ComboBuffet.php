@@ -112,5 +112,10 @@ public function danhSachMon()
     )->withPivot(['gioi_han_so_luong', 'phu_phi_goi_them']); // nếu có thêm thông tin
 }
 
+public function chiTietDatBan()
+    {
+        return $this->hasMany(ChiTietDatBan::class, 'combo_id', 'id');
+    }
+
     
 }
