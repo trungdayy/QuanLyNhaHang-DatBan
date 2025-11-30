@@ -24,6 +24,7 @@ class DatBan extends Model
         'gio_den',
         'thoi_luong_phut',
         'tien_coc',
+        'payos_order_code',
         'trang_thai',
         'xac_thuc_ma',
         'la_dat_online',

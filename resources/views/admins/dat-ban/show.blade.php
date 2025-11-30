@@ -82,6 +82,7 @@
                                 <div class="info-box">
                                     <h5><i class="fas fa-user mr-2"></i> Thông Tin Khách Hàng</h5>
                                     <p><strong>Tên Khách Hàng:</strong> {{ $datBan->ten_khach }}</p>
+                                    <p><strong>Email Khách Hàng:</strong> {{ $datBan->email_khach ?? 'N/A' }}</p>
                                     <p><strong>Số Điện Thoại:</strong> {{ $datBan->sdt_khach }}</p>
                                     
                                     {{-- [SỬA] Hiển thị chi tiết số lượng khách --}}
