@@ -7,169 +7,134 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
- @media print {
-    body {
-        margin: 0;
-        padding: 0;
-    }
-    .no-print {
-        display: none !important;
-    }
-    @page {
-        size: A4;
-        margin: 1cm;
-    }
-}
-
-/* ===== GENERAL ===== */
-body {
-    font-family: "Times New Roman", serif;
-    font-size: 14px;
-    color: #222;
-    background: #fff;
-}
-
-h1, h2, h3, h4 {
-    margin: 0;
-    padding: 0;
-}
-
-/* ===== HEADER ===== */
-.invoice-header {
-    text-align: center;
-    padding-bottom: 18px;
-    margin-bottom: 30px;
-    border-bottom: 3px solid #000;
-}
-
-.invoice-header h1 {
-    font-size: 30px;
-    letter-spacing: 1px;
-    font-weight: bold;
-}
-
-.invoice-header p {
-    margin: 3px 0;
-    font-size: 14px;
-}
-
-/* ===== INVOICE INFO ===== */
-.invoice-info table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 25px;
-}
-
-.invoice-info td {
-    padding: 6px 8px;
-    vertical-align: top;
-}
-
-.invoice-info td:first-child {
-    font-weight: bold;
-    width: 160px;
-}
-
-.invoice-info tr td:nth-child(3) {
-    text-align: right;
-    font-weight: bold;
-}
-
-/* ===== TABLE ITEMS ===== */
-.invoice-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 30px;
-    font-size: 14px;
-}
-
-.invoice-table th {
-    background: #eef1f5;
-    font-weight: bold;
-    text-align: center;
-    padding: 10px;
-    border: 1px solid #000;
-}
-
-.invoice-table td {
-    padding: 8px;
-    border: 1px solid #000;
-}
-
-.invoice-table tr:nth-child(even) {
-    background: #fafafa;
-}
-
-.invoice-table td.text-center {
-    text-align: center;
-}
-
-.invoice-table td.text-end {
-    text-align: right;
-}
-
-/* ===== SUMMARY ===== */
-.invoice-summary {
-    width: 380px;
-    margin-left: auto;
-    font-size: 14px;
-}
-
-.invoice-summary table {
-    width: 100%;
-}
-
-.invoice-summary td {
-    padding: 7px 5px;
-    border-bottom: 1px solid #ddd;
-}
-
-.invoice-summary td:nth-child(1) {
-    font-weight: bold;
-}
-
-.invoice-summary td:nth-child(2) {
-    text-align: right;
-}
-
-.invoice-summary tr.total-row td {
-    border-top: 2px solid #222;
-    border-bottom: 2px solid #222;
-    font-size: 18px;
-    font-weight: bold;
-    padding: 10px 5px;
-}
-
-/* ===== FOOTER ===== */
-.invoice-footer {
-    text-align: center;
-    margin-top: 50px;
-    font-style: italic;
-    font-size: 14px;
-}
-
-.signature table {
-    width: 100%;
-    margin-top: 45px;
-}
-
-.signature td {
-    text-align: center;
-    padding-top: 30px;
-    font-size: 14px;
-}
-
-.signature strong {
-    font-size: 15px;
-}
-
-/* ===== PRINT BUTTON ===== */
-.no-print button,
-.no-print a {
-    font-size: 16px;
-    padding: 10px 20px;
-}
-
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-page {
+                page-break-after: always;
+            }
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
+        }
+        
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 14px;
+        }
+        
+        .invoice-header {
+            text-align: center;
+            border-bottom: 3px solid #000;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .invoice-header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .invoice-header p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .invoice-info {
+            margin-bottom: 30px;
+        }
+        
+        .invoice-info table {
+            width: 100%;
+        }
+        
+        .invoice-info td {
+            padding: 5px 10px;
+            vertical-align: top;
+        }
+        
+        .invoice-info td:first-child {
+            font-weight: bold;
+            width: 150px;
+        }
+        
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        .invoice-table th,
+        .invoice-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .invoice-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .invoice-table td.text-center {
+            text-align: center;
+        }
+        
+        .invoice-table td.text-end {
+            text-align: right;
+        }
+        
+        .invoice-summary {
+            margin-top: 30px;
+            margin-left: auto;
+            width: 400px;
+        }
+        
+        .invoice-summary table {
+            width: 100%;
+        }
+        
+        .invoice-summary td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .invoice-summary td:last-child {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .invoice-summary .total-row {
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .invoice-footer {
+            margin-top: 50px;
+            text-align: center;
+        }
+        
+        .invoice-footer .signature {
+            margin-top: 60px;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -188,13 +153,16 @@ h1, h2, h3, h4 {
         <div class="invoice-header">
             <h1>HÓA ĐƠN THANH TOÁN</h1>
             <p><strong>Nhà hàng Buffet Ocean</strong></p>
-            <p>Địa chỉ: FPT POLYTECHNIC</p>
-            <p>Điện thoại: 0123 xxx xxx | Email: info@buffetocean.com</p>
+            <p>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</p>
+            <p>Điện thoại: 0123 456 789 | Email: info@buffetocean.com</p>
         </div>
 
         {{-- Thông tin hóa đơn --}}
         <div class="invoice-info">
             <table>
+                @php
+                    $chiTiet = $hoaDon->chiTietHoaDon;
+                @endphp
                 <tr>
                     <td>Mã hóa đơn:</td>
                     <td><strong>{{ $hoaDon->ma_hoa_don }}</strong></td>
@@ -203,23 +171,52 @@ h1, h2, h3, h4 {
                 </tr>
                 <tr>
                     <td>Khách hàng:</td>
-                    <td>{{ $hoaDon->datBan->ten_khach ?? 'N/A' }}</td>
+                    <td>{{ $chiTiet ? $chiTiet->ten_khach : ($hoaDon->datBan->ten_khach ?? 'N/A') }}</td>
                     <td class="text-right">Bàn số:</td>
-                    <td class="text-right"><strong>{{ $hoaDon->datBan->banAn->so_ban ?? 'N/A' }}</strong></td>
+                    <td class="text-right"><strong>{{ $chiTiet ? $chiTiet->ban_so : ($hoaDon->datBan->banAn->so_ban ?? 'N/A') }}</strong></td>
                 </tr>
                 <tr>
                     <td>SĐT:</td>
-                    <td>{{ $hoaDon->datBan->sdt_khach ?? 'N/A' }}</td>
+                    <td>{{ $chiTiet ? $chiTiet->sdt_khach : ($hoaDon->datBan->sdt_khach ?? 'N/A') }}</td>
                     <td class="text-right">Số khách:</td>
-                    <td class="text-right"><strong>{{ $hoaDon->datBan->so_khach ?? 'N/A' }}</strong></td>
+                    <td class="text-right"><strong>{{ $chiTiet ? $chiTiet->so_khach : ($hoaDon->datBan->so_khach ?? 'N/A') }}</strong></td>
                 </tr>
                 <tr>
                     <td>Email:</td>
-                    <td>{{ $hoaDon->datBan->email_khach ?? 'N/A' }}</td>
+                    <td>{{ $chiTiet ? $chiTiet->email_khach : ($hoaDon->datBan->email_khach ?? 'N/A') }}</td>
                     <td class="text-right">Khu vực:</td>
-                    <td class="text-right"><strong>{{ $hoaDon->datBan->banAn->khuVuc->ten_khu_vuc ?? 'N/A' }}</strong></td>
+                    <td class="text-right"><strong>{{ $chiTiet ? ($chiTiet->khu_vuc . ($chiTiet->tang ? ' - Tầng ' . $chiTiet->tang : '')) : ($hoaDon->datBan->banAn->khuVuc->ten_khu_vuc ?? 'N/A') }}</strong></td>
                 </tr>
-                @if($gioVao)
+                @if($chiTiet && $chiTiet->gio_vao)
+                <tr>
+                    <td>Giờ vào:</td>
+                    <td><strong>{{ $chiTiet->gio_vao->format('d/m/Y H:i') }}</strong></td>
+                    <td class="text-right">Giờ ra:</td>
+                    <td class="text-right"><strong>{{ $chiTiet->gio_ra->format('d/m/Y H:i') }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Thời gian phục vụ:</td>
+                    <td><strong>{{ floor($chiTiet->thoi_gian_phuc_vu_phut / 60) }} giờ {{ $chiTiet->thoi_gian_phuc_vu_phut % 60 }} phút</strong></td>
+                    <td class="text-right">Mã đặt bàn:</td>
+                    <td class="text-right"><strong>{{ $chiTiet->ma_dat_ban ?? 'N/A' }}</strong></td>
+                </tr>
+                @if($chiTiet->thoi_gian_quy_dinh_phut)
+                <tr>
+                    <td>Thời gian quy định:</td>
+                    <td><strong>{{ floor($chiTiet->thoi_gian_quy_dinh_phut / 60) }} giờ {{ $chiTiet->thoi_gian_quy_dinh_phut % 60 }} phút</strong></td>
+                    <td class="text-right">Thời gian vượt quá:</td>
+                    <td class="text-right">
+                        <strong>
+                            @if($chiTiet->thoi_gian_vuot_phut > 0)
+                                <span style="color: #dc3545;">{{ floor($chiTiet->thoi_gian_vuot_phut / 60) }} giờ {{ $chiTiet->thoi_gian_vuot_phut % 60 }} phút</span>
+                            @else
+                                <span style="color: #28a745;">0 phút</span>
+                            @endif
+                        </strong>
+                    </td>
+                </tr>
+                @endif
+                @elseif(isset($gioVao) && $gioVao)
                 <tr>
                     <td>Giờ vào:</td>
                     <td><strong>{{ $gioVao->format('d/m/Y H:i') }}</strong></td>
@@ -232,27 +229,6 @@ h1, h2, h3, h4 {
                     <td class="text-right">Mã đặt bàn:</td>
                     <td class="text-right"><strong>{{ $hoaDon->datBan->ma_dat_ban ?? 'N/A' }}</strong></td>
                 </tr>
-                @if($hoaDon->datBan->comboBuffet && $hoaDon->datBan->comboBuffet->thoi_luong_phut)
-                    @php
-                        $thoiGianQuyDinh = $hoaDon->datBan->comboBuffet->thoi_luong_phut;
-                        $thoiGianMienPhi = $thoiGianQuyDinh + 10;
-                        $thoiGianVuot = max(0, $thoiGianPhucVu - $thoiGianMienPhi);
-                    @endphp
-                <tr>
-                    <td>Thời gian quy định:</td>
-                    <td><strong>{{ floor($thoiGianQuyDinh / 60) }} giờ {{ $thoiGianQuyDinh % 60 }} phút</strong></td>
-                    <td class="text-right">Thời gian vượt quá:</td>
-                    <td class="text-right">
-                        <strong>
-                            @if($thoiGianVuot > 0)
-                                <span style="color: #dc3545;">{{ floor($thoiGianVuot / 60) }} giờ {{ $thoiGianVuot % 60 }} phút</span>
-                            @else
-                                <span style="color: #28a745;">0 phút</span>
-                            @endif
-                        </strong>
-                    </td>
-                </tr>
-                @endif
                 @endif
                 <tr>
                     <td>Phương thức TT:</td>
@@ -264,6 +240,8 @@ h1, h2, h3, h4 {
                                 Chuyển khoản
                             @elseif($hoaDon->phuong_thuc_tt == 'the_ATM')
                                 Thẻ ATM
+                            @elseif($hoaDon->phuong_thuc_tt == 'vnpay')
+                                VNPay
                             @else
                                 {{ $hoaDon->phuong_thuc_tt }}
                             @endif
@@ -288,140 +266,124 @@ h1, h2, h3, h4 {
             </thead>
             <tbody>
                 @php
-                    $stt = 1;
-                    $combo = $hoaDon->datBan->comboBuffet;
-                    $soKhach = $hoaDon->datBan->so_khach;
+                    $chiTiet = $hoaDon->chiTietHoaDon;
                     
-                    // Lấy danh sách món trong combo với giới hạn và phụ phí
-                    $monTrongCombo = collect();
-                    if($combo) {
-                        $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $combo->id)
-                            ->get()
-                            ->keyBy('mon_an_id');
-                    }
-                    
-                    // Tính tổng số lượng đã order cho từng món (cả combo và goi_them)
-                    $tongSoLuongMon = [];
-                    $monAnData = []; // Lưu thông tin món để hiển thị
-                    
-                    foreach($hoaDon->datBan->orderMon as $order) {
-                        foreach($order->chiTietOrders as $ct) {
-                            if($ct->trang_thai != 'huy_mon') {
-                                $monAnId = $ct->mon_an_id;
-                                if(!isset($tongSoLuongMon[$monAnId])) {
-                                    $tongSoLuongMon[$monAnId] = 0;
-                                    $monAnData[$monAnId] = $ct->monAn;
-                                }
-                                $tongSoLuongMon[$monAnId] += $ct->so_luong;
-                            }
+                    if ($chiTiet && $chiTiet->danh_sach_mon) {
+                        // Sử dụng dữ liệu từ chi_tiet_hoa_don
+                        $stt = 1;
+                        $tongTienCombo = $chiTiet->tong_tien_combo ?? 0;
+                        $tongTienMonGoiThem = 0;
+                        foreach($chiTiet->danh_sach_mon as $mon) {
+                            $tongTienMonGoiThem += $mon['thanh_tien'];
                         }
+                        $tongTienComboMon = $tongTienCombo + $tongTienMonGoiThem;
+                    } else {
+                        // Fallback cho hóa đơn cũ
+                        $stt = 1;
+                        $combo = $hoaDon->datBan->comboBuffet;
+                        $soKhach = $hoaDon->datBan->so_khach;
                     }
-                    
-                    // Tính số lượng và tiền cho từng món (gộp lại)
-                    $monGoiThemList = [];
-                    foreach($tongSoLuongMon as $monAnId => $tongSoLuong) {
-                        $monAn = $monAnData[$monAnId];
-                        $monTrongComboItem = $monTrongCombo->get($monAnId);
-                        $soLuongTinhTien = 0;
-                        $giaGoc = $monAn->gia ?? 0;
-                        $phuPhi = 0;
-                        
-                        if($monTrongComboItem) {
-                            // Món trong combo: chỉ tính tiền cho phần vượt quá
-                            $gioiHan = $monTrongComboItem->gioi_han_so_luong ?? null;
-                            $phuPhi = $monTrongComboItem->phu_phi_goi_them ?? 0;
-                            
-                            if($gioiHan !== null && $gioiHan > 0) {
-                                $soLuongVuot = max(0, $tongSoLuong - $gioiHan);
-                                if($soLuongVuot > 0) {
-                                    $soLuongTinhTien = $soLuongVuot;
-                                }
-                            } else {
-                                // Không có giới hạn: tính toàn bộ
-                                $soLuongTinhTien = $tongSoLuong;
-                            }
-                        } else {
-                            // Món không trong combo: tính toàn bộ
-                            $soLuongTinhTien = $tongSoLuong;
-                        }
-                        
-                        // Chỉ thêm vào danh sách nếu có số lượng tính tiền > 0
-                        if($soLuongTinhTien > 0) {
-                            // Phụ phí tính theo số lần gọi món (nhân với số lượng)
-                            $tongTienGiaGoc = $giaGoc * $soLuongTinhTien;
-                            $tongPhuPhi = $phuPhi * $soLuongTinhTien; // Phụ phí nhân với số lượng
-                            $thanhTien = $tongTienGiaGoc + $tongPhuPhi;
-                            
-                            $monGoiThemList[$monAnId] = [
-                                'monAn' => $monAn,
-                                'soLuong' => $soLuongTinhTien,
-                                'giaGoc' => $giaGoc,
-                                'phuPhi' => $phuPhi,
-                                'tongTienGiaGoc' => $tongTienGiaGoc,
-                                'tongPhuPhi' => $tongPhuPhi,
-                                'thanhTien' => $thanhTien
-                            ];
-                        }
-                    }
-                    
-                    // Tính lại tổng tiền món gọi thêm từ danh sách đã gộp (bao gồm phụ phí)
-                    $tongTienMonGoiThemTinhLai = 0;
-                    foreach($monGoiThemList as $monData) {
-                        $tongTienMonGoiThemTinhLai += $monData['thanhTien'];
-                    }
-                    
-                    // Tính lại tổng tiền thực tế
-                    $tongTienThucTeTinhLai = $tienComboChinh + $tongTienMonGoiThemTinhLai;
                 @endphp
                 
-                {{-- Combo chính --}}
-                @if($combo && $tienComboChinh > 0)
-                <tr>
-                    <td class="text-center">{{ $stt++ }}</td>
-                    <td><strong>{{ $combo->ten_combo }}</strong> (Combo chính)</td>
-                    <td class="text-center">{{ $soKhach }} khách</td>
-                    <td class="text-end">{{ number_format($combo->gia_co_ban) }} đ</td>
-                    <td class="text-end"><strong>{{ number_format($tienComboChinh) }} đ</strong></td>
-                </tr>
-                @endif
+                @if($chiTiet && $chiTiet->danh_sach_mon)
+                    {{-- Hiển thị từ chi_tiet_hoa_don --}}
+                    {{-- Combo chính --}}
+                    @if($chiTiet->tong_tien_combo > 0)
+                    <tr>
+                        <td class="text-center">{{ $stt++ }}</td>
+                        <td><strong>{{ $chiTiet->ten_combo }}</strong> (Combo chính)</td>
+                        <td class="text-center">{{ $chiTiet->so_khach }} khách</td>
+                        <td class="text-end">{{ number_format($chiTiet->gia_combo_per_person) }} đ</td>
+                        <td class="text-end"><strong>{{ number_format($chiTiet->tong_tien_combo) }} đ</strong></td>
+                    </tr>
+                    @endif
 
-                {{-- Hiển thị món gọi thêm (đã gộp) --}}
-                @foreach($monGoiThemList as $monAnId => $monData)
-                <tr>
-                    <td class="text-center">{{ $stt++ }}</td>
-                    <td>{{ $monData['monAn']->ten_mon ?? 'N/A' }} (Gọi thêm)</td>
-                    <td class="text-center">{{ $monData['soLuong'] }}</td>
-                    <td class="text-end">
-                        @if($monData['phuPhi'] > 0)
-                            <div style="font-size: 12px; line-height: 1.4;">
-                                <div>{{ number_format($monData['giaGoc']) }} đ × {{ $monData['soLuong'] }}</div>
-                                <div style="color: #dc3545;">+ {{ number_format($monData['phuPhi']) }} đ (phụ phí) × {{ $monData['soLuong'] }}</div>
-                                <div style="font-weight: bold;">= {{ number_format($monData['thanhTien']) }} đ</div>
-                            </div>
-                        @else
-                            {{ number_format($monData['giaGoc']) }} đ
-                        @endif
-                    </td>
-                    <td class="text-end">{{ number_format($monData['thanhTien']) }} đ</td>
-                </tr>
-                @endforeach
-                
-                {{-- Tổng kết --}}
-                @if($tienComboChinh > 0 || $tongTienMonGoiThemTinhLai > 0)
-                <tr style="background-color: #f0f0f0; font-weight: bold;">
-                    <td colspan="4" class="text-end">Tổng tiền combo chính:</td>
-                    <td class="text-end">{{ number_format($tienComboChinh) }} đ</td>
-                </tr>
-                @if($tongTienMonGoiThemTinhLai > 0)
-                <tr style="background-color: #f0f0f0; font-weight: bold;">
-                    <td colspan="4" class="text-end">Tổng tiền món gọi thêm:</td>
-                    <td class="text-end">{{ number_format($tongTienMonGoiThemTinhLai) }} đ</td>
-                </tr>
-                @endif
-                <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
-                    <td colspan="4" class="text-end">TỔNG CỘNG:</td>
-                    <td class="text-end">{{ number_format($tongTienThucTeTinhLai) }} đ</td>
-                </tr>
+                    {{-- Danh sách món --}}
+                    @foreach($chiTiet->danh_sach_mon as $mon)
+                    <tr>
+                        <td class="text-center">{{ $mon['stt'] }}</td>
+                        <td>
+                            {{ $mon['ten_mon'] }}
+                            @if($mon['la_mon_combo'])
+                                <span style="font-size: 11px; color: #856404;">(Món combo)</span>
+                                @if($mon['vuot_gioi_han'])
+                                    <span style="font-size: 11px; color: #dc3545;">(Vượt giới hạn)</span>
+                                @endif
+                            @else
+                                <span style="font-size: 11px; color: #0c5460;">(Gọi thêm)</span>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            {{ $mon['so_luong'] }}
+                            @if($mon['gioi_han'] !== null)
+                                <br><small style="font-size: 10px;">(Giới hạn: {{ $mon['gioi_han'] }})</small>
+                            @endif
+                        </td>
+                        <td class="text-end">
+                            @if($mon['don_gia'] > 0)
+                                @if($mon['phu_phi'] > 0)
+                                    <div style="font-size: 11px; line-height: 1.4;">
+                                        <div>{{ number_format($mon['don_gia']) }} đ</div>
+                                        <div style="color: #dc3545;">+ {{ number_format($mon['phu_phi']) }} đ (phụ phí)</div>
+                                    </div>
+                                @else
+                                    {{ number_format($mon['don_gia']) }} đ
+                                @endif
+                            @else
+                                <span style="color: #28a745;">0 đ</span>
+                                <br><small style="font-size: 10px;">(Đã bao gồm)</small>
+                            @endif
+                        </td>
+                        <td class="text-end">
+                            @if($mon['thanh_tien'] > 0)
+                                <strong>{{ number_format($mon['thanh_tien']) }} đ</strong>
+                            @else
+                                <span style="color: #28a745;">0 đ</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                    
+                    {{-- Tổng kết --}}
+                    @if($tongTienCombo > 0)
+                    <tr style="background-color: #f0f0f0; font-weight: bold;">
+                        <td colspan="4" class="text-end">Tổng tiền combo chính:</td>
+                        <td class="text-end">{{ number_format($tongTienCombo) }} đ</td>
+                    </tr>
+                    @endif
+                    @if($tongTienMonGoiThem > 0)
+                    <tr style="background-color: #f0f0f0; font-weight: bold;">
+                        <td colspan="4" class="text-end">Tổng tiền món gọi thêm:</td>
+                        <td class="text-end">{{ number_format($tongTienMonGoiThem) }} đ</td>
+                    </tr>
+                    @endif
+                    <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
+                        <td colspan="4" class="text-end">TỔNG CỘNG:</td>
+                        <td class="text-end">{{ number_format($tongTienComboMon) }} đ</td>
+                    </tr>
+                @else
+                    {{-- Fallback cho hóa đơn cũ --}}
+                    @php
+                        $combo = $hoaDon->datBan->comboBuffet;
+                        $soKhach = $hoaDon->datBan->so_khach;
+                        $tienComboChinh = isset($tienComboChinh) ? $tienComboChinh : ($combo ? ($combo->gia_co_ban * $soKhach) : 0);
+                        $tongTienMonGoiThemTinhLai = isset($tongTienMonGoiThem) ? $tongTienMonGoiThem : 0;
+                        $tongTienThucTeTinhLai = $tienComboChinh + $tongTienMonGoiThemTinhLai;
+                    @endphp
+                    {{-- Combo chính --}}
+                    @if($combo && $tienComboChinh > 0)
+                    <tr>
+                        <td class="text-center">{{ $stt++ }}</td>
+                        <td><strong>{{ $combo->ten_combo }}</strong> (Combo chính)</td>
+                        <td class="text-center">{{ $soKhach }} khách</td>
+                        <td class="text-end">{{ number_format($combo->gia_co_ban) }} đ</td>
+                        <td class="text-end"><strong>{{ number_format($tienComboChinh) }} đ</strong></td>
+                    </tr>
+                    @endif
+                    <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
+                        <td colspan="4" class="text-end">TỔNG CỘNG:</td>
+                        <td class="text-end">{{ number_format($tongTienThucTeTinhLai) }} đ</td>
+                    </tr>
                 @endif
             </tbody>
         </table>
@@ -429,45 +391,54 @@ h1, h2, h3, h4 {
         {{-- Tóm tắt thanh toán --}}
         <div class="invoice-summary">
             <table>
+                @php
+                    if ($chiTiet) {
+                        // Sử dụng dữ liệu từ chi_tiet_hoa_don
+                        $tongTienComboMon = $tongTienComboMon ?? ($chiTiet->tong_tien_combo_mon ?? 0);
+                        $tongTienSauVoucher = $tongTienComboMon - ($chiTiet->tien_giam_voucher ?? 0);
+                        $phaiThanhToan = $tongTienSauVoucher - ($chiTiet->tien_coc ?? 0) + ($chiTiet->tong_phu_thu ?? 0);
+                        if($phaiThanhToan < 0) $phaiThanhToan = 0;
+                    } else {
+                        // Fallback cho hóa đơn cũ
+                        $tongTienComboMon = $tongTienThucTeTinhLai ?? 0;
+                        $tongTienSauVoucher = $tongTienComboMon - ($hoaDon->tien_giam ?? 0);
+                        $phaiThanhToan = $tongTienSauVoucher - ($hoaDon->datBan->tien_coc ?? 0) + ($hoaDon->phu_thu ?? 0);
+                        if($phaiThanhToan < 0) $phaiThanhToan = 0;
+                    }
+                @endphp
                 <tr>
                     <td>Tổng tiền (Combo + Món):</td>
-                    <td>{{ number_format($tongTienThucTeTinhLai) }} đ</td>
+                    <td>{{ number_format($tongTienComboMon) }} đ</td>
                 </tr>
-                @if($hoaDon->voucher)
+                @if(($chiTiet && $chiTiet->tien_giam_voucher > 0) || (!$chiTiet && $hoaDon->voucher))
                 <tr>
-                    <td>(-) Tiền giảm (Voucher {{ $hoaDon->voucher->ma_voucher }}):</td>
-                    <td>- {{ number_format($hoaDon->tien_giam) }} đ</td>
+                    <td>(-) Tiền giảm (Voucher {{ $chiTiet ? $chiTiet->ma_voucher : ($hoaDon->voucher->ma_voucher ?? '') }}):</td>
+                    <td>- {{ number_format($chiTiet ? $chiTiet->tien_giam_voucher : ($hoaDon->tien_giam ?? 0)) }} đ</td>
                 </tr>
                 <tr style="background-color: #fffacd;">
                     <td style="font-weight: bold;">Tổng tiền sau voucher:</td>
-                    <td style="font-weight: bold;">{{ number_format($tongTienThucTeTinhLai - ($hoaDon->tien_giam ?? 0)) }} đ</td>
+                    <td style="font-weight: bold;">{{ number_format($tongTienSauVoucher) }} đ</td>
                 </tr>
                 @endif
-                @if($hoaDon->datBan->tien_coc > 0)
+                @if(($chiTiet && $chiTiet->tien_coc > 0) || (!$chiTiet && $hoaDon->datBan->tien_coc > 0))
                 <tr>
                     <td>(-) Tiền cọc:</td>
-                    <td>- {{ number_format($hoaDon->datBan->tien_coc) }} đ</td>
+                    <td>- {{ number_format($chiTiet ? $chiTiet->tien_coc : ($hoaDon->datBan->tien_coc ?? 0)) }} đ</td>
                 </tr>
                 @endif
-                @if($hoaDon->phu_thu > 0)
+                @if(($chiTiet && $chiTiet->tong_phu_thu > 0) || (!$chiTiet && $hoaDon->phu_thu > 0))
                 <tr>
                     <td>(+) Phụ thu:</td>
-                    <td>+ {{ number_format($hoaDon->phu_thu) }} đ</td>
+                    <td>+ {{ number_format($chiTiet ? $chiTiet->tong_phu_thu : ($hoaDon->phu_thu ?? 0)) }} đ</td>
                 </tr>
                 @endif
-                @php
-                    // Tính lại phải thanh toán từ giá trị tính lại trong view
-                    $tongTienSauVoucherTinhLai = $tongTienThucTeTinhLai - ($hoaDon->tien_giam ?? 0);
-                    $phaiThanhToanTinhLai = $tongTienSauVoucherTinhLai - ($hoaDon->datBan->tien_coc ?? 0) + ($hoaDon->phu_thu ?? 0);
-                    if($phaiThanhToanTinhLai < 0) $phaiThanhToanTinhLai = 0;
-                @endphp
                 <tr class="total-row">
                     <td>PHẢI THANH TOÁN:</td>
-                    <td>{{ number_format($phaiThanhToanTinhLai) }} đ</td>
+                    <td>{{ number_format($phaiThanhToan) }} đ</td>
                 </tr>
                 <tr>
                     <td>Đã thanh toán:</td>
-                    <td style="color: #28a745; font-size: 16px;">{{ number_format($phaiThanhToanTinhLai) }} đ</td>
+                    <td style="color: #28a745; font-size: 16px;">{{ number_format($phaiThanhToan) }} đ</td>
                 </tr>
             </table>
         </div>
@@ -507,4 +478,3 @@ h1, h2, h3, h4 {
     </script>
 </body>
 </html>
-

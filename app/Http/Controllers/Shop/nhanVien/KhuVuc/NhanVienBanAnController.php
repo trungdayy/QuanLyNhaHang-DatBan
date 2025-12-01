@@ -9,6 +9,8 @@ use App\Models\DatBan;
 use App\Models\NhanVien; 
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+
 
 class NhanVienBanAnController extends Controller
 {
@@ -260,4 +262,45 @@ class NhanVienBanAnController extends Controller
 
         return redirect()->back()->with('success', "Bàn {$ban->so_ban} đã được reset về trống!");
     }
+
+    public function checkNotifications()
+{
+    // 1. Lấy tất cả các bàn đang phục vụ có khách
+    // Dùng with() để load luôn thông tin Đặt bàn và Nhân viên phụ trách để đỡ query nhiều lần
+    $activeTables = BanAn::where('trang_thai', 'dang_phuc_vu')
+        ->whereHas('datBan', function($q) {
+            $q->where('trang_thai', 'khach_da_den');
+        })
+        ->with(['datBan' => function($q) {
+            $q->where('trang_thai', 'khach_da_den')->with('nhanVien');
+        }])
+        ->get();
+
+    $callingTables = [];
+
+    foreach ($activeTables as $table) {
+        // Kiểm tra Cache xem bàn này có đang "kêu" không
+        if (Cache::has('goi_nhan_vien_' . $table->id)) {
+            
+            // Lấy thông tin nhân viên từ đơn đặt bàn (nếu có)
+            $datBan = $table->datBan->first(); 
+            $tenNhanVien = 'Chưa gán';
+            $idNhanVien = null;
+
+            if ($datBan && $datBan->nhanVien) {
+                $tenNhanVien = $datBan->nhanVien->ho_ten;
+                $idNhanVien = $datBan->nhanVien->id;
+            }
+
+            $callingTables[] = [
+                'id' => $table->id,
+                'so_ban' => $table->so_ban,
+                'nhan_vien_phu_trach' => $tenNhanVien, // Tên nhân viên
+                'nhan_vien_id' => $idNhanVien // ID nhân viên để ông dùng nếu cần so sánh
+            ];
+        }
+    }
+
+    return response()->json($callingTables);
+}
 }

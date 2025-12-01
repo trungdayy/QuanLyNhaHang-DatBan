@@ -19,6 +19,7 @@ use App\Models\ChiTietDatBan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class OrderController extends Controller
 {
@@ -59,7 +60,7 @@ class OrderController extends Controller
     }
 
     // Hàm xử lý bắt đầu gọi món với nhiều Combo
-public function startOrder(Request $request)
+    public function startOrder(Request $request)
     {
         // 1. Validate dữ liệu
         $validator = Validator::make($request->all(), [
@@ -94,7 +95,7 @@ public function startOrder(Request $request)
         // Tính tổng số khách và thời lượng lớn nhất
         $tongSoKhach = 0;
         $maxThoiLuong = 0;
-        
+
         // [MỚI 1] Biến tính tổng tiền combo ban đầu
         $tongTienComboBanDau = 0;
 
@@ -105,7 +106,7 @@ public function startOrder(Request $request)
                 if ($comboInfo->thoi_luong_phut > $maxThoiLuong) {
                     $maxThoiLuong = $comboInfo->thoi_luong_phut;
                 }
-                
+
                 // [MỚI 2] Cộng dồn tiền combo (Số lượng x Giá vé)
                 // Lưu ý: Đảm bảo tên cột giá trong DB đúng (gia_co_ban hoặc gia_ban)
                 $giaVe = $comboInfo->gia_co_ban ?? $comboInfo->gia_ban ?? 0;
@@ -174,20 +175,20 @@ public function startOrder(Request $request)
             $orderMon = OrderMon::firstOrCreate(
                 ['dat_ban_id' => $datBan->id, 'trang_thai' => 'dang_xu_li'],
                 [
-                    'ban_id' => $datBan->ban_id, 
-                    'tong_mon' => 0, 
-                    
+                    'ban_id' => $datBan->ban_id,
+                    'tong_mon' => 0,
+
                     // [MỚI 3] Gán luôn tổng tiền combo vào đây để Admin thấy doanh thu
-                    'tong_tien' => $tongTienComboBanDau, 
-                    
+                    'tong_tien' => $tongTienComboBanDau,
+
                     'created_at' => $nowString,
                     'updated_at' => $nowString
                 ]
             );
-            
+
             // Nếu order đã tồn tại (quét lại), cập nhật lại giá tiền cho đúng thực tế
             if (!$orderMon->wasRecentlyCreated) {
-                $orderMon->tong_tien = $tongTienComboBanDau; 
+                $orderMon->tong_tien = $tongTienComboBanDau;
                 $orderMon->save();
             }
 
@@ -209,7 +210,8 @@ public function startOrder(Request $request)
                         $alreadyAdded = false;
                         foreach ($itemsToInsert as $inserted) {
                             if ($inserted['mon_an_id'] == $mon->mon_an_id) {
-                                $alreadyAdded = true; break;
+                                $alreadyAdded = true;
+                                break;
                             }
                         }
                         if ($alreadyAdded) continue;
@@ -229,7 +231,7 @@ public function startOrder(Request $request)
                         }
                     }
                 }
-                
+
                 if (!empty($itemsToInsert)) {
                     ChiTietOrder::insert($itemsToInsert);
                     $soLuongMonMoi = count($itemsToInsert);
@@ -293,8 +295,8 @@ public function startOrder(Request $request)
             // [SỬA LẠI TÊN CỘT Ở ĐÂY]
             // Kiểm tra kỹ trong database bảng combo_buffet xem cột giá tên là gì
             // Khả năng cao là 'gia_co_ban' hoặc 'gia_tien'
-            $giaCombo = $ct->combo->gia_co_ban ?? 0; 
-            
+            $giaCombo = $ct->combo->gia_co_ban ?? 0;
+
             $tienCombo += $giaCombo * $ct->so_luong;
         }
 
@@ -360,7 +362,7 @@ public function startOrder(Request $request)
     }
 
     // Xử lý gửi gọi món
-public function submitOrder(Request $request)
+    public function submitOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'dat_ban_id' => 'required|exists:dat_ban,id',
@@ -397,7 +399,7 @@ public function submitOrder(Request $request)
 
         foreach ($items as $item) {
             $monAn = MonAn::find($item['mon_an_id']);
-            
+
             // Nếu món hết hoặc không tồn tại thì bỏ qua
             if (!$monAn || $monAn->trang_thai !== 'con') continue;
 
@@ -484,4 +486,20 @@ public function submitOrder(Request $request)
 
         return view('shop.oderqr.list', compact('banAns', 'selectedBan'));
     }
+
+    public function callStaff(Request $request)
+{
+    $banId = $request->input('ban_id');
+    $ban = BanAn::find($banId);
+
+    if (!$ban) {
+        return response()->json(['status' => 'error', 'message' => 'Bàn không tồn tại!'], 404);
+    }
+
+    // Tạo key Cache: "goi_nhan_vien_BAN_ID"
+    // Lưu giá trị true trong 30 phút (1800 giây)
+    Cache::put('goi_nhan_vien_' . $banId, true, 1800);
+
+    return response()->json(['status' => 'success', 'message' => 'Đã gửi yêu cầu! Nhân viên sẽ tới ngay.']);
+}
 }

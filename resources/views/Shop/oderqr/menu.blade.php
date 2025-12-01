@@ -1041,21 +1041,32 @@
             <div id="main-content">
                 <div class="info-card">
                     <h1><i class="fa-solid fa-utensils"></i> {{ $tenBan ?? 'Bàn...' }}</h1>
-{{-- [SỬA LẠI GIAO DIỆN DARK MODE] --}}
-<div class="info-stats">
-    <div class="info-pill"><i class="fa-solid fa-user"></i> <span id="ten-khach">...</span></div>
-    <div class="info-pill"><i class="fa-solid fa-user-tie"></i> <span id="nguoi-lon">0</span> Lớn</div>
-    <div class="info-pill"><i class="fa-solid fa-child"></i> <span id="tre-em">0</span> Nhỏ</div>
-    <div class="info-pill"><i class="fa-solid fa-stopwatch"></i> <span id="countdown-timer">...</span></div>
-    
-    <div class="info-pill" style="border: 1px solid #3b82f6; color: #60a5fa; background: rgba(59, 130, 246, 0.15);">
-        <i class="fa-solid fa-layer-group"></i> Combo: <span id="tien-combo-badge">0đ</span>
-    </div>
+                    {{-- [SỬA LẠI GIAO DIỆN DARK MODE] --}}
+                    <div class="info-stats">
+                        <div class="info-pill"><i class="fa-solid fa-user"></i> <span id="ten-khach">...</span></div>
+                        <div class="info-pill"><i class="fa-solid fa-user-tie"></i> <span id="nguoi-lon">0</span> Lớn</div>
+                        <div class="info-pill"><i class="fa-solid fa-child"></i> <span id="tre-em">0</span> Nhỏ</div>
+                        <div class="info-pill"><i class="fa-solid fa-stopwatch"></i> <span id="countdown-timer">...</span>
+                        </div>
 
-    <div class="info-pill" style="border: 1px solid #22c55e; color: #4ade80; background: rgba(34, 197, 94, 0.15);">
-        <i class="fa-solid fa-utensils"></i> Thêm: <span id="tien-goi-them-badge">0đ</span>
-    </div>
-</div>
+                        <div class="info-pill"
+                            style="border: 1px solid #3b82f6; color: #60a5fa; background: rgba(59, 130, 246, 0.15);">
+                            <i class="fa-solid fa-layer-group"></i> Combo: <span id="tien-combo-badge">0đ</span>
+                        </div>
+
+                        <div class="info-pill"
+                            style="border: 1px solid #22c55e; color: #4ade80; background: rgba(34, 197, 94, 0.15);">
+                            <i class="fa-solid fa-utensils"></i> Thêm: <span id="tien-goi-them-badge">0đ</span>
+                        </div>
+                    </div>
+
+
+                    <button type="button" id="btn-call-staff" class="btn btn-warning fw-bold"
+                        style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                        🔔 Gọi Hỗ Trợ
+                    </button>
+
+
                     <div id="combo-display" class="combo-box" style="display: none;"></div>
                 </div>
 
@@ -1803,6 +1814,37 @@
             loadSessionInfo();
             setInterval(loadOrderStatus, 5000);
             setInterval(updateTimers, 1000);
+        });
+        $(document).ready(function() {
+            $('#btn-call-staff').click(function() {
+                var btn = $(this);
+
+                // Hỏi lại cho chắc để tránh bấm nhầm
+                if (!confirm("Bạn cần nhân viên hỗ trợ tại bàn?")) return;
+
+                btn.prop('disabled', true).text('Đang gọi...');
+
+                $.ajax({
+                    url: "{{ route('oderqr.call_staff') }}",
+                    method: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        ban_id: "{{ $banId }}" // Biến $banId đã có sẵn trong controller showGoiMonPage của ông
+                    },
+                    success: function(response) {
+                        alert(response.message);
+                        btn.text('🔔 Đã gọi (Chờ xíu...)');
+                        // Sau 30s cho bấm lại
+                        setTimeout(function() {
+                            btn.prop('disabled', false).text('🔔 Gọi Hỗ Trợ');
+                        }, 30000);
+                    },
+                    error: function() {
+                        alert('Lỗi kết nối! Vui lòng gọi trực tiếp.');
+                        btn.prop('disabled', false).text('🔔 Gọi Hỗ Trợ');
+                    }
+                });
+            });
         });
     </script>
 @endsection
