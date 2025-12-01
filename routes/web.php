@@ -310,6 +310,13 @@ Route::prefix('oderqr')->group(function () {
     Route::get('order/status/{datBanId}', [OrderController::class, 'getOrderStatus']);
 
     Route::get('list', [OrderController::class, 'showQrListPage'])->name('oderqr.list');
+
+    /**
+     * [MỚI - QUAN TRỌNG] API Hủy món (Chỉ hủy được khi bếp chưa làm)
+     * URL: /oderqr/order/cancel-item
+     */
+    Route::post('order/cancel-item', [OrderController::class, 'cancelItem'])
+        ->name('oderqr.cancel_item');
 });
 
 
