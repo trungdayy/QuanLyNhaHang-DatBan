@@ -25,7 +25,7 @@ class ThanhToanController extends Controller
         $datBan = DatBan::where('ban_id', $banId)
             ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu', 'da_xac_nhan'])
             ->with([
-                'comboBuffet',
+                'chiTietDatBan.combo',
                 'orderMon.chiTietOrders.monAn',
                 'banAn.khuVuc',
                 'hoaDon'
@@ -46,10 +46,12 @@ class ThanhToanController extends Controller
                 ->with('info', 'Hóa đơn đã được tạo trước đó!');
         }
 
-        // Tính tổng tiền: combo chính + món gọi thêm (tính tiền theo giới hạn combo)
+        // Tính tổng tiền combo: tính từng combo với số lượng tương ứng
         $tienComboChinh = 0;
-        if ($datBan->comboBuffet) {
-            $tienComboChinh = $datBan->comboBuffet->gia_co_ban * ($datBan->so_khach ?? 1);
+        foreach ($datBan->chiTietDatBan as $chiTiet) {
+            if ($chiTiet->combo) {
+                $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
+            }
         }
         
         // Tính tiền món gọi thêm và món combo vượt giới hạn
@@ -65,15 +67,17 @@ class ThanhToanController extends Controller
         $gioRa = now();
         $thoiGianPhucVu = $gioVao->diffInMinutes($gioRa);
 
-        // Tính chi tiết phụ thu thời gian
+        // Tính chi tiết phụ thu thời gian (lấy thời gian quy định từ combo đầu tiên hoặc combo có thời gian dài nhất)
         $thoiGianQuyDinh = 0;
         $thoiGianMienPhi = 0;
         $thoiGianVuot = 0;
         $soLan10Phut = 0;
         $phuThuThoiGian = 0;
         
-        if ($datBan->comboBuffet && $datBan->comboBuffet->thoi_luong_phut) {
-            $thoiGianQuyDinh = $datBan->comboBuffet->thoi_luong_phut;
+        // Lấy thời gian quy định từ combo đầu tiên (hoặc combo có thời gian dài nhất)
+        $comboDauTien = $datBan->chiTietDatBan->first();
+        if ($comboDauTien && $comboDauTien->combo && $comboDauTien->combo->thoi_luong_phut) {
+            $thoiGianQuyDinh = $comboDauTien->combo->thoi_luong_phut;
             $thoiGianMienPhi = $thoiGianQuyDinh + 10; // Thời gian quy định + 10 phút miễn phí
             
             if ($thoiGianPhucVu > $thoiGianMienPhi) {
@@ -116,7 +120,7 @@ class ThanhToanController extends Controller
         $datBan = DatBan::where('ban_id', $banId)
             ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu'])
             ->with([
-                'comboBuffet',
+                'chiTietDatBan.combo',
                 'orderMon.chiTietOrders.monAn',
                 'banAn',
                 'hoaDon'
@@ -137,10 +141,12 @@ class ThanhToanController extends Controller
                 ->with('info', 'Hóa đơn đã được tạo trước đó!');
         }
 
-        // Tính tổng tiền: combo chính + món gọi thêm (tính tiền theo giới hạn combo)
+        // Tính tổng tiền combo: tính từng combo với số lượng tương ứng
         $tienComboChinh = 0;
-        if ($datBan->comboBuffet) {
-            $tienComboChinh = $datBan->comboBuffet->gia_co_ban * ($datBan->so_khach ?? 1);
+        foreach ($datBan->chiTietDatBan as $chiTiet) {
+            if ($chiTiet->combo) {
+                $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
+            }
         }
         
         // Tính tiền món gọi thêm và món combo vượt giới hạn
@@ -183,14 +189,15 @@ class ThanhToanController extends Controller
         $daThanhToan = $tongTienOrder - $tienGiam + $phuThu - $tienCoc;
         if ($daThanhToan < 0) $daThanhToan = 0;
 
-        // Tính chi tiết thời gian
+        // Tính chi tiết thời gian (lấy từ combo đầu tiên)
         $thoiGianQuyDinh = 0;
         $thoiGianVuot = 0;
         $soLan10Phut = 0;
         $phuThuThoiGian = 0;
         
-        if ($datBan->comboBuffet && $datBan->comboBuffet->thoi_luong_phut) {
-            $thoiGianQuyDinh = $datBan->comboBuffet->thoi_luong_phut;
+        $comboDauTien = $datBan->chiTietDatBan->first();
+        if ($comboDauTien && $comboDauTien->combo && $comboDauTien->combo->thoi_luong_phut) {
+            $thoiGianQuyDinh = $comboDauTien->combo->thoi_luong_phut;
             $thoiGianMienPhi = $thoiGianQuyDinh + 10;
             
             if ($thoiGianPhucVu > $thoiGianMienPhi) {
@@ -201,12 +208,26 @@ class ThanhToanController extends Controller
         }
 
         // Chuẩn bị danh sách món đã gọi
-        $danhSachMon = [];
-        $monTrongCombo = collect();
-        if ($datBan->comboBuffet) {
-            $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $datBan->comboBuffet->id)
-                ->get()
-                ->keyBy('mon_an_id');
+        // Tính tổng giới hạn cho từng món từ tất cả các combo
+        $tongGioiHanMon = [];
+        $phuPhiMon = [];
+        
+        foreach ($datBan->chiTietDatBan as $chiTiet) {
+            if ($chiTiet->combo) {
+                $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)->get();
+                foreach ($monTrongCombo as $mtc) {
+                    $monAnId = $mtc->mon_an_id;
+                    $gioiHan = $mtc->gioi_han_so_luong ?? null;
+                    if ($gioiHan !== null && $gioiHan > 0) {
+                        $soLuongCombo = $chiTiet->so_luong ?? 1;
+                        if (!isset($tongGioiHanMon[$monAnId])) {
+                            $tongGioiHanMon[$monAnId] = 0;
+                            $phuPhiMon[$monAnId] = $mtc->phu_phi_goi_them ?? 0;
+                        }
+                        $tongGioiHanMon[$monAnId] += $gioiHan * $soLuongCombo;
+                    }
+                }
+            }
         }
         
         // Tính tổng số lượng đã order cho từng món
@@ -224,34 +245,35 @@ class ThanhToanController extends Controller
         }
         
         // Tạo danh sách món với thông tin chi tiết
+        $danhSachMon = [];
         $stt = 1;
         foreach ($tongSoLuongMon as $monAnId => $tongSoLuong) {
-            $monTrongComboItem = $monTrongCombo->get($monAnId);
             $monAn = \App\Models\MonAn::find($monAnId);
             
             if (!$monAn) continue;
             
-            $gioiHan = null;
+            $tongGioiHan = $tongGioiHanMon[$monAnId] ?? null;
             $soLuongVuot = 0;
             $donGiaHienThi = 0;
             $tienMon = 0;
-            $phuPhiMon = 0;
-            $laMonCombo = false;
+            $phuPhi = $phuPhiMon[$monAnId] ?? 0;
+            $laMonCombo = $tongGioiHan !== null;
             
-            if ($monTrongComboItem) {
-                $laMonCombo = true;
-                $gioiHan = $monTrongComboItem->gioi_han_so_luong ?? null;
-                $soCombo = $datBan->so_khach ?? 1;
-                $gioiHanThucTe = $gioiHan !== null && $gioiHan > 0 ? $gioiHan * $soCombo : null;
-                
-                if ($gioiHanThucTe !== null && $tongSoLuong > $gioiHanThucTe) {
-                    $soLuongVuot = $tongSoLuong - $gioiHanThucTe;
+            $tienPhuPhiTong = 0; // Tổng phụ phí (đã nhân với số lượng vượt)
+            
+            if ($laMonCombo && $tongGioiHan > 0) {
+                if ($tongSoLuong > $tongGioiHan) {
+                    $soLuongVuot = $tongSoLuong - $tongGioiHan;
                     $donGiaHienThi = $monAn->gia ?? 0;
-                    $phuPhiMon = $monTrongComboItem->phu_phi_goi_them ?? 0;
-                    $tienMon = ($donGiaHienThi + $phuPhiMon) * $soLuongVuot;
+                    // Tiền món = giá * số lượng vượt
+                    $tienMon = $donGiaHienThi * $soLuongVuot;
+                    // Phụ phí tổng = phụ phí đơn vị * số lượng vượt
+                    $tienPhuPhiTong = $phuPhi * $soLuongVuot;
+                    // Tổng = tiền món + phụ phí
+                    $tienMon = $tienMon + $tienPhuPhiTong;
                 }
             } else {
-                // Món không thuộc combo
+                // Món không thuộc combo hoặc không có giới hạn
                 $donGiaHienThi = $monAn->gia ?? 0;
                 $tienMon = $donGiaHienThi * $tongSoLuong;
             }
@@ -260,13 +282,14 @@ class ThanhToanController extends Controller
                 'stt' => $stt++,
                 'ten_mon' => $monAn->ten_mon,
                 'so_luong' => $tongSoLuong,
-                'gioi_han' => $gioiHan !== null ? ($gioiHan * ($datBan->so_khach ?? 1)) : null,
+                'gioi_han' => $tongGioiHan,
                 'don_gia' => $donGiaHienThi,
-                'phu_phi' => $phuPhiMon,
+                'phu_phi' => $phuPhi, // Phụ phí đơn vị (để hiển thị)
+                'phu_phi_tong' => $tienPhuPhiTong, // Tổng phụ phí (đã nhân với số lượng vượt)
+                'so_luong_vuot' => $soLuongVuot,
                 'thanh_tien' => $tienMon,
                 'la_mon_combo' => $laMonCombo,
                 'vuot_gioi_han' => $soLuongVuot > 0,
-                'so_luong_vuot' => $soLuongVuot,
             ];
         }
 
@@ -324,8 +347,8 @@ class ThanhToanController extends Controller
             'thoi_gian_vuot_phut' => $thoiGianVuot,
             'so_lan_10_phut' => $soLan10Phut,
             'phu_thu_thoi_gian' => $phuThuThoiGian,
-            'ten_combo' => $datBan->comboBuffet->ten_combo ?? null,
-            'gia_combo_per_person' => $datBan->comboBuffet->gia_co_ban ?? 0,
+            'ten_combo' => $comboDauTien && $comboDauTien->combo ? $comboDauTien->combo->ten_combo : null,
+            'gia_combo_per_person' => $comboDauTien && $comboDauTien->combo ? $comboDauTien->combo->gia_co_ban : 0,
             'tong_tien_combo' => $tienComboChinh,
             'danh_sach_mon' => $danhSachMon,
             'tong_tien_combo_mon' => $tongTienOrder,
@@ -528,7 +551,7 @@ class ThanhToanController extends Controller
     {
         $hoaDon = HoaDon::with([
             'datBan.banAn.khuVuc',
-            'datBan.comboBuffet.monTrongCombo.monAn',
+            'datBan.chiTietDatBan.combo',
             'datBan.orderMon.chiTietOrders.monAn',
             'voucher',
             'chiTietHoaDon'
@@ -549,8 +572,15 @@ class ThanhToanController extends Controller
         $gioVao = $hoaDon->datBan->gio_den ? Carbon::parse($hoaDon->datBan->gio_den) : null;
         $gioRa = $hoaDon->created_at;
         $thoiGianPhucVu = $gioVao ? $gioVao->diffInMinutes($gioRa) : 0;
-        $combo = $hoaDon->datBan->comboBuffet;
-        $tienComboChinh = $combo ? ($combo->gia_co_ban ?? 0) * $soKhach : 0;
+        
+        // Tính tiền combo từ chiTietDatBan
+        $tienComboChinh = 0;
+        foreach ($hoaDon->datBan->chiTietDatBan as $chiTiet) {
+            if ($chiTiet->combo) {
+                $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
+            }
+        }
+        
         $tongTienMonGoiThem = $this->tinhTienMonGoiThem($hoaDon->datBan);
         $tongTienThucTe = $tienComboChinh + $tongTienMonGoiThem;
 
@@ -575,7 +605,7 @@ class ThanhToanController extends Controller
     {
         $hoaDon = HoaDon::with([
             'datBan.banAn.khuVuc',
-            'datBan.comboBuffet',
+            'datBan.chiTietDatBan.combo',
             'datBan.orderMon.chiTietOrders.monAn',
             'voucher',
             'chiTietHoaDon'
@@ -594,10 +624,12 @@ class ThanhToanController extends Controller
         $gioRa = $hoaDon->created_at;
         $thoiGianPhucVu = $gioVao ? $gioVao->diffInMinutes($gioRa) : 0;
 
-        // Tính tổng tiền: combo chính + món gọi thêm
+        // Tính tổng tiền combo: tính từng combo với số lượng tương ứng
         $tienComboChinh = 0;
-        if ($datBan->comboBuffet) {
-            $tienComboChinh = $datBan->comboBuffet->gia_co_ban * ($datBan->so_khach ?? 1);
+        foreach ($datBan->chiTietDatBan as $chiTiet) {
+            if ($chiTiet->combo) {
+                $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
+            }
         }
         
         $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
@@ -618,12 +650,28 @@ class ThanhToanController extends Controller
     {
         $tongTienMonGoiThem = 0;
         
-        // Lấy danh sách món trong combo với giới hạn
-        $monTrongCombo = collect();
-        if ($datBan->comboBuffet) {
-            $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $datBan->comboBuffet->id)
-                ->get()
-                ->keyBy('mon_an_id');
+        // Tính tổng giới hạn cho từng món từ tất cả các combo
+        // Key: mon_an_id, Value: tổng giới hạn từ tất cả các combo
+        $tongGioiHanMon = [];
+        $phuPhiMon = []; // Key: mon_an_id, Value: phụ phí (lấy từ combo đầu tiên tìm thấy)
+        
+        foreach ($datBan->chiTietDatBan as $chiTiet) {
+            if ($chiTiet->combo) {
+                $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)->get();
+                foreach ($monTrongCombo as $mtc) {
+                    $monAnId = $mtc->mon_an_id;
+                    $gioiHan = $mtc->gioi_han_so_luong ?? null;
+                    if ($gioiHan !== null && $gioiHan > 0) {
+                        // Nhân giới hạn với số lượng combo
+                        $soLuongCombo = $chiTiet->so_luong ?? 1;
+                        if (!isset($tongGioiHanMon[$monAnId])) {
+                            $tongGioiHanMon[$monAnId] = 0;
+                            $phuPhiMon[$monAnId] = $mtc->phu_phi_goi_them ?? 0;
+                        }
+                        $tongGioiHanMon[$monAnId] += $gioiHan * $soLuongCombo;
+                    }
+                }
+            }
         }
         
         // Tính tổng số lượng đã order cho từng món (cả combo và goi_them)
@@ -643,22 +691,11 @@ class ThanhToanController extends Controller
         // Tính số lượng vượt quá cho từng món
         $soLuongVuotMon = [];
         foreach ($tongSoLuongMon as $monAnId => $tongSoLuong) {
-            $monTrongComboItem = $monTrongCombo->get($monAnId);
-            if ($monTrongComboItem) {
-                $gioiHan = $monTrongComboItem->gioi_han_so_luong ?? 0;
-
-                // Nhân giới hạn với số combo khách đặt
-                $soCombo = $datBan->so_khach ?? 1; // hoặc số combo nếu có trường riêng
-                $gioiHanThucTe = $gioiHan * $soCombo;
-
-                if($gioiHanThucTe > 0){
-                    $soLuongVuotMon[$monAnId] = max(0, $tongSoLuong - $gioiHanThucTe);
-                } else {
-                    $soLuongVuotMon[$monAnId] = 0;
-                }
-
+            $tongGioiHan = $tongGioiHanMon[$monAnId] ?? null;
+            if ($tongGioiHan !== null && $tongGioiHan > 0) {
+                $soLuongVuotMon[$monAnId] = max(0, $tongSoLuong - $tongGioiHan);
             } else {
-                // Món không có trong combo: không tính vượt quá
+                // Món không có trong combo hoặc không có giới hạn: không tính vượt quá
                 $soLuongVuotMon[$monAnId] = 0;
             }
         }
@@ -677,40 +714,40 @@ class ThanhToanController extends Controller
                         $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $ct->so_luong;
                     } elseif ($ct->loai_mon == 'combo') {
                         // Món combo: tính tiền theo giới hạn
-                        $monTrongComboItem = $monTrongCombo->get($monAnId);
+                        $tongGioiHan = $tongGioiHanMon[$monAnId] ?? null;
                         
-                        if ($monTrongComboItem) {
-                            $gioiHan = $monTrongComboItem->gioi_han_so_luong ?? null;
-                            
-                            if ($gioiHan !== null && $gioiHan > 0) {
-                                // Có giới hạn: chỉ tính tiền cho phần vượt quá
-                                $soLuongVuot = $soLuongVuotMon[$monAnId] ?? 0;
-                                if ($soLuongVuot > 0) {
-                                    // Khởi tạo nếu chưa có
-                                    if (!isset($daPhanBoVuot[$monAnId])) {
-                                        $daPhanBoVuot[$monAnId] = 0;
-                                    }
-                                    
-                                    // Tính số lượng vượt quá còn lại chưa được phân bổ
-                                    $soLuongVuotConLai = $soLuongVuot - $daPhanBoVuot[$monAnId];
-                                    
-                                    if ($soLuongVuotConLai > 0) {
-                                        // Phân bổ số lượng vượt quá cho order này
-                                        $soLuongVuotTrongOrder = min($soLuongVuotConLai, $ct->so_luong);
-                                        
-                                        // Chỉ tính tiền cho phần vượt quá
-                                        $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $soLuongVuotTrongOrder;
-                                        
-                                        // Cập nhật số lượng đã phân bổ
-                                        $daPhanBoVuot[$monAnId] += $soLuongVuotTrongOrder;
-                                    }
+                        if ($tongGioiHan !== null && $tongGioiHan > 0) {
+                            // Có giới hạn: chỉ tính tiền cho phần vượt quá
+                            $soLuongVuot = $soLuongVuotMon[$monAnId] ?? 0;
+                            if ($soLuongVuot > 0) {
+                                // Khởi tạo nếu chưa có
+                                if (!isset($daPhanBoVuot[$monAnId])) {
+                                    $daPhanBoVuot[$monAnId] = 0;
                                 }
-                            } else {
-                                // Không có giới hạn hoặc giới hạn = 0: tính tiền bình thường cho toàn bộ số lượng
-                                $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $ct->so_luong;
+                                
+                                // Tính số lượng vượt quá còn lại chưa được phân bổ
+                                $soLuongVuotConLai = $soLuongVuot - $daPhanBoVuot[$monAnId];
+                                
+                                if ($soLuongVuotConLai > 0) {
+                                    // Phân bổ số lượng vượt quá cho order này
+                                    $soLuongVuotTrongOrder = min($soLuongVuotConLai, $ct->so_luong);
+                                    
+                                    // Tính tiền cho phần vượt quá: giá * số lượng vượt + phụ phí * số lượng vượt
+                                    $donGia = $ct->monAn->gia ?? 0;
+                                    $phuPhi = $phuPhiMon[$monAnId] ?? 0;
+                                    // Tiền món = giá * số lượng vượt
+                                    $tienMon = $donGia * $soLuongVuotTrongOrder;
+                                    // Phụ phí = phụ phí * số lượng vượt
+                                    $tienPhuPhi = $phuPhi * $soLuongVuotTrongOrder;
+                                    // Tổng = tiền món + phụ phí
+                                    $tongTienMonGoiThem += $tienMon + $tienPhuPhi;
+                                    
+                                    // Cập nhật số lượng đã phân bổ
+                                    $daPhanBoVuot[$monAnId] += $soLuongVuotTrongOrder;
+                                }
                             }
                         } else {
-                            // Món không có trong combo: tính tiền bình thường
+                            // Không có giới hạn hoặc giới hạn = 0: tính tiền bình thường cho toàn bộ số lượng
                             $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $ct->so_luong;
                         }
                     }

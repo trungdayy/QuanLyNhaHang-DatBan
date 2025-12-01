@@ -26,7 +26,13 @@
                                     <p class="mb-2"><strong>Tên khách:</strong><br>{{ $chiTiet->ten_khach ?? 'N/A' }}</p>
                                     <p class="mb-2"><strong>SĐT:</strong><br>{{ $chiTiet->sdt_khach ?? 'N/A' }}</p>
                                     <p class="mb-2"><strong>Email:</strong><br>{{ $chiTiet->email_khach ?? 'N/A' }}</p>
-                                    <p class="mb-0"><strong>Số khách:</strong><br><span class="badge bg-info">{{ $chiTiet->so_khach ?? 'N/A' }} người</span></p>
+                                    <p class="mb-1"><strong>Số khách:</strong><br><span class="badge bg-info">{{ $chiTiet->so_khach ?? 'N/A' }} người</span></p>
+                                    <p class="mb-0">
+                                        <small class="text-muted">
+                                            - Người lớn: <strong>{{ $hoaDon->datBan->nguoi_lon ?? 0 }}</strong> người<br>
+                                            - Trẻ em: <strong>{{ $hoaDon->datBan->tre_em ?? 0 }}</strong> người
+                                        </small>
+                                    </p>
                                 </div>
                             </div>
 
@@ -87,7 +93,30 @@
                         {{-- Cột phải: Thông tin combo & món --}}
                         <div class="col-lg-8">
                             {{-- Thông tin combo --}}
-                            @if($chiTiet->ten_combo)
+                            @if($hoaDon->datBan->chiTietDatBan && $hoaDon->datBan->chiTietDatBan->count() > 0)
+                            <div class="card shadow-sm border-0 mb-3">
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="mb-0"><i class="bi bi-basket3 me-2"></i>Thông tin combo & món đã gọi</h5>
+                                </div>
+                                <div class="card-body">
+                                    @foreach($hoaDon->datBan->chiTietDatBan as $chiTietCombo)
+                                        @if($chiTietCombo->combo)
+                                        <div class="mb-3 p-3 bg-light rounded border border-warning">
+                                            <h6 class="fw-bold text-primary mb-2">
+                                                <i class="bi bi-star-fill me-1 text-warning"></i>{{ $chiTietCombo->combo->ten_combo }}
+                                                <span class="badge bg-success ms-2">Combo chính</span>
+                                            </h6>
+                                            <p class="mb-1"><strong>Giá combo:</strong> {{ number_format($chiTietCombo->combo->gia_co_ban) }} đ/người</p>
+                                            <p class="mb-1"><strong>Số lượng:</strong> {{ $chiTietCombo->so_luong ?? 1 }} người</p>
+                                            <p class="mb-0 mt-2"><strong>Thành tiền combo:</strong> 
+                                                <span class="text-danger fw-bold fs-5">{{ number_format($chiTietCombo->combo->gia_co_ban * ($chiTietCombo->so_luong ?? 1)) }} đ</span>
+                                            </p>
+                                        </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                            @elseif($chiTiet->ten_combo)
                             <div class="card shadow-sm border-0 mb-3">
                                 <div class="card-header bg-warning text-dark">
                                     <h5 class="mb-0"><i class="bi bi-basket3 me-2"></i>Thông tin combo & món đã gọi</h5>
@@ -99,7 +128,9 @@
                                             <span class="badge bg-success ms-2">Combo chính</span>
                                         </h6>
                                         <p class="mb-1"><strong>Giá combo:</strong> {{ number_format($chiTiet->gia_combo_per_person) }} đ/người</p>
-                                        <p class="mb-1"><strong>Số khách:</strong> {{ $chiTiet->so_khach }} người</p>
+                                        <p class="mb-1"><strong>Số khách:</strong> {{ $chiTiet->so_khach }} người 
+                                            <small class="text-muted">(Người lớn: {{ $hoaDon->datBan->nguoi_lon ?? 0 }}, Trẻ em: {{ $hoaDon->datBan->tre_em ?? 0 }})</small>
+                                        </p>
                                         <p class="mb-0 mt-2"><strong>Thành tiền combo:</strong> 
                                             <span class="text-danger fw-bold fs-5">{{ number_format($chiTiet->tong_tien_combo) }} đ</span>
                                         </p>
@@ -150,12 +181,34 @@
                                                     <td class="text-end">
                                                         @if($mon['don_gia'] > 0)
                                                             {{ number_format($mon['don_gia']) }} đ
-                                                            @if($mon['phu_phi'] > 0)
-                                                                <br><small class="text-danger">+ Phụ phí: {{ number_format($mon['phu_phi']) }} đ</small>
+                                                            @if(isset($mon['phu_phi_tong']) && $mon['phu_phi_tong'] > 0)
+                                                                <br><small class="text-danger">
+                                                                    + Phụ phí: {{ number_format($mon['phu_phi_tong']) }} đ
+                                                                    @if(isset($mon['so_luong_vuot']) && $mon['so_luong_vuot'] > 1 && isset($mon['phu_phi']) && $mon['phu_phi'] > 0)
+                                                                        <br><small class="text-muted">({{ number_format($mon['phu_phi']) }} đ × {{ $mon['so_luong_vuot'] }})</small>
+                                                                    @endif
+                                                                </small>
+                                                            @elseif(isset($mon['phu_phi']) && $mon['phu_phi'] > 0 && isset($mon['so_luong_vuot']) && $mon['so_luong_vuot'] > 0)
+                                                                <br><small class="text-danger">
+                                                                    + Phụ phí: {{ number_format($mon['phu_phi'] * $mon['so_luong_vuot']) }} đ
+                                                                    @if($mon['so_luong_vuot'] > 1)
+                                                                        <br><small class="text-muted">({{ number_format($mon['phu_phi']) }} đ × {{ $mon['so_luong_vuot'] }})</small>
+                                                                    @endif
+                                                                </small>
                                                             @endif
                                                         @else
-                                                            <span class="text-success">0 đ</span>
-                                                            <br><small class="text-muted">(Đã bao gồm trong combo)</small>
+                                                            @if(isset($mon['phu_phi_tong']) && $mon['phu_phi_tong'] > 0)
+                                                                <span class="text-success">0 đ</span>
+                                                                <br><small class="text-danger">
+                                                                    + Phụ phí: {{ number_format($mon['phu_phi_tong']) }} đ
+                                                                    @if(isset($mon['so_luong_vuot']) && $mon['so_luong_vuot'] > 1 && isset($mon['phu_phi']) && $mon['phu_phi'] > 0)
+                                                                        <br><small class="text-muted">({{ number_format($mon['phu_phi']) }} đ × {{ $mon['so_luong_vuot'] }})</small>
+                                                                    @endif
+                                                                </small>
+                                                            @else
+                                                                <span class="text-success">0 đ</span>
+                                                                <br><small class="text-muted">(Đã bao gồm trong combo)</small>
+                                                            @endif
                                                         @endif
                                                     </td>
                                                     <td class="text-end fw-bold">
@@ -315,7 +368,9 @@
                             <p>Tên: {{ $hoaDon->datBan->ten_khach ?? 'N/A' }}</p>
                             <p>SĐT: {{ $hoaDon->datBan->sdt_khach ?? 'N/A' }}</p>
                             <p>Email: {{ $hoaDon->datBan->email_khach ?? 'N/A' }}</p>
-                            <p>Số khách: {{ $hoaDon->datBan->so_khach ?? 'N/A' }}</p>
+                            <p>Số khách: {{ $hoaDon->datBan->so_khach ?? 'N/A' }} 
+                                <small class="text-muted">(Người lớn: {{ $hoaDon->datBan->nguoi_lon ?? 0 }}, Trẻ em: {{ $hoaDon->datBan->tre_em ?? 0 }})</small>
+                            </p>
                         </div>
                         <div class="col-md-6">
                             <h5 class="fw-bold mb-3">Thông tin bàn</h5>

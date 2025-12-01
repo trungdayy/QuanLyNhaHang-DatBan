@@ -38,6 +38,14 @@ class HoaDon extends Model
     }
 
     /**
+     * Quan hệ: Một hóa đơn có một chi tiết hóa đơn
+     */
+    public function chiTietHoaDon()
+    {
+        return $this->hasOne(ChiTietHoaDon::class, 'hoa_don_id');
+    }
+
+    /**
      * Tính tiền phải thanh toán cuối cùng
      * Công thức: Tổng tiền - Tiền giảm (Voucher) - Tiền cọc + Phụ thu
      */
