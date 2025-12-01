@@ -193,18 +193,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // ==========================================================
 
 Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
-    Route::prefix('ban-an')->name('ban-an.')->group(function () {
-        Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
+ Route::prefix('ban-an')->name('ban-an.')->group(function () {
+    Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
 
-        // POST cho walk-in
-        Route::post('/check-in-walkin', [NhanVienBanAnController::class, 'checkInWalkIn'])->name('check-in-walkin');
+    // Check-in Walk-in (Khách vãng lai) - Giữ nguyên
+    Route::post('/check-in-walkin', [NhanVienBanAnController::class, 'checkInWalkIn'])->name('check-in-walkin');
 
-        // POST cho khách đặt trước
-        Route::post('/check-in-dattruoc', [NhanVienBanAnController::class, 'checkInDatTruoc'])->name('check-in-dattruoc');
+    // --- SỬA ĐOẠN NÀY ---
+    // 1. Route hiển thị Form chọn bàn cho khách đặt trước (GET)
+    Route::get('/check-in-dattruoc/{id}', [NhanVienBanAnController::class, 'showCheckInForm'])->name('show-checkin-dattruoc');
 
-        // GET nút reset bàn (tất cả bàn quá hạn)
-        Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
-    });
+    // 2. Route Xử lý Check-in sau khi chọn bàn (POST)
+    Route::post('/process-check-in', [NhanVienBanAnController::class, 'processCheckIn'])->name('process-checkin');
+    // --------------------
+    Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
+});
 
 
     // DatBan NhanVien

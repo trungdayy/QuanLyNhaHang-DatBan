@@ -51,7 +51,7 @@ class DatBan extends Model
     public function combos()
     {
         return $this->belongsToMany(ComboBuffet::class, 'dat_ban_combo', 'dat_ban_id', 'combo_id')
-                    ->withPivot('so_luong', 'don_gia', 'thanh_tien')
+                    ->withPivot('so_luong')
                     ->withTimestamps();
     }
 
