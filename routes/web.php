@@ -60,6 +60,10 @@ Route::prefix('/')->group(function () {
     // AJAX: lấy bàn theo khu vực
     Route::get('booking/bans-by-khuvuc/{khu_vuc_id}', [BookingController::class, 'getBansByKhuVuc']);
 
+    Route::get('/monan/{id}', [SanPhamController::class, 'show'])
+        ->name('monan.show');
+
+
     // ==== OTP cho booking ====
     Route::prefix('otp')->group(function () {
         Route::get('verify', [OtpController::class, 'showOtpForm'])->name('otp.form');
