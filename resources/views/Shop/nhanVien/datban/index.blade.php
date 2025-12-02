@@ -88,16 +88,8 @@
         .st-huy { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 
         .tag-table { background: #f1f5f9; color: var(--dark); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; }
-
-        /* --- ACTION BUTTONS SMALL --- */
-        .btn-act-sm {
-            width: 28px; height: 28px; border-radius: 4px; display: inline-flex;
-            align-items: center; justify-content: center; border: none; transition: 0.2s; cursor: pointer;
-        }
-        .btn-check { background: #ecfdf5; color: #059669; } .btn-check:hover { background: #059669; color: white; }
-        .btn-cancel { background: #fef2f2; color: #dc2626; } .btn-cancel:hover { background: #dc2626; color: white; }
-        .btn-serve { background: #fff7ed; color: #ea580c; } .btn-serve:hover { background: #ea580c; color: white; }
-        .btn-finish { background: #f1f5f9; color: #475569; } .btn-finish:hover { background: #475569; color: white; }
+        /* New combo tag style */
+        .tag-combo { background: #e0f2f1; color: #14b8a6; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; margin-top: 2px; display: inline-block;}
 
         /* Countdown */
         .countdown-timer { font-weight: 700; font-family: 'Heebo'; }
@@ -106,63 +98,63 @@
         @keyframes blinker { 50% { opacity: 0.4; } }
 
         /* --- ACTION BUTTONS NEW STYLE --- */
-.action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: .2s;
-    white-space: nowrap;
-}
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: .2s;
+            white-space: nowrap;
+        }
 
-/* Xác nhận (Chờ xác nhận → Đã xác nhận) */
-.btn-accept {
-    background: #fffbeb; /* vàng nhạt */
-    color: #b45309;       /* vàng đậm */
-    border: 1px solid #fcd34d;
-}
-.btn-accept:hover {
-    background: #b45309;
-    color: #fff;
-}
+        /* Xác nhận (Chờ xác nhận → Đã xác nhận) */
+        .btn-accept {
+            background: #fffbeb; /* vàng nhạt */
+            color: #b45309;       /* vàng đậm */
+            border: 1px solid #fcd34d;
+        }
+        .btn-accept:hover {
+            background: #b45309;
+            color: #fff;
+        }
 
-/* Hủy */
-.btn-reject {
-    background: #fef2f2; /* đỏ nhạt */
-    color: #b91c1c;       /* đỏ đậm */
-    border: 1px solid #fecaca;
-}
-.btn-reject:hover {
-    background: #b91c1c;
-    color: #fff;
-}
+        /* Hủy */
+        .btn-reject {
+            background: #fef2f2; /* đỏ nhạt */
+            color: #b91c1c;       /* đỏ đậm */
+            border: 1px solid #fecaca;
+        }
+        .btn-reject:hover {
+            background: #b91c1c;
+            color: #fff;
+        }
 
-/* Khách tới (Đang phục vụ) */
-.btn-arrived {
-    background: #fff7ed; /* cam nhạt */
-    color: #c2410c;       /* cam đậm */
-    border: 1px solid #fed7aa;
-}
-.btn-arrived:hover {
-    background: #c2410c;
-    color: #fff;
-}
+        /* Khách tới (Đang phục vụ) */
+        .btn-arrived {
+            background: #fff7ed; /* cam nhạt */
+            color: #c2410c;       /* cam đậm */
+            border: 1px solid #fed7aa;
+        }
+        .btn-arrived:hover {
+            background: #c2410c;
+            color: #fff;
+        }
 
-/* Kết thúc (Hoàn tất) */
-.btn-finish {
-    background: #ecfdf5; /* xanh lá nhạt */
-    color: #047857;       /* xanh lá đậm */
-    border: 1px solid #a7f3d0;
-}
-.btn-finish:hover {
-    background: #047857;
-    color: #fff;
-}
+        /* Kết thúc (Hoàn tất) */
+        .btn-finish {
+            background: #ecfdf5; /* xanh lá nhạt */
+            color: #047857;       /* xanh lá đậm */
+            border: 1px solid #a7f3d0;
+        }
+        .btn-finish:hover {
+            background: #047857;
+            color: #fff;
+        }
 
     </style>
 
@@ -197,9 +189,9 @@
                             <label class="form-label-custom">Trạng thái</label>
                             <select name="trang_thai" class="form-select-custom">
                                 <option value="">-- Tất cả --</option>
-                                <option value="cho_xac_nhan" {{ request('trang_thai')=='cho_xac_nhan'?'selected':'' }}>Chờ xác nhận</option>
-                                <option value="da_xac_nhan" {{ request('trang_thai')=='da_xac_nhan'?'selected':'' }}>Đã xác nhận</option>
-                                <option value="khach_da_den" {{ request('trang_thai')=='khach_da_den'?'selected':'' }}>Đang phục vụ</option>
+                                <option value="cho_xac_nhan" {{ request('trang_thai')=='cho_xac_nhan'?'selected':'' }}>Chờ duyệt</option>
+                                <option value="da_xac_nhan" {{ request('trang_thai')=='da_xac_nhan'?'selected':'' }}>Đã duyệt</option>
+                                <option value="khach_da_den" {{ request('trang_thai')=='khach_da_den'?'selected':'' }}>Đang ăn</option>
                                 <option value="hoan_tat" {{ request('trang_thai')=='hoan_tat'?'selected':'' }}>Hoàn tất</option>
                                 <option value="huy" {{ request('trang_thai')=='huy'?'selected':'' }}>Đã hủy</option>
                             </select>
@@ -246,7 +238,7 @@
                             <th class="text-start">Khách hàng</th>
                             <th>Số khách</th>
                             <th>Giờ đến</th>
-                            <th class="text-start">Combo</th>
+                            <th class="text-start">Combo (Suất)</th> 
                             <th>Thời gian</th>
                             <th>Trạng thái</th>
                             <th style="width: 100px;">Hành động</th>
@@ -260,6 +252,7 @@
                             <td class="text-center">
                                 @if ($d->banAn)
                                     <span class="tag-table">Bàn {{ $d->banAn->so_ban }}</span>
+                                    {{-- Cần đảm bảo mối quan hệ khuVuc tồn tại trong Model BanAn --}}
                                     <div class="small text-muted mt-1" style="font-size: 0.7rem;">{{ $d->banAn->khuVuc->ten_khu_vuc ?? '' }}</div>
                                 @else
                                     <span class="text-muted small fst-italic">Chưa xếp</span>
@@ -269,7 +262,12 @@
                                 <div class="fw-bold text-dark">{{ $d->ten_khach }}</div>
                                 <div class="small text-muted"><i class="fa-solid fa-phone me-1" style="font-size: 0.7rem;"></i>{{ $d->sdt_khach }}</div>
                             </td>
-                            <td class="text-center fw-bold">{{ $d->so_khach }}</td>
+                            <td class="text-center fw-bold">
+                                {{ $d->nguoi_lon + $d->tre_em }} 
+                                @if($d->tre_em > 0)
+                                    <span class="small text-muted">(T: {{ $d->tre_em }})</span>
+                                @endif
+                            </td>
                             <td class="text-center small">
                                 @if($d->gio_den)
                                     <div class="fw-bold">{{ \Carbon\Carbon::parse($d->gio_den)->format('H:i') }}</div>
@@ -277,30 +275,43 @@
                                 @else - @endif
                             </td>
                             
-                            <td>
-                                @if ($d->comboBuffet)
-                                    <span class="fw-bold text-dark">{{ $d->comboBuffet->ten_combo }}</span>
-                                    <span class="text-muted small">({{ $d->thoi_luong_phut ?? $d->comboBuffet->thoi_luong_phut }}p)</span>
-                                @else
-                                    <span class="text-muted small fst-italic">Chưa chọn</span>
-                                @endif
+                            {{-- HIỂN THỊ DANH SÁCH COMBO ĐÃ ĐẶT --}}
+                            <td class="text-start">
+                                @forelse($d->combos as $combo)
+                                    <span class="tag-combo">
+                                        {{ $combo->ten_combo }} (x{{ $combo->pivot->so_luong }})
+                                    </span>
+                                @empty
+                                    <span class="text-muted small fst-italic">Chưa chọn Combo</span>
+                                @endforelse
+                                <div class="small text-muted mt-1">TTL: {{ $d->thoi_luong_phut ?? 120 }}p</div>
                             </td>
 
                             {{-- COUNTDOWN --}}
                             <td class="text-center small">
-                                @if ($d->trang_thai == 'khach_da_den' && $d->comboBuffet)
+                                @if ($d->trang_thai == 'khach_da_den')
                                     @php
-                                        $orderDau = \App\Models\OrderMon::where('dat_ban_id', $d->id)->orderBy('created_at', 'asc')->first();
-                                        $thoiLuong = $d->comboBuffet->thoi_luong_phut ?? 120;
-                                        $endTime = $orderDau ? \Carbon\Carbon::parse($orderDau->created_at)->addMinutes($thoiLuong)->timestamp * 1000 : null;
+                                        // Thời lượng đã được lưu trong dat_ban (là max thời lượng combo)
+                                        $thoiLuong = $d->thoi_luong_phut ?? 120;
+
+                                        // Lấy phiếu order đầu tiên (thời điểm gọi món bắt đầu)
+                                        // Cần đảm bảo mối quan hệ orderMon được eager load trong Controller
+                                        $orderDau = $d->orderMon->sortBy('created_at')->first();
+                                        
+                                        $endTime = null;
+                                        if ($orderDau) {
+                                            $startTime = \Carbon\Carbon::parse($orderDau->created_at);
+                                            // Thời gian kết thúc = Thời điểm gọi món đầu tiên + Thời lượng tối đa
+                                            $endTime = $startTime->addMinutes($thoiLuong)->timestamp * 1000;
+                                        }
                                     @endphp
                                     @if ($endTime)
                                         <span class="countdown-timer text-primary" data-endtime="{{ $endTime }}">...</span>
                                     @else
-                                        <span class="text-muted">Chưa gọi món</span>
+                                        <span class="text-muted">Chờ gọi món</span>
                                     @endif
                                 @elseif(in_array($d->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']))
-                                    <span class="text-muted">Chưa đến</span>
+                                    <span class="text-muted">Chưa check-in</span>
                                 @else
                                     -
                                 @endif
@@ -322,61 +333,61 @@
                             </td>
 
                             {{-- ACTIONS --}}
-<td class="text-center">
-    <div class="d-flex justify-content-center flex-wrap gap-1">
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center flex-wrap gap-1">
 
-        {{-- 1. CHỜ XÁC NHẬN --}}
-        @if ($d->trang_thai == 'cho_xac_nhan')
+                                    {{-- 1. CHỜ XÁC NHẬN --}}
+                                    @if ($d->trang_thai == 'cho_xac_nhan')
 
-            {{-- Xác nhận --}}
-            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                @csrf
-                <input type="hidden" name="trang_thai" value="da_xac_nhan">
-                <button class="action-btn btn-accept" onclick="return confirm('Xác nhận đơn này?')">
-                    <i class="fa-solid fa-check"></i>
-                    Xác nhận
-                </button>
-            </form>
+                                        {{-- Xác nhận --}}
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
+                                            @csrf
+                                            <input type="hidden" name="trang_thai" value="da_xac_nhan">
+                                            <button class="action-btn btn-accept" onclick="return confirm('Xác nhận đơn này?')">
+                                                <i class="fa-solid fa-check"></i>
+                                                Xác nhận
+                                            </button>
+                                        </form>
 
-            {{-- Hủy --}}
-            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                @csrf
-                <input type="hidden" name="trang_thai" value="huy">
-                <button class="action-btn btn-reject" onclick="return confirm('Hủy đơn này?')">
-                    <i class="fa-solid fa-xmark"></i>
-                    Hủy
-                </button>
-            </form>
+                                        {{-- Hủy --}}
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
+                                            @csrf
+                                            <input type="hidden" name="trang_thai" value="huy">
+                                            <button class="action-btn btn-reject" onclick="return confirm('Hủy đơn này?')">
+                                                <i class="fa-solid fa-xmark"></i>
+                                                Hủy
+                                            </button>
+                                        </form>
 
-        {{-- 2. ĐÃ XÁC NHẬN — Khách đến --}}
-        @elseif($d->trang_thai == 'da_xac_nhan')
-            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                @csrf
-                <input type="hidden" name="trang_thai" value="khach_da_den">
-                <button class="action-btn btn-arrived" onclick="return confirm('Khách đã đến?')">
-                    <i class="fa-solid fa-person-walking"></i>
-                    Khách tới
-                </button>
-            </form>
+                                    {{-- 2. ĐÃ XÁC NHẬN — Khách đến --}}
+                                    @elseif($d->trang_thai == 'da_xac_nhan')
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
+                                            @csrf
+                                            <input type="hidden" name="trang_thai" value="khach_da_den">
+                                            <button class="action-btn btn-arrived" onclick="return confirm('Khách đã đến?')">
+                                                <i class="fa-solid fa-person-walking"></i>
+                                                Check-in
+                                            </button>
+                                        </form>
 
-        {{-- 3. ĐANG PHỤC VỤ — Kết thúc --}}
-        @elseif($d->trang_thai == 'khach_da_den')
-            <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
-                @csrf
-                <input type="hidden" name="trang_thai" value="hoan_tat">
-                <button class="action-btn btn-finish" onclick="return confirm('Kết thúc bàn này?')">
-                    <i class="fa-solid fa-flag-checkered"></i>
-                    Kết thúc
-                </button>
-            </form>
+                                    {{-- 3. ĐANG PHỤC VỤ — Kết thúc --}}
+                                    @elseif($d->trang_thai == 'khach_da_den')
+                                        <form method="post" action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
+                                            @csrf
+                                            <input type="hidden" name="trang_thai" value="hoan_tat">
+                                            <button class="action-btn btn-finish" onclick="return confirm('Kết thúc bàn này?')">
+                                                <i class="fa-solid fa-flag-checkered"></i>
+                                                Kết thúc
+                                            </button>
+                                        </form>
 
-        {{-- 4. Hoàn tất / Hủy --}}
-        @else
-            <span class="text-muted">-</span>
-        @endif
+                                    {{-- 4. Hoàn tất / Hủy --}}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
 
-    </div>
-</td>
+                                </div>
+                            </td>
 
                         </tr>
                         @empty
@@ -412,9 +423,12 @@
                         return;
                     }
 
-                    const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    const s = Math.floor((distance % (1000 * 60)) / 1000);
+                    // Tính toán H:M:S chính xác
+                    const totalSeconds = Math.floor(distance / 1000);
+                    const h = Math.floor(totalSeconds / 3600);
+                    const m = Math.floor((totalSeconds % 3600) / 60);
+                    const s = totalSeconds % 60;
+                    
                     const timeString = `${h < 10 ? "0"+h : h}:${m < 10 ? "0"+m : m}:${s < 10 ? "0"+s : s}`;
 
                     if (distance <= fiveMinutes) {

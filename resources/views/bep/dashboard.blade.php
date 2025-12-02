@@ -348,6 +348,7 @@
     <div class="container-fluid">
         <div class="kds-header">
             <div class="kds-title"><i class="fa-solid fa-fire-burner text-warning"></i> Bếp Trung Tâm</div>
+            {{-- Lọc theo khu bếp --}}
             <form method="GET" action="{{ route('bep.dashboard') }}">
                 <div class="filter-box">
                     <button type="submit" name="khu_bep" value=""
@@ -370,35 +371,34 @@
                             <div class="badge-table">Bàn {{ $soBan }}</div>
                             <div style="font-size:0.9rem; color:#64748b; font-weight: 600;">
                                 <i class="fa-regular fa-clock"></i>
-                                {{ $danhSachMon->first()->orderMon->created_at->format('H:i') }}
+                                {{-- Lấy thời gian gọi của món đầu tiên trong danh sách (vì đã được sắp xếp theo created_at) --}}
+                                {{ $danhSachMon->first()->created_at->format('H:i') }}
                             </div>
                         </div>
 
                         <div class="t-body" data-table="{{ $soBan }}">
                             @foreach ($danhSachMon as $mon)
-                                <div class="dish-item st-{{ $mon->trang_thai }}" id="dish-{{ $mon->id }}">
+                                @php
+                                    $monAn = $mon->monAn;
+                                    $tenMon = optional($monAn)->ten_mon ?? 'Món không tồn tại';
+                                    $imgUrl = optional($monAn)->hinh_anh ? asset(optional($monAn)->hinh_anh) : null;
+                                    $firstChar = mb_substr($tenMon, 0, 1, 'UTF-8');
+                                    $fallback = 'https://placehold.co/100x100/png?text=' . urlencode($firstChar);
+                                    $isNuoc = optional($monAn)->danh_muc_id == 14;
+                                @endphp
+                                
+                                {{-- BỔ SUNG DATA-ATTRIBUTES cho JS tối ưu refresh --}}
+                                <div class="dish-item st-{{ $mon->trang_thai }}" id="dish-{{ $mon->id }}" 
+                                    data-mon-id="{{ $mon->mon_an_id }}"
+                                    data-is-nuoc="{{ $isNuoc ? 'true' : 'false' }}">
+
                                     @if ($mon->uu_tien)
                                         <div class="badge-urgent">GẤP</div>
                                     @endif
 
                                     <div class="d-info">
-                                        {{-- === CODE HIỂN THỊ ẢNH ĐÃ TỐI ƯU === --}}
+                                        {{-- === CODE HIỂN THỊ ẢNH === --}}
                                         <div class="d-img-wrapper">
-                                            @php
-                                                // Lấy đối tượng món ăn an toàn
-                                                $monAn = $mon->monAn;
-
-                                                // Xử lý đường dẫn ảnh: Giống logic Menu
-                                                // asset() sẽ tự thêm domain vào trước đường dẫn từ DB
-                                                $imgUrl = $monAn && $monAn->hinh_anh ? asset($monAn->hinh_anh) : null;
-
-                                                // Ảnh fallback: Lấy chữ cái đầu
-                                                $tenMon = $monAn ? $monAn->ten_mon : '?';
-                                                $firstChar = mb_substr($tenMon, 0, 1, 'UTF-8');
-                                                $fallback =
-                                                    'https://placehold.co/100x100/png?text=' . urlencode($firstChar);
-                                            @endphp
-
                                             @if ($imgUrl)
                                                 <img src="{{ $imgUrl }}" class="d-img" loading="lazy"
                                                     alt="{{ $tenMon }}"
@@ -410,8 +410,17 @@
                                         {{-- === KẾT THÚC CODE ẢNH === --}}
 
                                         <div style="flex:1;">
-                                            <div class="d-name">{{ $mon->monAn->ten_mon }}</div>
-                                            <div class="d-qty">Số lượng: {{ $mon->so_luong }}</div>
+                                            <div class="d-name">{{ $tenMon }}</div>
+                                            <div class="d-qty">SL: {{ $mon->so_luong }}</div>
+                                            {{-- Hiển thị thời gian chế biến dự kiến --}}
+                                            @if($monAn->thoi_gian_che_bien && !$isNuoc)
+                                                <small class="text-secondary ms-2" title="Thời gian dự kiến">
+                                                    <i class="fa-solid fa-hourglass-half"></i> {{ $monAn->thoi_gian_che_bien }} phút
+                                                </small>
+                                            @endif
+                                            @if($isNuoc)
+                                                <small class="text-info ms-2" title="Đồ uống"><i class="fa-solid fa-glass-water"></i> Đồ Uống</small>
+                                            @endif
                                         </div>
                                     </div>
 
@@ -486,7 +495,9 @@
                     return data;
                 })
                 .then(data => {
+                    // Cập nhật trạng thái ngay lập tức mà không cần tải lại toàn bộ DOM
                     renderNewState(id, status, dishEl, actionEl);
+                    // Lưu ý: Vị trí món sẽ được sắp xếp lại đúng trong lần Auto Refresh tiếp theo (3s)
                 })
                 .catch(err => {
                     console.error(err);
