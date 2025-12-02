@@ -307,7 +307,19 @@
                                                 {{ ($don->da_thanh_toan ?? 0) > 0 ? 'Đã thanh toán' : 'Chưa thanh toán' }}
                                             </span>
                                         </td>
-                                        <td>{{ $don->phuong_thuc_tt ?? '---' }}</td>
+                                        <td>
+                                            @if($don->phuong_thuc_tt == 'tien_mat')
+                                                <span class="badge bg-primary">Tiền mặt</span>
+                                            @elseif($don->phuong_thuc_tt == 'chuyen_khoan')
+                                                <span class="badge bg-secondary">Chuyển khoản</span>
+                                            @elseif($don->phuong_thuc_tt == 'the_ATM')
+                                                <span class="badge bg-info">Thẻ ATM</span>
+                                            @elseif($don->phuong_thuc_tt == 'vnpay')
+                                                <span class="badge bg-warning">VNPay</span>
+                                            @else
+                                                <span class="badge bg-dark">{{ $don->phuong_thuc_tt ?? '---' }}</span>
+                                            @endif
+                                        </td>
                                         <td>{{ \Carbon\Carbon::parse($don->created_at)->format('d/m/Y') }}</td>
                                     </tr>
                                     @endforeach
@@ -340,7 +352,19 @@
                                         <td>{{ $nv->ho_ten ?? 'Ẩn' }}</td>
                                         <td>{{ $nv->sdt ?? '---' }}</td>
                                         <td>{{ $nv->email ?? '---' }}</td>
-                                        <td>{{ ucfirst($nv->vai_tro) }}</td>
+                                        <td>
+                                            @if($nv->vai_tro == 'quan_ly')
+                                                <span class="badge bg-primary">Quản lý</span>
+                                            @elseif($nv->vai_tro == 'bep')
+                                                <span class="badge bg-warning">Bếp</span>
+                                            @elseif($nv->vai_tro == 'phuc_vu')
+                                                <span class="badge bg-info">Phục vụ</span>
+                                            @elseif($nv->vai_tro == 'le_tan')
+                                                <span class="badge bg-success">Lễ tân</span>
+                                            @else
+                                                <span class="badge bg-secondary">{{ ucfirst($nv->vai_tro) }}</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             <span class="badge {{ $nv->trang_thai == 1 ? 'bg-success' : 'bg-secondary' }}">
                                                 {{ $nv->trang_thai == 1 ? 'Đi làm' : 'Nghỉ' }}
