@@ -970,6 +970,37 @@
                     <td>Đã thanh toán:</td>
                     <td style="color: #28a745; font-size: 16px;">{{ number_format($phaiThanhToan) }} đ</td>
                 </tr>
+                @php
+                    // Lấy tiền khách đưa và tính lại tiền trả lại
+                    $tienKhachDua = null;
+                    $tienTraLai = 0;
+                    if($chiTiet) {
+                        $tienKhachDua = $chiTiet->tien_khach_dua ?? null;
+                        // Tính lại tiền trả lại từ tiền khách đưa và phải thanh toán
+                        if($tienKhachDua && $tienKhachDua > 0) {
+                            $tienTraLai = max(0, $tienKhachDua - $phaiThanhToan);
+                        }
+                    }
+                    // Kiểm tra phương thức thanh toán
+                    $phuongThucTT = $chiTiet ? ($chiTiet->phuong_thuc_tt ?? null) : ($hoaDon->phuong_thuc_tt ?? null);
+                @endphp
+                @if($tienKhachDua && $tienKhachDua > 0 && $phuongThucTT == 'tien_mat')
+                <tr>
+                    <td>Tiền khách đưa:</td>
+                    <td>{{ number_format($tienKhachDua) }} đ</td>
+                </tr>
+                @if($tienTraLai > 0)
+                <tr>
+                    <td style="color: #28a745; font-weight: bold;">Tiền trả lại:</td>
+                    <td style="color: #28a745; font-weight: bold;">{{ number_format($tienTraLai) }} đ</td>
+                </tr>
+                @elseif($tienKhachDua < $phaiThanhToan)
+                <tr>
+                    <td style="color: #dc3545; font-weight: bold;">Thiếu:</td>
+                    <td style="color: #dc3545; font-weight: bold;">{{ number_format($phaiThanhToan - $tienKhachDua) }} đ</td>
+                </tr>
+                @endif
+                @endif
             </table>
         </div>
 
