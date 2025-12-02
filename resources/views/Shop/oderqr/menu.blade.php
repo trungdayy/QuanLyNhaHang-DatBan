@@ -160,10 +160,10 @@
             font-weight: 600;
         }
 
-        /* --- MODAL DANH SÁCH MÓN (POPUP RỘNG) --- */
+        /* --- MODAL DANH SÁCH MÓN --- */
         .menu-list-modal-box {
-            width: 95%;
-            max-width: 1200px !important;
+            width: 95% !important;
+            max-width: 700px !important;
             height: 90vh; 
             display: flex;
             flex-direction: column;
@@ -173,16 +173,15 @@
             z-index: 2001; 
         }
 
-        /* Desktop: Ép width lên 80% màn hình */
         @media (min-width: 1024px) {
             .menu-list-modal-box {
                 width: 80% !important; 
             }
         }
 
-        /* --- [MỚI] STYLE CHO THANH TÌM KIẾM & LỌC TRONG POPUP --- */
+        /* --- [MỚI] STYLE CHO THANH TÌM KIẾM & NÚT LỌC GỌN GÀNG --- */
         .popup-controls {
-            padding: 15px;
+            padding: 10px 15px; /* Giảm padding cho gọn */
             background: #fff;
             border-bottom: 1px solid #eee;
             position: sticky;
@@ -190,19 +189,25 @@
             z-index: 20;
         }
 
+        .popup-search-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .search-box {
             position: relative;
-            margin-bottom: 10px;
+            flex: 1; /* Chiếm hết chiều ngang còn lại */
         }
 
         .search-box input {
             width: 100%;
-            padding: 10px 15px 10px 40px;
+            padding: 8px 15px 8px 35px; /* Gọn hơn */
             border-radius: 50px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
             font-family: 'Nunito', sans-serif;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
             transition: 0.3s;
         }
@@ -215,10 +220,47 @@
 
         .search-box i {
             position: absolute;
-            left: 15px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        /* Nút bật/tắt bộ lọc */
+        .filter-toggle-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+
+        .filter-toggle-btn.active {
+            background: var(--dark);
+            color: #fff;
+            border-color: var(--dark);
+        }
+
+        /* Khung chứa các nút lọc (Ẩn mặc định) */
+        .filter-collapsible {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            opacity: 0;
+        }
+
+        .filter-collapsible.show {
+            max-height: 100px; /* Đủ để hiện 1 dòng */
+            opacity: 1;
+            margin-top: 10px;
         }
 
         .popup-filter-row {
@@ -227,16 +269,16 @@
             overflow-x: auto;
             white-space: nowrap;
             padding-bottom: 5px;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none;
         }
-        .popup-filter-row::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+        .popup-filter-row::-webkit-scrollbar { display: none; }
 
         .popup-pill {
             padding: 6px 14px;
             border-radius: 20px;
             background: #f1f5f9;
             color: #64748b;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 700;
             border: 1px solid transparent;
             cursor: pointer;
@@ -275,8 +317,8 @@
 
         @media (min-width: 768px) {
             .menu-grid {
-                grid-template-columns: repeat(4, 1fr); 
-                gap: 20px;
+                grid-template-columns: repeat(3, 1fr); 
+                gap: 15px;
             }
         }
 
@@ -291,6 +333,7 @@
             display: flex;
             flex-direction: column;
             cursor: pointer;
+            height: 100%; /* Cố định chiều cao để đều */
         }
 
         .dish-card:hover {
@@ -300,8 +343,9 @@
         }
 
         .dish-thumb-wrapper {
+            /* [MỚI] Tỷ lệ ảnh 4:3 đẹp mắt, gọn hơn */
+            aspect-ratio: 4/3; 
             width: 100%;
-            padding-top: 65%;
             position: relative;
             background: #f1f5f9;
         }
@@ -317,11 +361,11 @@
 
         .dish-badge {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            font-size: 0.7rem;
+            top: 6px;
+            right: 6px;
+            font-size: 0.65rem;
             font-weight: 700;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 4px;
             z-index: 2;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -331,17 +375,17 @@
         .badge-le { background: var(--white); color: var(--text-sub); }
 
         .dish-body {
-            padding: 10px;
+            padding: 8px; /* Giảm padding */
             flex: 1;
             display: flex;
             flex-direction: column;
         }
 
         .dish-name {
-            font-size: 0.95rem;
+            font-size: 0.9rem; /* Chữ nhỏ lại chút */
             font-weight: 700;
             color: var(--dark);
-            margin-bottom: 4px;
+            margin-bottom: auto; /* Đẩy giá xuống đáy */
             line-height: 1.3;
             height: 2.6em;
             overflow: hidden;
@@ -351,7 +395,7 @@
         }
 
         .dish-footer {
-            margin-top: auto;
+            margin-top: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -360,12 +404,12 @@
         .dish-price {
             font-weight: 800;
             color: var(--primary-dark);
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
 
         .btn-add-cart {
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: var(--light);
             color: var(--primary);
@@ -459,7 +503,6 @@
         .btn-cancel-item:hover { background: #ef4444; color: #fff; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3); }
 
         /* Widget & Modal & Toast */
-        /* Z-INDEX 9990 ĐỂ NỔI LÊN TRÊN HẾT */
         .mini-cart-widget { 
             position: fixed; 
             bottom: 30px; 
@@ -657,7 +700,7 @@
         </div>
     </div>
 
-    {{-- [CẬP NHẬT] MODAL DANH SÁCH MÓN VỚI TÌM KIẾM & LỌC --}}
+    {{-- [CẬP NHẬT] MODAL DANH SÁCH MÓN VỚI TÌM KIẾM & NÚT LỌC --}}
     <div id="menu-popup-modal" class="modal-overlay">
         <div class="modal-box menu-list-modal-box">
             <div class="modal-header" id="menu-popup-header">
@@ -665,14 +708,24 @@
                 <button class="btn-close" onclick="closeMenuPopup()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            {{-- Vùng chứa Search Bar và Filter Pills --}}
+            {{-- Vùng chứa Search Bar và Filter Button --}}
             <div class="popup-controls" id="popup-controls-container">
-                <div class="search-box">
-                    <i class="fa-solid fa-search"></i>
-                    <input type="text" id="popup-search-input" placeholder="Tìm tên món, loại, mô tả..." oninput="searchPopup(this.value)">
+                <div class="popup-search-row">
+                    <div class="search-box">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="popup-search-input" placeholder="Tìm món ăn..." oninput="searchPopup(this.value)">
+                    </div>
+                    {{-- Nút bật/tắt bộ lọc --}}
+                    <div class="filter-toggle-btn" onclick="toggleFilterPanel()" id="filter-toggle-btn">
+                        <i class="fa-solid fa-filter"></i>
+                    </div>
                 </div>
-                <div class="popup-filter-row" id="popup-filter-list">
-                    {{-- JS sẽ render các nút lọc vào đây --}}
+                
+                {{-- Khung lọc ẩn hiện --}}
+                <div class="filter-collapsible" id="filter-collapsible-area">
+                    <div class="popup-filter-row" id="popup-filter-list">
+                        {{-- JS render nút lọc vào đây --}}
+                    </div>
                 </div>
             </div>
 
@@ -744,8 +797,8 @@
         let globalMenuData = {};
         let RAW_MENU_DATA = [];
         
-        // --- [MỚI] BIẾN QUẢN LÝ POPUP ---
-        let activePopupType = ''; // 'combo' hoặc 'extra'
+        // --- BIẾN QUẢN LÝ POPUP ---
+        let activePopupType = ''; 
         let currentSearchTerm = '';
         let currentTypeFilter = 'all';
 
@@ -837,8 +890,10 @@
             currentSearchTerm = '';
             currentTypeFilter = 'all';
             
-            // Reset input
+            // Reset input và trạng thái bộ lọc
             document.getElementById('popup-search-input').value = '';
+            document.getElementById('filter-collapsible-area').classList.remove('show');
+            document.getElementById('filter-toggle-btn').classList.remove('active');
 
             const modal = document.getElementById('menu-popup-modal');
             const title = document.getElementById('menu-popup-title');
@@ -853,12 +908,11 @@
                 header.style.background = 'var(--success)';
             }
 
-            // Tạo danh sách các Loại món (Type) có trong nhóm này để hiển thị filter pill
+            // Tạo danh sách các Loại món (Type)
             const types = new Set();
             RAW_MENU_DATA.forEach(cat => {
                 if(cat.mon_an){
                     cat.mon_an.forEach(dish => {
-                        // Kiểm tra nếu món thuộc nhóm popup hiện tại (combo/extra)
                         const isComboItem = dish.is_in_combo;
                         if ((type === 'combo' && isComboItem) || (type === 'extra' && !isComboItem)) {
                             if(dish.loai_mon) types.add(dish.loai_mon);
@@ -878,6 +932,14 @@
             renderPopupDishGrid();
             
             modal.classList.add('active');
+        }
+
+        // [MỚI] Hàm Toggle hiển thị khung lọc
+        function toggleFilterPanel() {
+            const area = document.getElementById('filter-collapsible-area');
+            const btn = document.getElementById('filter-toggle-btn');
+            area.classList.toggle('show');
+            btn.classList.toggle('active');
         }
 
         // Hàm render lại grid món ăn dựa trên filter và search hiện tại
@@ -965,15 +1027,12 @@
             }
         }
 
-        // Sự kiện khi nhập tìm kiếm
         function searchPopup(val) {
             currentSearchTerm = val.trim();
             renderPopupDishGrid();
         }
 
-        // Sự kiện khi bấm nút lọc loại món
         function filterPopupByType(type, btn) {
-            // Active style
             const pills = document.querySelectorAll('.popup-pill');
             pills.forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
