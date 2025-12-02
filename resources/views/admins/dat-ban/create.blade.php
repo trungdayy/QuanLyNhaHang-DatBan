@@ -4,9 +4,7 @@
 
 @section('style')
 <style>
-    /* --- CSS Cũ giữ nguyên --- */
-    
-    /* [MỚI] CSS cho Combo Selection */
+    /* --- 1. CSS CHO CARD CHỌN COMBO --- */
     .combo-admin-card {
         border: 1px solid #dee2e6;
         border-radius: 8px;
@@ -19,8 +17,8 @@
         justify-content: space-between;
     }
     .combo-admin-card.active {
-        border-color: #009688; /* Màu xanh lá chủ đạo */
-        box-shadow: 0 0 5px rgba(0, 150, 136, 0.3);
+        border-color: #009688; /* Màu xanh chủ đạo */
+        box-shadow: 0 0 8px rgba(0, 150, 136, 0.2);
         background-color: #f0faf9;
     }
     .combo-name-price {
@@ -29,13 +27,16 @@
     .combo-name-price label {
         font-weight: 700;
         color: #333;
+        display: block;
+        margin-bottom: 4px;
     }
     .combo-name-price small {
-        font-size: 0.85em;
-        color: #777;
+        font-size: 0.9em;
+        color: #666;
+        font-weight: 600;
     }
     
-    /* Quantity Control */
+    /* Nút cộng trừ số lượng */
     .combo-qty-control {
         display: flex;
         justify-content: space-between;
@@ -43,6 +44,7 @@
         border: 1px solid #ccc;
         border-radius: 4px;
         overflow: hidden;
+        background: #fff;
     }
     .qty-btn {
         padding: 6px 12px;
@@ -50,7 +52,6 @@
         background: #e9ecef;
         cursor: pointer;
         transition: 0.2s;
-        font-weight: bold;
         color: #333;
     }
     .qty-btn:hover {
@@ -65,10 +66,10 @@
         color: #000;
     }
 
-    /* Summary Header */
+    /* Header tóm tắt combo */
     .combo-summary-header {
         cursor: pointer;
-        padding: 10px 15px;
+        padding: 12px 15px;
         border: 1px solid #dee2e6;
         border-radius: 4px;
         background: #f8f9fa;
@@ -82,7 +83,89 @@
     }
     .fa-chevron-down.rotated {
         transform: rotate(180deg);
+        transition: transform 0.3s;
     }
+
+    /* --- 2. CSS CHO MODAL THÔNG BÁO LỖI (CUSTOM ALERT) --- */
+    .custom-alert-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5); /* Nền tối */
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .custom-alert-box {
+        background: white;
+        width: 420px;
+        max-width: 90%;
+        border-radius: 10px;
+        padding: 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transform: scale(0.9);
+        animation: popUp 0.3s ease-out forwards;
+        overflow: hidden;
+    }
+
+    .alert-header {
+        background: #dc3545; /* Màu đỏ lỗi */
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .alert-body {
+        padding: 20px 25px;
+        color: #333;
+        font-size: 15px;
+        line-height: 1.6;
+    }
+
+    .alert-detail-box {
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+
+    .alert-footer {
+        padding: 15px;
+        text-align: center;
+        border-top: 1px solid #eee;
+        background: #f8f9fa;
+    }
+
+    .btn-close-alert {
+        background: #009688;
+        color: white;
+        border: none;
+        padding: 8px 30px;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn-close-alert:hover {
+        background: #00796b;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popUp { from { transform: scale(0.8); } to { transform: scale(1); } }
 </style>
 @endsection
 
@@ -102,9 +185,10 @@
                     <h3 class="tile-title">Tạo Đơn Đặt Bàn Mới (Tại quầy)</h3>
                     <div class="tile-body">
                         
+                        {{-- Hiển thị lỗi từ Laravel Validator --}}
                         @if ($errors->any())
                             <div class="alert alert-danger">
-                                <ul>@foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach</ul>
+                                <ul class="mb-0 pl-3">@foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach</ul>
                             </div>
                         @endif
                         @if (session('error'))
@@ -148,12 +232,11 @@
                                 <input class="form-control" type="datetime-local" name="gio_den" id="gio_den_input" value="{{ old('gio_den') }}" required>
                             </div>
                             
-                            {{-- CHỌN BÀN --}}
+                            {{-- CHỌN BÀN (Ajax load) --}}
                             <div class="form-group col-md-4">
                                 <label class="control-label">Chọn Bàn (Nếu có)</label>
                                 <select class="form-control" name="ban_id" id="ban_id_select">
                                     <option value="">-- Chưa xếp bàn / Mang về --</option>
-                                    
                                     @foreach($banAns as $ban)
                                         @php
                                             $isBusy = in_array($ban->trang_thai, ['dang_phuc_vu', 'da_dat']);
@@ -164,71 +247,49 @@
                                             };
                                             $style = $isBusy ? 'background-color: #ffeeee; color: #d9534f;' : '';
                                         @endphp
-
-                                        <option value="{{ $ban->id }}" 
-                                            {{ old('ban_id') == $ban->id ? 'selected' : '' }}
-                                            {{ $isBusy ? 'disabled' : '' }} 
-                                            style="{{ $style }}"
-                                        >
-                                            Bàn {{ $ban->so_ban }} - {{ $ban->so_ghe }} ghế 
-                                            @if($ban->khuVuc) ({{ $ban->khuVuc->ten_khu_vuc }}) @endif
-                                            {{ $statusText }}
+                                        <option value="{{ $ban->id }}" {{ old('ban_id') == $ban->id ? 'selected' : '' }} {{ $isBusy ? 'disabled' : '' }} style="{{ $style }}">
+                                            Bàn {{ $ban->so_ban }} - {{ $ban->so_ghe }} ghế {{ $statusText }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted"><i>* Có thể để trống nếu chưa xếp bàn hoặc mua mang về.</i></small>
+                                <small class="text-muted"><i>* Tự động lọc bàn trống theo giờ chọn.</i></small>
                             </div>
 
-                            {{-- 🔥 [SỬA] KHU VỰC CHỌN COMBO MỚI - GOM LẠI --}}
+                            {{-- BƯỚC 1: CHỌN LOẠI COMBO --}}
+                            <div class="form-group col-md-4">
+                                <label class="control-label">Chọn Mức Giá Combo (*)</label>
+                                <select class="form-control" id="loai_combo_select">
+                                    <option value="">-- Chọn mức giá --</option>
+                                    @foreach($loaiCombos as $loai)
+                                        <option value="{{ $loai->loai_combo }}">
+                                            Gói {{ $loai->loai_combo }} ({{ number_format($loai->gia_co_ban) }}đ)
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- BƯỚC 2: CHỌN COMBO CỤ THỂ --}}
                             <div class="form-group col-md-12 mt-3">
-                                <label class="control-label fw-bold mb-2 d-block">Chọn Combo Buffet</label>
+                                <label class="control-label fw-bold mb-2 d-block">Danh Sách Combo Tương Ứng</label>
                                 
-                                {{-- HEADER TÓM TẮT --}}
-                                <div class="combo-summary-header" data-bs-toggle="collapse" data-bs-target="#combo-selection-collapse" aria-expanded="false" aria-controls="combo-selection-collapse" id="combo-summary-header">
+                                {{-- Header Tóm tắt --}}
+                                <div class="combo-summary-header" data-bs-toggle="collapse" data-bs-target="#combo-selection-collapse" aria-expanded="true" id="combo-summary-header">
                                     <div class="summary-text">
                                         <i class="fas fa-list-check me-2"></i> 
-                                        <span id="combo-summary-display" class="text-muted">Chưa chọn combo nào.</span>
+                                        <span id="combo-summary-display" class="text-muted">Vui lòng chọn mức giá trước.</span>
                                     </div>
                                     <i class="fas fa-chevron-down small summary-icon"></i>
                                 </div>
 
-                                {{-- DANH SÁCH CHỌN THU GỌN (MẶC ĐỊNH ĐÓNG) --}}
-                                <div class="collapse" id="combo-selection-collapse">
+                                {{-- Container chứa danh sách Combo (AJAX Load) --}}
+                                <div class="collapse show" id="combo-selection-collapse">
                                     <div id="combo-selection-container" class="row g-3 mt-1">
-                                        @foreach ($combos as $index => $combo)
-                                            <div class="col-md-3">
-                                                <div class="combo-admin-card" id="card-{{ $combo->id }}">
-                                                    <div class="combo-name-price">
-                                                        <label class="mb-0 d-block text-primary combo-name-label">
-                                                            {{ $combo->ten_combo }}
-                                                        </label>
-                                                        <small>{{ number_format($combo->gia_co_ban) }} đ / suất</small>
-                                                    </div>
-                                                    
-                                                    <div class="combo-qty-control">
-                                                        <button type="button" class="qty-btn minus-btn" data-id="{{ $combo->id }}"><i class="fas fa-minus"></i></button>
-                                                        
-                                                        <div class="qty-input-display" id="display-{{ $combo->id }}">
-                                                            {{ old('combos.'.$index.'.so_luong', 0) }}
-                                                        </div>
-                                                        
-                                                        <input type="hidden" 
-                                                               class="combo-qty-input"
-                                                               id="qty-{{ $combo->id }}"
-                                                               name="combos[{{ $index }}][so_luong]"
-                                                               value="{{ old('combos.'.$index.'.so_luong', 0) }}">
-                                                               
-                                                        <input type="hidden" name="combos[{{ $index }}][id]" value="{{ $combo->id }}" class="combo-id-input">
-
-                                                        <button type="button" class="qty-btn plus-btn" data-id="{{ $combo->id }}"><i class="fas fa-plus"></i></button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
+                                        <div class="col-12 text-center py-3 text-muted">
+                                            <i><i class="fas fa-arrow-up"></i> Hãy chọn mức giá combo ở trên</i>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            {{-- HẾT SỬA ĐOẠN CHỌN COMBO --}}
                             
                             <div class="form-group col-md-12 mt-3">
                                 <label class="control-label">Ghi Chú (Nếu có)</label>
@@ -244,6 +305,25 @@
                 </div>
             </div>
         </div>
+
+        {{-- MODAL THÔNG BÁO LỖI CUSTOM --}}
+        <div id="custom-alert-modal" class="custom-alert-overlay" style="display: none;">
+            <div class="custom-alert-box">
+                <div class="alert-header">
+                    <i class="fas fa-exclamation-triangle"></i> LỖI SỐ LƯỢNG
+                </div>
+                <div class="alert-body">
+                    <p>Số lượng Combo đã chọn không hợp lệ so với số khách.</p>
+                    <div class="alert-detail-box" id="alert-detail-content">
+                        </div>
+                    <p class="text-muted mb-0"><small>Vui lòng kiểm tra và chọn thêm combo.</small></p>
+                </div>
+                <div class="alert-footer">
+                    <button type="button" class="btn-close-alert">Đã Hiểu</button>
+                </div>
+            </div>
+        </div>
+
     </main>
 @endsection
 
@@ -252,21 +332,50 @@
     document.addEventListener('DOMContentLoaded', function () {
         const timeInput = document.getElementById('gio_den_input');
         const tableSelect = document.getElementById('ban_id_select');
+        
+        // Combo Elements
+        const loaiComboSelect = document.getElementById('loai_combo_select');
         const comboContainer = document.getElementById('combo-selection-container');
         const summaryDisplay = document.getElementById('combo-summary-display');
-        const summaryIcon = document.querySelector('.summary-icon');
-        const comboCollapse = document.getElementById('combo-selection-collapse');
         const summaryHeader = document.getElementById('combo-summary-header');
+        const comboCollapse = document.getElementById('combo-selection-collapse');
+        const summaryIcon = document.querySelector('.summary-icon');
+
+        // Modal Elements
+        const modal = document.getElementById('custom-alert-modal');
+        const modalDetail = document.getElementById('alert-detail-content');
+        const closeModalBtn = document.querySelector('.btn-close-alert');
+
         const oldBanId = "{{ old('ban_id') }}";
         
-        // [FIX LỖI] Bật/tắt thủ công Collapse khi Bootstrap JS bị thiếu
+        // --- 1. XỬ LÝ MODAL ---
+        function showModal(totalPeople, totalCombos) {
+            modalDetail.innerHTML = `
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Tổng số khách:</span> <strong>${totalPeople} người</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Đã chọn:</span> <strong class="text-danger">${totalCombos} suất combo</strong>
+                </div>
+                <hr style="margin: 5px 0;">
+                <div class="text-center text-danger font-weight-bold">
+                    Thiếu: ${totalPeople - totalCombos} suất
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+
+        // --- 2. COLLAPSE COMBO LIST ---
         summaryHeader.addEventListener('click', function() {
             const isOpen = comboCollapse.classList.contains('show');
-            
-            // Toggle lớp 'show'
             comboCollapse.classList.toggle('show');
-            
-            // Xử lý icon xoay và thuộc tính aria-expanded
             if (isOpen) {
                 summaryIcon.classList.remove('rotated');
                 this.setAttribute('aria-expanded', 'false');
@@ -275,46 +384,102 @@
                 this.setAttribute('aria-expanded', 'true');
             }
         });
-        
-        // Gán sự kiện xoay icon (giữ lại logic cũ)
-        comboCollapse.addEventListener('show.bs.collapse', () => {
-            summaryIcon.classList.add('rotated');
-        });
-        comboCollapse.addEventListener('hide.bs.collapse', () => {
-            summaryIcon.classList.remove('rotated');
+
+        // --- 3. AJAX LOAD COMBO ---
+        loaiComboSelect.addEventListener('change', function() {
+            const loai = this.value;
+            if (!loai) {
+                comboContainer.innerHTML = '<div class="col-12 text-center py-3 text-muted"><i>Hãy chọn mức giá combo</i></div>';
+                summaryDisplay.textContent = 'Chưa chọn mức giá.';
+                return;
+            }
+
+            comboContainer.innerHTML = '<div class="col-12 text-center py-3"><i class="fas fa-spinner fa-spin"></i> Đang tải gói combo...</div>';
+
+            // Gọi Route AJAX đã định nghĩa
+            const url = "{{ route('admin.dat-ban.ajax-get-combos-by-loai') }}";
+
+            fetch(url + '?loai_combo=' + loai)
+                .then(response => response.json())
+                .then(data => {
+                    renderCombos(data.combos);
+                })
+                .catch(error => {
+                    console.error(error);
+                    comboContainer.innerHTML = '<div class="col-12 text-center text-danger">Lỗi tải dữ liệu. Vui lòng kiểm tra lại Route.</div>';
+                });
         });
 
-        // Hàm cập nhật tóm tắt combo và trạng thái disable/enable input
+        function renderCombos(combos) {
+            if (!combos || combos.length === 0) {
+                comboContainer.innerHTML = '<div class="col-12 text-center text-danger">Không có combo nào trong gói này.</div>';
+                return;
+            }
+
+            let html = '';
+            combos.forEach((combo, index) => {
+                const price = new Intl.NumberFormat('vi-VN').format(combo.gia_co_ban);
+                html += `
+                <div class="col-md-3">
+                    <div class="combo-admin-card" id="card-${combo.id}">
+                        <div class="combo-name-price">
+                            <label class="mb-0 text-primary combo-name-label">${combo.ten_combo}</label>
+                            <small>${price} đ / suất</small>
+                        </div>
+                        <div class="combo-qty-control">
+                            <button type="button" class="qty-btn minus-btn" data-id="${combo.id}"><i class="fas fa-minus"></i></button>
+                            <div class="qty-input-display" id="display-${combo.id}">0</div>
+                            <input type="hidden" class="combo-qty-input" id="qty-${combo.id}" name="combos[${index}][so_luong]" value="0" disabled>
+                            <input type="hidden" name="combos[${index}][id]" value="${combo.id}" class="combo-id-input" disabled>
+                            <button type="button" class="qty-btn plus-btn" data-id="${combo.id}"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            comboContainer.innerHTML = html;
+            updateSummary();
+        }
+
+        // --- 4. XỬ LÝ CỘNG TRỪ SỐ LƯỢNG ---
+        comboContainer.addEventListener('click', function(e) {
+            const btn = e.target.closest('.qty-btn');
+            if (!btn) return;
+
+            const comboId = btn.dataset.id;
+            const input = document.getElementById(`qty-${comboId}`);
+            const display = document.getElementById(`display-${comboId}`);
+            const card = document.getElementById(`card-${comboId}`);
+            const idInput = card.querySelector('.combo-id-input');
+
+            let qty = parseInt(input.value) || 0;
+
+            if (btn.classList.contains('plus-btn')) qty++;
+            else if (btn.classList.contains('minus-btn') && qty > 0) qty--;
+
+            input.value = qty;
+            display.textContent = qty;
+
+            if (qty > 0) {
+                card.classList.add('active');
+                input.disabled = false;
+                idInput.disabled = false;
+            } else {
+                card.classList.remove('active');
+                input.disabled = true;
+                idInput.disabled = true;
+            }
+            updateSummary();
+        });
+
         function updateSummary() {
             let summaryText = [];
-            
-            document.querySelectorAll('.combo-admin-card').forEach(card => {
-                const qtyInput = card.querySelector('.combo-qty-input'); 
-                const idInput = card.querySelector('input[type="hidden"][name*="[id]"]'); // Sửa selector an toàn hơn
+            document.querySelectorAll('.combo-admin-card.active').forEach(card => {
+                const qtyInput = card.querySelector('.combo-qty-input');
                 const nameLabel = card.querySelector('.combo-name-label');
-                
-                if (!qtyInput || !idInput || !nameLabel) return; 
-
-                let qty = parseInt(qtyInput.value) || 0;
-
-                if (qty > 0) {
-                    // ENABLE: Bật cả 2 input để gửi lên server
-                    card.classList.add('active');
-                    qtyInput.disabled = false;
-                    idInput.disabled = false;
-                    
-                    const name = nameLabel.textContent.trim();
-                    summaryText.push(`${name} (x${qty})`);
-
-                } else {
-                    // DISABLE: Tắt cả 2 input nếu số lượng là 0
-                    card.classList.remove('active');
-                    qtyInput.disabled = true;
-                    idInput.disabled = true;
-                }
+                const qty = parseInt(qtyInput.value) || 0;
+                if (qty > 0) summaryText.push(`${nameLabel.textContent.trim()} (x${qty})`);
             });
             
-            // Cập nhật text tóm tắt
             if (summaryText.length > 0) {
                 summaryDisplay.innerHTML = summaryText.join('; ');
                 summaryDisplay.classList.remove('text-muted');
@@ -326,77 +491,63 @@
             }
         }
 
-        // LOGIC XỬ LÝ COMBO QUANTITY VÀ HIỂN THỊ
-        comboContainer.addEventListener('click', function(e) {
-            if (e.target.closest('.plus-btn') || e.target.closest('.minus-btn')) {
-                const btn = e.target.closest('.qty-btn');
-                const comboId = btn.dataset.id;
-                const input = document.getElementById(`qty-${comboId}`);
-                const display = document.getElementById(`display-${comboId}`);
-                let qty = parseInt(input.value) || 0;
-
-                if (btn.classList.contains('plus-btn')) {
-                    qty++;
-                } else if (btn.classList.contains('minus-btn') && qty > 0) {
-                    qty--;
-                }
-
-                input.value = qty;
-                display.textContent = qty;
-                updateSummary();
-            }
-        });
-
-        // Cập nhật trạng thái bàn trống theo giờ
+        // --- 5. AJAX CẬP NHẬT BÀN TRỐNG ---
         function updateAvailableTables() {
             const selectedTime = timeInput.value;
             const excludeBookingId = 0; 
-
-            if (!selectedTime) {
-                return;
-            }
+            if (!selectedTime) return;
             
-            const originalText = tableSelect.options[0].text;
             tableSelect.options[0].text = "Đang tải danh sách bàn...";
             tableSelect.disabled = true;
             
-            const url = `{{ route('admin.ajax.get-available-tables') }}?time=${selectedTime}&exclude_booking_id=${excludeBookingId}`;
+            const url = `{{ route('admin.dat-ban.ajax-get-available-tables') }}?time=${selectedTime}&exclude_booking_id=${excludeBookingId}`;
             
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    tableSelect.innerHTML = ''; 
-                    tableSelect.disabled = false;
-                    
                     tableSelect.innerHTML = '<option value="">-- Chưa xếp bàn / Mang về --</option>';
-                    
+                    tableSelect.disabled = false;
                     if (data.length > 0) {
                         data.forEach(ban => {
                             const option = document.createElement('option');
                             option.value = ban.id;
                             option.textContent = `Bàn ${ban.so_ban} (${ban.so_ghe} ghế)`;
-                            if (oldBanId && ban.id == oldBanId) {
-                                option.selected = true;
-                            }
+                            if (oldBanId && ban.id == oldBanId) option.selected = true;
                             tableSelect.appendChild(option);
                         });
                     }
                 })
-                .catch(error => {
-                    console.error('Lỗi khi tải bàn:', error);
-                    tableSelect.innerHTML = '<option value="">Lỗi tải dữ liệu - Vui lòng thử lại</option>';
+                .catch(() => {
+                    tableSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
                     tableSelect.disabled = false;
                 });
         }
         
-        // Gán sự kiện
         timeInput.addEventListener('change', updateAvailableTables);
-        if (timeInput.value) {
-            updateAvailableTables();
-        }
+        if (timeInput.value) updateAvailableTables();
 
-        // Chạy lần đầu cho combo
-        updateSummary();
+        // --- 6. VALIDATE FORM SUBMIT ---
+        const form = document.getElementById('datBanForm');
+        form.addEventListener('submit', function(e) {
+            const nguoiLon = parseInt(document.getElementById('nguoi_lon_input').value) || 0;
+            const treEm = parseInt(document.getElementById('tre_em_input').value) || 0;
+            const tongNguoi = nguoiLon + treEm;
+
+            let tongCombo = 0;
+            document.querySelectorAll('.combo-qty-input').forEach(input => {
+                if (!input.disabled) tongCombo += parseInt(input.value) || 0;
+            });
+
+            // Logic chặn: Nếu Tổng combo < Tổng người
+            if (tongCombo < tongNguoi) {
+                e.preventDefault(); // Chặn gửi
+                showModal(tongNguoi, tongCombo); // Hiện Modal Custom
+
+                // Scroll tới vùng combo để user thấy
+                const comboArea = document.getElementById('combo-selection-container');
+                comboArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
     });
 </script>
 @endsection

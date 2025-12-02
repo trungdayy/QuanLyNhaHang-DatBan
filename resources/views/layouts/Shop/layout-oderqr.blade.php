@@ -33,6 +33,10 @@
     <!-- Template Stylesheet -->
     <link href="{{ asset('restaurant/css/style.css') }}" rel="stylesheet">
 
+    <link href="{{ asset('restaurant/oderqr.css') }}" rel="stylesheet">
+
+    
+
 </head>
 
 <body>

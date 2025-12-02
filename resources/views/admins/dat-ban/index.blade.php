@@ -33,10 +33,13 @@
         margin-left: 6px;
         font-size: 0.85rem;
     }
+    
+    /* [MỚI] Style cho cột danh sách combo */
     .combo-list-col { 
         text-align: left !important; /* Đảm bảo căn trái cho danh sách combo */
-        min-width: 180px; 
+        min-width: 220px; 
     }
+    
     @media (max-width: 768px) {
         .filter-card .row > div { margin-bottom: 10px; }
     }
@@ -155,7 +158,7 @@
                         <th>Khách hàng</th>
                         <th>Điện thoại</th>
                         <th>Email</th>
-                        <th>Combo</th>
+                        <th>Combo Đã Chọn</th> {{-- Tiêu đề cột sửa lại --}}
                         <th>Bàn / Khu vực</th> 
                         <th>Giờ đến</th>
                         <th>Trạng thái</th>
@@ -170,22 +173,24 @@
                             <td>{{ $datBan->sdt_khach }}</td>
                             <td>{{ $datBan->email_khach }}</td>
                             
-                            {{-- [SỬA ĐOẠN NÀY] Hiển thị nhiều Combo --}}
+                            {{-- [SỬA ĐOẠN NÀY] Hiển thị danh sách Combo --}}
                             <td class="combo-list-col">
                                 @if($datBan->chiTietDatBan->isNotEmpty())
+                                    <div class="d-flex flex-column gap-1">
                                     @foreach($datBan->chiTietDatBan as $chiTiet)
                                         @if($chiTiet->combo)
-                                            <span class="badge bg-info text-dark mb-1 d-block text-start" style="font-weight: 500;">
-                                                <i class="fas fa-tags me-1"></i> 
+                                            <span class="badge bg-light text-dark border text-start p-2">
+                                                <i class="fas fa-utensils text-success me-1"></i> 
                                                 {{ $chiTiet->combo->ten_combo }} 
-                                                (<strong style="font-weight: 700;">x{{ $chiTiet->so_luong }}</strong>)
+                                                <strong class="text-danger ms-1">(x{{ $chiTiet->so_luong }})</strong>
                                             </span>
                                         @else
-                                            <span class="badge bg-secondary mb-1">Combo đã xóa</span>
+                                            <span class="badge bg-secondary mb-1">Combo đã xóa (x{{ $chiTiet->so_luong }})</span>
                                         @endif
                                     @endforeach
+                                    </div>
                                 @else
-                                    <span class="text-muted">Không có combo</span>
+                                    <span class="text-muted small">Running order / Chưa chọn</span>
                                 @endif
                             </td>
                             
@@ -206,28 +211,40 @@
                             <td>
                                 @php
                                     $statusColor = [
-                                        'cho_xac_nhan' => 'info',
+                                        'cho_xac_nhan' => 'warning text-dark',
                                         'da_xac_nhan' => 'primary',
                                         'khach_da_den' => 'success',
                                         'hoan_tat' => 'secondary',
                                         'huy' => 'danger'
-                                    ][$datBan->trang_thai] ?? 'light';
+                                    ][$datBan->trang_thai] ?? 'light text-dark';
+                                    
+                                    $statusLabel = [
+                                        'cho_xac_nhan' => 'Chờ xác nhận',
+                                        'da_xac_nhan' => 'Đã xác nhận',
+                                        'khach_da_den' => 'Khách đến',
+                                        'hoan_tat' => 'Hoàn tất',
+                                        'huy' => 'Hủy'
+                                    ][$datBan->trang_thai] ?? $datBan->trang_thai;
                                 @endphp
                                 <span class="badge bg-{{ $statusColor }}">
-                                    {{ ucfirst(str_replace('_', ' ', $datBan->trang_thai)) }}
+                                    {{ $statusLabel }}
                                 </span>
                             </td>
                             <td class="text-center">
+                                <a href="{{ route('admin.dat-ban.show', $datBan->id) }}" class="btn btn-warning btn-sm" title="Xem chi tiết"><i class="fas fa-eye"></i></a>
+                                
+                                @if(!in_array($datBan->trang_thai, ['hoan_tat', 'huy']))
+                                    <a href="{{ route('admin.dat-ban.edit', $datBan->id) }}" class="btn btn-info btn-sm" title="Sửa"><i class="fas fa-edit"></i></a>
+                                @endif
+
                                 <form style="display:inline;" method="POST" action="{{ route('admin.dat-ban.destroy', $datBan->id) }}" onsubmit="return confirm('Xóa đơn này?');">
                                     @csrf
-                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i></button>
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Xóa"><i class="fas fa-trash-alt"></i></button>
                                 </form>
-                                <a href="{{ route('admin.dat-ban.edit', $datBan->id) }}" class="btn btn-info btn-sm"><i class="fas fa-edit"></i></a>
-                                <a href="{{ route('admin.dat-ban.show', $datBan->id) }}" class="btn btn-warning btn-sm"><i class="fas fa-eye"></i></a>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="9" class="text-center text-muted">Không có đơn đặt bàn nào.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">Không có đơn đặt bàn nào phù hợp.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -170,17 +170,27 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 
     // CRUD CHO ĐẶT BÀN
-    Route::prefix('dat-ban')->name('dat-ban.')->controller(DatBanController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('/create', 'create')->name('create');
-        Route::post('/store', 'store')->name('store');
-        Route::get('/{id}', 'show')->name('show');
-        Route::get('/{id}/edit', 'edit')->name('edit');
-        Route::put('/{id}', 'update')->name('update');
-        Route::post('/{id}/delete', 'destroy')->name('destroy');
-        Route::post('/{id}/update-status', 'updateStatus')->name('updateStatus');
-    });
+Route::prefix('dat-ban')->name('dat-ban.')->controller(DatBanController::class)->group(function () {
+    
+    // --- [QUAN TRỌNG] ĐƯA CÁC ROUTE AJAX LÊN ĐẦU TIÊN ---
+    Route::get('/ajax-get-combos-by-loai', 'ajaxGetCombosByLoai')->name('ajax-get-combos-by-loai');
+    Route::get('/ajax-get-available-tables', 'ajaxGetAvailableTables')->name('ajax-get-available-tables');
+
+    // --- SAU ĐÓ MỚI ĐẾN CÁC ROUTE CƠ BẢN ---
+    Route::get('/', 'index')->name('index');
+    Route::get('/create', 'create')->name('create');
+    Route::post('/store', 'store')->name('store');
+    
+    // --- CÁC ROUTE CÓ THAM SỐ {id} PHẢI ĐỂ DƯỚI CÙNG ---
+    Route::get('/{id}', 'show')->name('show'); // Wildcard {id} sẽ bắt tất cả nếu để trên
+    Route::get('/{id}/edit', 'edit')->name('edit');
+    Route::put('/{id}', 'update')->name('update');
+    Route::post('/{id}/delete', 'destroy')->name('destroy');
+    Route::post('/{id}/update-status', 'updateStatus')->name('updateStatus');
 });
+    });
+
+    
 // <-- ** KẾT THÚC NHÓM ADMIN **
 
 
