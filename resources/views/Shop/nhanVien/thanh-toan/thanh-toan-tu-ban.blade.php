@@ -35,10 +35,14 @@
                                 <p class="mb-2"><strong>SĐT:</strong><br>{{ $datBan->sdt_khach ?? 'N/A' }}</p>
                                 <p class="mb-2"><strong>Email:</strong><br>{{ $datBan->email_khach ?? 'N/A' }}</p>
                                 @php
-                                    // Tính số khách từ chiTietDatBan dựa trên loại combo
-                                    $soNguoiLon = 0;
-                                    $soTreEm = 0;
-                                    if($datBan->chiTietDatBan && $datBan->chiTietDatBan->count() > 0) {
+                                    // Ưu tiên lấy từ datBan->nguoi_lon và datBan->tre_em (giá trị đã lưu khi đặt bàn)
+                                    $soNguoiLon = $datBan->nguoi_lon ?? 0;
+                                    $soTreEm = $datBan->tre_em ?? 0;
+                                    
+                                    // Nếu không có giá trị trong datBan, tính từ chiTietDatBan dựa trên loại combo
+                                    if($soNguoiLon == 0 && $soTreEm == 0 && $datBan->chiTietDatBan && $datBan->chiTietDatBan->count() > 0) {
+                                        $soNguoiLon = 0;
+                                        $soTreEm = 0;
                                         foreach($datBan->chiTietDatBan as $chiTiet) {
                                             if($chiTiet->combo) {
                                                 $soLuong = $chiTiet->so_luong ?? 1;
@@ -52,10 +56,6 @@
                                                 }
                                             }
                                         }
-                                    } else {
-                                        // Fallback: lấy từ database nếu không có chiTietDatBan
-                                        $soNguoiLon = $datBan->nguoi_lon ?? 0;
-                                        $soTreEm = $datBan->tre_em ?? 0;
                                     }
                                     $tongSoKhach = $soNguoiLon + $soTreEm;
                                 @endphp
@@ -137,17 +137,51 @@
                             </div>
                             <div class="card-body">
                                 @if($datBan->chiTietDatBan && $datBan->chiTietDatBan->count() > 0)
+                                    @php
+                                        // Lấy số trẻ em từ datBan
+                                        $soTreEm = $datBan->tre_em ?? 0;
+                                        $comboIndex = 0; // Đếm số combo đã xử lý
+                                    @endphp
                                     @foreach($datBan->chiTietDatBan as $chiTiet)
                                         @if($chiTiet->combo)
+                                        @php
+                                            // Tính giá combo: giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
+                                            $giaCombo = $chiTiet->combo->gia_co_ban;
+                                            $soLuongCombo = $chiTiet->so_luong ?? 1;
+                                            $isTreEm = false;
+                                            
+                                            // Kiểm tra xem combo này có thuộc phần trẻ em không
+                                            // Giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
+                                            if($soTreEm > 0 && $comboIndex < $soTreEm) {
+                                                $isTreEm = true;
+                                                $giaCombo = $giaCombo * 0.5; // Giảm 50% cho trẻ em
+                                            }
+                                            
+                                            $thanhTien = $giaCombo * $soLuongCombo;
+                                            $comboIndex += $soLuongCombo; // Tăng index theo số lượng combo
+                                        @endphp
                                         <div class="mb-3 p-3 bg-light rounded border border-warning">
                                             <h6 class="fw-bold text-primary mb-2">
                                                 <i class="bi bi-star-fill me-1 text-warning"></i>{{ $chiTiet->combo->ten_combo }}
                                                 <span class="badge bg-success ms-2">Combo chính</span>
+                                                @if($isTreEm)
+                                                    <span class="badge bg-info ms-2">Trẻ em (Giảm 50%)</span>
+                                                @endif
                                             </h6>
-                                            <p class="mb-1"><strong>Giá combo:</strong> {{ number_format($chiTiet->combo->gia_co_ban) }} đ/người</p>
-                                            <p class="mb-1"><strong>Số lượng:</strong> {{ $chiTiet->so_luong ?? 1 }} người</p>
+                                            <p class="mb-1">
+                                                <strong>Giá combo:</strong> 
+                                                @if($isTreEm)
+                                                    <span class="text-decoration-line-through text-muted">{{ number_format($chiTiet->combo->gia_co_ban) }} đ</span>
+                                                    <span class="text-danger fw-bold"> {{ number_format($giaCombo) }} đ</span>
+                                                    <small class="text-success">(Giảm 50%)</small>
+                                                @else
+                                                    {{ number_format($giaCombo) }} đ
+                                                @endif
+                                                /người
+                                            </p>
+                                            <p class="mb-1"><strong>Số lượng:</strong> {{ $soLuongCombo }} người</p>
                                             <p class="mb-0 mt-2"><strong>Thành tiền combo:</strong> 
-                                                <span class="text-danger fw-bold fs-5">{{ number_format($chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1)) }} đ</span>
+                                                <span class="text-danger fw-bold fs-5">{{ number_format($thanhTien) }} đ</span>
                                             </p>
                                         </div>
                                         @endif
@@ -174,10 +208,22 @@
                                     }
                                     
                                     // Tính tổng tiền combo: tính từng combo với số lượng tương ứng
+                                    // Giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
                                     $tongTienComboChinh = 0;
+                                    $soTreEm = $datBan->tre_em ?? 0;
+                                    $comboIndex = 0; // Đếm số combo đã xử lý
                                     foreach($datBan->chiTietDatBan as $chiTiet) {
                                         if($chiTiet->combo) {
-                                            $tongTienComboChinh += ($chiTiet->combo->gia_co_ban ?? 0) * ($chiTiet->so_luong ?? 1);
+                                            $giaCombo = $chiTiet->combo->gia_co_ban ?? 0;
+                                            $soLuongCombo = $chiTiet->so_luong ?? 1;
+                                            
+                                            // Giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
+                                            if($soTreEm > 0 && $comboIndex < $soTreEm) {
+                                                $giaCombo = $giaCombo * 0.5;
+                                            }
+                                            
+                                            $tongTienComboChinh += $giaCombo * $soLuongCombo;
+                                            $comboIndex += $soLuongCombo; // Tăng index theo số lượng combo
                                         }
                                     }
                                     
@@ -203,27 +249,7 @@
                                                 $stt = 1;
                                                 $tongTienGoiThem = 0;
                                                 
-                                                // Lấy danh sách món trong tất cả các combo với giới hạn
-                                                // Key: mon_an_id, Value: tổng giới hạn từ tất cả các combo
-                                                $tongGioiHanMon = [];
-                                                foreach($datBan->chiTietDatBan as $chiTiet) {
-                                                    if($chiTiet->combo) {
-                                                        $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)->get();
-                                                        foreach($monTrongCombo as $mtc) {
-                                                            $monAnId = $mtc->mon_an_id;
-                                                            $gioiHan = $mtc->gioi_han_so_luong ?? null;
-                                                            if($gioiHan !== null && $gioiHan > 0) {
-                                                                // Nhân giới hạn với số lượng combo
-                                                                $soLuongCombo = $chiTiet->so_luong ?? 1;
-                                                                if(!isset($tongGioiHanMon[$monAnId])) {
-                                                                    $tongGioiHanMon[$monAnId] = 0;
-                                                                }
-                                                                $tongGioiHanMon[$monAnId] += $gioiHan * $soLuongCombo;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                
+                                                // Món combo không có giới hạn nữa, chỉ cần kiểm tra xem món có trong combo không
                                                 // Tính tổng số lượng đã order cho từng món (cả combo và goi_them)
                                                 $tongSoLuongMon = [];
                                                 foreach($monAnList as $ct) {
@@ -233,21 +259,6 @@
                                                     }
                                                     $tongSoLuongMon[$monAnId] += $ct->so_luong;
                                                 }
-                                                
-                                                // Tính số lượng vượt quá cho từng món
-                                                $soLuongVuotMon = [];
-                                                foreach($tongSoLuongMon as $monAnId => $tongSoLuong) {
-                                                    $tongGioiHan = $tongGioiHanMon[$monAnId] ?? null;
-                                                    if($tongGioiHan !== null && $tongGioiHan > 0) {
-                                                        $soLuongVuotMon[$monAnId] = max(0, $tongSoLuong - $tongGioiHan);
-                                                    } else {
-                                                        // Món không có trong combo hoặc không có giới hạn: không tính vượt quá
-                                                        $soLuongVuotMon[$monAnId] = 0;
-                                                    }
-                                                }
-                                                
-                                                // Đếm số lượng đã phân bổ cho phần vượt quá
-                                                $daPhanBoVuot = [];
                                             @endphp
                                             {{-- Hiển thị TẤT CẢ các món đã gọi --}}
                                             @php
@@ -264,16 +275,10 @@
                                                     $soLuongChoBep = 0; // Chờ bếp (cho_bep) - tính 30%
                                                     $soLuongDangCheBien = 0; // Đang chế biến (dang_che_bien) - tính 30%
                                                     $soLuongChuaNauXong = 0; // Tổng chưa nấu xong (cho_bep + dang_che_bien) - tính 30%
-                                                    $soLuongDaLenTrongVuot = 0; // Số lượng đã lên trong phần vượt
-                                                    $soLuongChoBepTrongVuot = 0; // Số lượng chờ bếp trong phần vượt
-                                                    $soLuongDangCheBienTrongVuot = 0; // Số lượng đang chế biến trong phần vượt
-                                                    $soLuongChuaNauXongTrongVuot = 0; // Số lượng chưa nấu xong trong phần vượt
                                                     
-                                                    $tongGioiHan = $tongGioiHanMon[$monAnId] ?? null;
+                                                    // Món combo không có giới hạn nữa
+                                                    $tongGioiHan = null;
                                                     $soLuongVuot = 0;
-                                                    if($tongGioiHan !== null && $tongGioiHan > 0) {
-                                                        $soLuongVuot = max(0, $tongSoLuong - $tongGioiHan);
-                                                    }
                                                     
                                                     // Tính số lượng đã lên và chưa nấu xong (tổng)
                                                     foreach($monAnGroup as $ct) {
@@ -288,32 +293,16 @@
                                                         }
                                                     }
                                                     
-                                                    // Tính số lượng đã lên và chưa nấu xong trong phần vượt
-                                                    // Logic: Số lượng đã lên trong vượt = max(0, số lượng đã lên - giới hạn)
-                                                    // Ví dụ: Tổng 9, giới hạn 5, đã lên 8 => đã lên trong vượt = max(0, 8-5) = 3
-                                                    if($soLuongVuot > 0) {
-                                                        // Số lượng đã lên trong phần vượt = số lượng đã lên vượt quá giới hạn
-                                                        $soLuongDaLenTrongVuot = max(0, $soLuongDaLen - $tongGioiHan);
-                                                        
-                                                        // Số lượng chưa nấu xong trong vượt = tổng số lượng vượt - số lượng đã lên trong vượt
-                                                        $soLuongChuaNauXongTrongVuot = $soLuongVuot - $soLuongDaLenTrongVuot;
-                                                        
-                                                        // Tính số lượng chờ bếp và đang chế biến trong phần vượt
-                                                        // Ưu tiên: đã lên > đang chế biến > chờ bếp
-                                                        $soLuongConLaiTrongVuot = $soLuongChuaNauXongTrongVuot;
-                                                        
-                                                        // Số lượng đang chế biến trong vượt = min(số lượng đang chế biến, số lượng còn lại trong vượt)
-                                                        $soLuongDangCheBienTrongVuot = min($soLuongDangCheBien, $soLuongConLaiTrongVuot);
-                                                        
-                                                        // Số lượng chờ bếp trong vượt = phần còn lại
-                                                        $soLuongChoBepTrongVuot = $soLuongConLaiTrongVuot - $soLuongDangCheBienTrongVuot;
-                                                    }
+                                                // Món combo không có giới hạn nữa, không cần tính phần vượt
+                                                $soLuongDaLenTrongVuot = 0;
+                                                $soLuongChoBepTrongVuot = 0;
+                                                $soLuongDangCheBienTrongVuot = 0;
+                                                $soLuongChuaNauXongTrongVuot = 0;
                                                     
                                                     // Kiểm tra xem món có trong combo nào không
                                                     $coTrongCombo = false;
-                                                    $phuPhiMon = 0;
                                                     
-                                                    // Tìm phụ phí từ combo có chứa món này (lấy từ combo đầu tiên tìm thấy)
+                                                    // Tìm món trong combo
                                                     foreach($datBan->chiTietDatBan as $chiTiet) {
                                                         if($chiTiet->combo) {
                                                             $monTrongComboItem = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)
@@ -321,7 +310,6 @@
                                                                 ->first();
                                                             if($monTrongComboItem) {
                                                                 $coTrongCombo = true;
-                                                                $phuPhiMon = $monTrongComboItem->phu_phi_goi_them ?? 0;
                                                                 break;
                                                             }
                                                         }
@@ -336,46 +324,11 @@
                                                     $coMonChuaNauXong = $soLuongChuaNauXong > 0 || $soLuongChuaNauXongTrongVuot > 0;
                                                     
                                                     if($coTrongCombo) {
-                                                        // Món thuộc combo
-                                                        if($tongGioiHan !== null && $tongGioiHan > 0) {
-                                                            if($soLuongVuot > 0) {
-                                                                // Vượt giới hạn: tính tiền cho phần vượt + phụ phí nhân theo số lượng vượt
-                                                                // Tính tiền cho phần đã nấu xong trong vượt (100%)
-                                                                $tienMonDaLenTrongVuot = $donGiaGoc * $soLuongDaLenTrongVuot;
-                                                                
-                                                                // Tính tiền cho phần chưa nấu xong trong vượt (30%)
-                                                                $tienMonChuaNauXongTrongVuot = $donGiaGoc * 0.3 * $soLuongChuaNauXongTrongVuot;
-                                                                
-                                                                // Phụ phí = phụ phí * số lượng vượt đã nấu xong
-                                                                $tienPhuPhi = $phuPhiMon * $soLuongDaLenTrongVuot;
-                                                                
-                                                                // Tổng tiền = tiền món đã nấu xong + tiền món chưa nấu xong + phụ phí
-                                                                $tienMon = $tienMonDaLenTrongVuot + $tienMonChuaNauXongTrongVuot + $tienPhuPhi;
-                                                                $coPhuPhi = $phuPhiMon > 0;
-                                                                
-                                                                // Hiển thị đơn giá trung bình (chỉ tính phần vượt, không bao gồm phụ phí trong đơn giá)
-                                                                if($soLuongVuot > 0) {
-                                                                    // Đơn giá = (tiền món đã nấu xong + tiền món chưa nấu xong) / số lượng vượt
-                                                                    // Phụ phí hiển thị riêng
-                                                                    $donGiaHienThi = ($tienMonDaLenTrongVuot + $tienMonChuaNauXongTrongVuot) / $soLuongVuot;
-                                                                } else {
-                                                                    $donGiaHienThi = $donGiaGoc;
-                                                                }
-
-                                                                $tongTienGoiThem += $tienMon;
-                                                            }       
-                                                            else {
-                                                                // Trong giới hạn: giá = 0 (combo đã bao gồm)
-                                                                $donGiaHienThi = 0;
-                                                                $tienMon = 0;
-                                                                $tienPhuPhi = 0;
-                                                            }
-                                                        } else {
-                                                            // Không có giới hạn: giá = 0 (combo đã bao gồm)
-                                                            $donGiaHienThi = 0;
-                                                            $tienMon = 0;
-                                                            $tienPhuPhi = 0;
-                                                        }
+                                                        // Món thuộc combo: luôn miễn phí (không có giới hạn, không có phụ phí)
+                                                        $donGiaHienThi = 0;
+                                                        $tienMon = 0;
+                                                        $tienPhuPhi = 0;
+                                                        $coPhuPhi = false;
                                                     } else {
                                                         // Món không thuộc combo: tính tiền theo trạng thái nấu
                                                         // Phần đã nấu xong: 100% giá
@@ -404,19 +357,12 @@
                                                         {{ $ctFirst->monAn->ten_mon ?? 'N/A' }}
                                                         @if($coTrongCombo)
                                                             <span class="badge bg-warning">Món combo</span>
-                                                            @if($soLuongVuot > 0)
-                                                                <span class="badge bg-danger">Vượt giới hạn</span>
-                                                            @endif
                                                         @else
                                                             <span class="badge bg-info">Gọi thêm</span>
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
                                                         {{ $soLuongHienThi }}
-                                                        @if($coTrongCombo && $tongGioiHan !== null && $tongGioiHan > 0)
-                                                            <br>
-                                                            <small class="text-muted">(Giới hạn: {{ $tongGioiHan }})</small>
-                                                        @endif
                                                     </td>
                                                     <td class="text-center">
                                                         @if($soLuongDaLen == $tongSoLuong)
@@ -444,34 +390,7 @@
                                                                     <br>
                                                                     <small class="text-warning">
                                                                         <i class="bi bi-info-circle me-1"></i>
-                                                                        @if($coTrongCombo && $soLuongVuot > 0)
-                                                                            {{-- Món combo vượt giới hạn --}}
-                                                                            @if($soLuongDaLenTrongVuot > 0)
-                                                                                Đã nấu xong ({{ $soLuongDaLenTrongVuot }}): 100% = {{ number_format($donGiaGocHienThi * $soLuongDaLenTrongVuot) }} đ
-                                                                                @if($soLuongChuaNauXongTrongVuot > 0)
-                                                                                    <br>
-                                                                                    @if($soLuongDangCheBienTrongVuot > 0)
-                                                                                        Đang nấu dở ({{ $soLuongDangCheBienTrongVuot }}): 30% = {{ number_format($donGiaGocHienThi * 0.3 * $soLuongDangCheBienTrongVuot) }} đ
-                                                                                        @if($soLuongChoBepTrongVuot > 0)
-                                                                                            <br>
-                                                                                            Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 30% = {{ number_format($donGiaGocHienThi * 0.3 * $soLuongChoBepTrongVuot) }} đ
-                                                                                        @endif
-                                                                                    @elseif($soLuongChoBepTrongVuot > 0)
-                                                                                        Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 30% = {{ number_format($donGiaGocHienThi * 0.3 * $soLuongChoBepTrongVuot) }} đ
-                                                                                    @endif
-                                                                                @endif
-                                                                            @elseif($soLuongChuaNauXongTrongVuot > 0)
-                                                                                @if($soLuongDangCheBienTrongVuot > 0)
-                                                                                    Đang nấu dở ({{ $soLuongDangCheBienTrongVuot }}): 30% = {{ number_format($donGiaGocHienThi * 0.3 * $soLuongDangCheBienTrongVuot) }} đ
-                                                                                    @if($soLuongChoBepTrongVuot > 0)
-                                                                                        <br>
-                                                                                        Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 30% = {{ number_format($donGiaGocHienThi * 0.3 * $soLuongChoBepTrongVuot) }} đ
-                                                                                    @endif
-                                                                                @elseif($soLuongChoBepTrongVuot > 0)
-                                                                                    Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 30% = {{ number_format($donGiaGocHienThi * 0.3 * $soLuongChoBepTrongVuot) }} đ
-                                                                                @endif
-                                                                            @endif
-                                                                        @elseif(!$coTrongCombo)
+                                                                        @if(!$coTrongCombo)
                                                                             {{-- Món gọi thêm --}}
                                                                             @if($soLuongDaLen > 0)
                                                                                 Đã nấu xong ({{ $soLuongDaLen }}): 100% = {{ number_format($donGiaGocHienThi * $soLuongDaLen) }} đ
@@ -502,29 +421,9 @@
                                                                     </small>
                                                                 @endif
                                                             </div>
-                                                            @if($coPhuPhi && $tienPhuPhi > 0)
-                                                                <br>
-                                                                <small class="text-danger">
-                                                                    + Phụ phí: {{ number_format($tienPhuPhi) }} đ
-                                                                    @if($soLuongDaLenTrongVuot > 1)
-                                                                        <br><small class="text-muted">({{ number_format($phuPhiMon) }} đ × {{ $soLuongDaLenTrongVuot }})</small>
-                                                                    @endif
-                                                                </small>
-                                                            @endif
                                                         @else
-                                                            @if($coPhuPhi && $tienPhuPhi > 0)
-                                                                <span class="text-success">0 đ</span>
-                                                                <br>
-                                                                <small class="text-danger">
-                                                                    + Phụ phí: {{ number_format($tienPhuPhi) }} đ
-                                                                    @if($soLuongVuot > 1)
-                                                                        <br><small class="text-muted">({{ number_format($phuPhiMon) }} đ × {{ $soLuongVuot }})</small>
-                                                                    @endif
-                                                                </small>
-                                                            @else
-                                                                <span class="text-success">0 đ</span>
-                                                                <br><small class="text-muted">(Đã bao gồm trong combo)</small>
-                                                            @endif
+                                                            <span class="text-success">0 đ</span>
+                                                            <br><small class="text-muted">(Đã bao gồm trong combo)</small>
                                                         @endif
                                                     </td>
 

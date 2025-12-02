@@ -99,17 +99,49 @@
                                     <h5 class="mb-0"><i class="bi bi-basket3 me-2"></i>Thông tin combo & món đã gọi</h5>
                                 </div>
                                 <div class="card-body">
+                                    @php
+                                        $soTreEm = $hoaDon->datBan->tre_em ?? 0;
+                                        $comboIndex = 0; // Đếm số combo đã xử lý
+                                    @endphp
                                     @foreach($hoaDon->datBan->chiTietDatBan as $chiTietCombo)
                                         @if($chiTietCombo->combo)
+                                        @php
+                                            // Tính giá combo: giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
+                                            $giaCombo = $chiTietCombo->combo->gia_co_ban;
+                                            $soLuongCombo = $chiTietCombo->so_luong ?? 1;
+                                            $isTreEm = false;
+                                            
+                                            // Giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
+                                            if($soTreEm > 0 && $comboIndex < $soTreEm) {
+                                                $isTreEm = true;
+                                                $giaCombo = $giaCombo * 0.5; // Giảm 50% cho trẻ em
+                                            }
+                                            
+                                            $thanhTien = $giaCombo * $soLuongCombo;
+                                            $comboIndex += $soLuongCombo; // Tăng index theo số lượng combo
+                                        @endphp
                                         <div class="mb-3 p-3 bg-light rounded border border-warning">
                                             <h6 class="fw-bold text-primary mb-2">
                                                 <i class="bi bi-star-fill me-1 text-warning"></i>{{ $chiTietCombo->combo->ten_combo }}
                                                 <span class="badge bg-success ms-2">Combo chính</span>
+                                                @if($isTreEm)
+                                                    <span class="badge bg-info ms-2">Trẻ em (Giảm 50%)</span>
+                                                @endif
                                             </h6>
-                                            <p class="mb-1"><strong>Giá combo:</strong> {{ number_format($chiTietCombo->combo->gia_co_ban) }} đ/người</p>
+                                            <p class="mb-1">
+                                                <strong>Giá combo:</strong> 
+                                                @if($isTreEm)
+                                                    <span class="text-decoration-line-through text-muted">{{ number_format($chiTietCombo->combo->gia_co_ban) }} đ</span>
+                                                    <span class="text-danger fw-bold"> {{ number_format($giaCombo) }} đ</span>
+                                                    <small class="text-success">(Giảm 50%)</small>
+                                                @else
+                                                    {{ number_format($giaCombo) }} đ
+                                                @endif
+                                                /người
+                                            </p>
                                             <p class="mb-1"><strong>Số lượng:</strong> {{ $chiTietCombo->so_luong ?? 1 }} người</p>
                                             <p class="mb-0 mt-2"><strong>Thành tiền combo:</strong> 
-                                                <span class="text-danger fw-bold fs-5">{{ number_format($chiTietCombo->combo->gia_co_ban * ($chiTietCombo->so_luong ?? 1)) }} đ</span>
+                                                <span class="text-danger fw-bold fs-5">{{ number_format($thanhTien) }} đ</span>
                                             </p>
                                         </div>
                                         @endif
@@ -440,17 +472,41 @@
                                                 
                                                 {{-- Tổng kết --}}
                                                 @php
+                                                    // Tính lại tổng tiền combo từ chiTietDatBan với logic giảm 50% cho trẻ em
+                                                    $tongTienComboTinhLai = 0;
+                                                    $soTreEm = $hoaDon->datBan->tre_em ?? 0;
+                                                    $comboIndex = 0;
+                                                    if($hoaDon->datBan->chiTietDatBan && $hoaDon->datBan->chiTietDatBan->count() > 0) {
+                                                        foreach($hoaDon->datBan->chiTietDatBan as $chiTietCombo) {
+                                                            if($chiTietCombo->combo) {
+                                                                $giaCombo = $chiTietCombo->combo->gia_co_ban ?? 0;
+                                                                $soLuongCombo = $chiTietCombo->so_luong ?? 1;
+                                                                
+                                                                // Giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
+                                                                if($soTreEm > 0 && $comboIndex < $soTreEm) {
+                                                                    $giaCombo = $giaCombo * 0.5;
+                                                                }
+                                                                
+                                                                $tongTienComboTinhLai += $giaCombo * $soLuongCombo;
+                                                                $comboIndex += $soLuongCombo;
+                                                            }
+                                                        }
+                                                    } else {
+                                                        // Fallback: dùng giá trị từ database nếu không có chiTietDatBan
+                                                        $tongTienComboTinhLai = $chiTiet->tong_tien_combo ?? 0;
+                                                    }
+                                                    
                                                     // Sử dụng tổng tiền món gọi thêm đã tính lại
                                                     $tongTienMonGoiThem = $tongTienMonGoiThemTinhLai;
-                                                    // Tổng cộng = combo chính + món gọi thêm
-                                                    $tongCong = ($chiTiet->tong_tien_combo ?? 0) + $tongTienMonGoiThem;
+                                                    // Tổng cộng = combo chính (đã tính lại) + món gọi thêm
+                                                    $tongCong = $tongTienComboTinhLai + $tongTienMonGoiThem;
                                                 @endphp
-                                                @if($chiTiet->tong_tien_combo > 0)
+                                                @if($tongTienComboTinhLai > 0)
                                                 <tr class="table-warning fw-bold">
                                                     <td colspan="5" class="text-end">
                                                         <i class="bi bi-star-fill text-warning me-1"></i>Tổng tiền combo chính:
                                                     </td>
-                                                    <td class="text-end text-primary fs-5">{{ number_format($chiTiet->tong_tien_combo) }} đ</td>
+                                                    <td class="text-end text-primary fs-5">{{ number_format($tongTienComboTinhLai) }} đ</td>
                                                 </tr>
                                                 @endif
                                                 @if($tongTienMonGoiThem > 0)
