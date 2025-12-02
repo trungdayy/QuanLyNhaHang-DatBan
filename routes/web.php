@@ -341,3 +341,25 @@ Route::prefix('oderqr')->group(function () {
 Route::get('/tong', function () {
     return view('quick-access');
 });
+
+
+// Thêm tạm vào web.php (ở cuối file)
+Route::get('/test-debug', function () {
+    // 1. Thử ghi và đọc cache test
+    \Illuminate\Support\Facades\Cache::put('test_key', 'Cache Hoạt Động Ngon!', 60);
+    $val = \Illuminate\Support\Facades\Cache::get('test_key');
+    
+    // 2. Kiểm tra xem có bàn nào đang gọi không
+    $bans = \App\Models\BanAn::all();
+    $dangGoi = [];
+    foreach($bans as $b) {
+        if(\Illuminate\Support\Facades\Cache::has('goi_nhan_vien_' . $b->id)) {
+            $dangGoi[] = "Bàn " . $b->so_ban . " (ID: " . $b->id . ") đang gọi";
+        }
+    }
+
+    return response()->json([
+        'Trang_thai_Cache_System' => $val ? 'OK (' . $val . ')' : 'LỖI (Không lưu được)',
+        'Cac_ban_dang_goi' => $dangGoi
+    ]);
+});
