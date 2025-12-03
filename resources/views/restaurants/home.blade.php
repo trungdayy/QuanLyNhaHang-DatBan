@@ -5,14 +5,13 @@
 @section('content')
 
 {{-- =========================================================== --}}
-{{-- PHẦN 1: CSS (BẮT BUỘC NHÚNG TRỰC TIẾP - CHUẨN ĐỒNG BỘ) --}}
+{{-- PHẦN 1: CSS (GIAO DIỆN & HIỆU ỨNG) --}}
 {{-- =========================================================== --}}
 <style>
-    /* --- FIX LỖI TRÀN MÀN HÌNH (QUAN TRỌNG NHẤT) --- */
+    /* --- FIX LỖI TRÀN MÀN HÌNH --- */
     html,
     body {
         overflow-x: hidden !important;
-        /* Cắt bỏ phần thừa bên phải */
         width: 100%;
         position: relative;
     }
@@ -63,7 +62,7 @@
         border: 2px solid #d63031;
     }
 
-    /* 2. CART ITEM (Trong Modal) */
+    /* 2. CART ITEM */
     .cart-item-row {
         padding: 15px 0;
         border-bottom: 1px dashed #eee;
@@ -160,7 +159,7 @@
 </style>
 
 {{-- =========================================================== --}}
-{{-- PHẦN 2: NỘI DUNG TRANG CHỦ (SERVICE, ABOUT...) --}}
+{{-- PHẦN 2: NỘI DUNG TRANG CHỦ --}}
 {{-- =========================================================== --}}
 
 <div class="container-xxl py-5">
@@ -229,7 +228,7 @@
 </div>
 
 {{-- =========================================================== --}}
-{{-- PHẦN 3: DANH SÁCH MÓN ĂN & COMBO (ĐÃ CẬP NHẬT GIAO DIỆN) --}}
+{{-- PHẦN 3: COMBO BUFFET (ĐÃ CHUẨN HÓA DATA-DISHES & PATH) --}}
 {{-- =========================================================== --}}
 
 @if(isset($combos) && $combos->count() > 0)
@@ -242,25 +241,34 @@
         <div class="row g-4">
             @foreach($combos as $combo)
             <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
-                {{-- CARD COMBO CHUẨN --}}
+                {{-- CARD COMBO --}}
                 <div class="combo-item rounded overflow-hidden product-card-trigger position-relative h-100 shadow-sm bg-white"
                     data-key="combo_{{ $combo->id }}" data-type="combo" data-name="{{ $combo->ten_combo }}"
                     data-price="{{ $combo->gia_co_ban }}" data-desc="{{ $combo->mo_ta ?? 'Không có mô tả' }}"
                     data-img="{{ $combo->anh ? asset('uploads/' . $combo->anh) : '' }}"
-                    data-time="{{ $combo->thoi_luong_phut ? $combo->thoi_luong_phut . ' phút' : '' }}">
+                    data-time="{{ $combo->thoi_luong_phut ? $combo->thoi_luong_phut . ' phút' : '' }}"
+                    {{-- QUAN TRỌNG: Lấy danh sách món ăn từ quan hệ monAn --}}
+                    data-dishes="{{ json_encode($combo->monAn ? $combo->monAn->pluck('ten_mon') : []) }}">
 
                     <div class="position-relative">
                         @if($combo->anh)
+                        {{-- QUAN TRỌNG: Thêm 'uploads/' vì trong DB chưa có --}}
                         <img class="img-fluid w-100" src="{{ asset('uploads/' . $combo->anh) }}"
                             alt="{{ $combo->ten_combo }}" style="height: 250px; object-fit: cover;">
                         @else
                         <div class="bg-secondary d-flex align-items-center justify-content-center"
-                            style="height: 250px;"><i class="fa fa-utensils fa-3x text-white"></i></div>
+                            style="height: 250px;">
+                            <i class="fa fa-utensils fa-3x text-white"></i>
+                        </div>
                         @endif
-                        <div class="position-absolute top-0 start-0 p-3"><span
-                                class="badge bg-danger text-white px-3 py-2 rounded-pill">Combo Hot</span></div>
+
+                        <div class="position-absolute top-0 start-0 p-3">
+                            <span class="badge bg-danger text-white px-3 py-2 rounded-pill">Combo Hot</span>
+                        </div>
                         <button class="btn btn-primary position-absolute top-0 end-0 m-2 btn-quick-add"
-                            title="Thêm ngay"><i class="fa fa-plus text-white"></i></button>
+                            title="Thêm ngay">
+                            <i class="fa fa-plus text-white"></i>
+                        </button>
                     </div>
                     <div class="p-4">
                         <h5 class="mb-2 fw-bold text-dark">{{ $combo->ten_combo }}</h5>
@@ -276,6 +284,10 @@
     </div>
 </div>
 @endif
+
+{{-- =========================================================== --}}
+{{-- PHẦN 4: THỰC ĐƠN (DANH MỤC & MÓN ĂN) --}}
+{{-- =========================================================== --}}
 
 @if(isset($danhMucs) && $danhMucs->count() > 0)
 <div class="container-xxl py-5">
@@ -305,10 +317,11 @@
                     <div class="row g-4">
                         @forelse($danhMuc->monAn as $mon)
                         <div class="col-lg-6">
-                            {{-- CARD MÓN ĂN DẠNG NGANG (ĐỒNG BỘ CHỨC NĂNG) --}}
+                            {{-- CARD MÓN ĂN --}}
                             <div class="d-flex align-items-center menu-item product-card-trigger position-relative bg-white rounded shadow-sm p-3 h-100"
                                 data-key="mon_{{ $mon->id }}" data-type="mon" data-name="{{ $mon->ten_mon }}"
                                 data-price="{{ $mon->gia }}" data-desc="{{ $mon->mo_ta ?? 'Không có mô tả' }}"
+                                {{-- QUAN TRỌNG: Món ăn đã có sẵn đường dẫn trong DB, không thêm 'uploads/' --}}
                                 data-img="{{ $mon->hinh_anh ? asset($mon->hinh_anh) : '' }}"
                                 data-time="{{ $mon->loai_mon }}">
 
@@ -333,8 +346,9 @@
                                     <small
                                         class="fst-italic text-muted line-clamp-2">{{ Str::limit($mon->mo_ta, 60) }}</small>
                                 </div>
-                                <button class="btn btn-sm btn-outline-primary ms-2 btn-quick-add position-relative"><i
-                                        class="fa fa-plus"></i></button>
+                                <button class="btn btn-sm btn-outline-primary ms-2 btn-quick-add position-relative">
+                                    <i class="fa fa-plus"></i>
+                                </button>
                             </div>
                         </div>
                         @empty
@@ -430,7 +444,7 @@
 </div>
 
 {{-- =========================================================== --}}
-{{-- PHẦN 4: FLOATING UI (ICON & CART MODAL NẰM GIỮA) --}}
+{{-- PHẦN 5: FLOATING UI & MODALS (ĐÃ CẬP NHẬT ĐẦY ĐỦ) --}}
 {{-- =========================================================== --}}
 
 <div id="floatingCartIcon">
@@ -440,6 +454,7 @@
     </div>
 </div>
 
+{{-- MODAL GIỎ HÀNG --}}
 <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
@@ -479,6 +494,7 @@
     </div>
 </div>
 
+{{-- MODAL CHI TIẾT SẢN PHẨM (ĐÃ SỬA ĐỂ HIỆN MÓN TRONG COMBO) --}}
 <div class="modal fade" id="productDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 15px;">
@@ -498,11 +514,22 @@
                         <div class="p-3 bg-light rounded-3 mb-3">
                             <h6 class="text-dark fw-bold mb-2"><i class="fa fa-info-circle me-2"></i>Mô tả:</h6>
                             <p id="modalDesc" class="text-muted small mb-0" style="line-height: 1.6;"></p>
+
+                            {{-- 👇👇👇 KHU VỰC HIỆN DANH SÁCH MÓN TRONG COMBO 👇👇👇 --}}
+                            <div id="modalComboItems" class="mt-3 pt-3 border-top" style="display: none;">
+                                <h6 class="text-dark fw-bold mb-2 text-primary"><i class="fa fa-utensils me-2"></i>Món
+                                    trong Combo:</h6>
+                                <ul id="modalComboList" class="list-group list-group-flush small bg-transparent">
+                                    {{-- JS sẽ điền danh sách món vào đây --}}
+                                </ul>
+                            </div>
+                            {{-- 👆👆👆 KẾT THÚC KHU VỰC THÊM 👆👆👆 --}}
                         </div>
                     </div>
                     <button id="modalAddToCartBtn"
-                        class="btn btn-primary w-100 py-3 mt-3 fw-bold rounded-pill shadow-sm"><i
-                            class="fa fa-cart-plus me-2"></i> THÊM VÀO GIỎ</button>
+                        class="btn btn-primary w-100 py-3 mt-3 fw-bold rounded-pill shadow-sm">
+                        <i class="fa fa-cart-plus me-2"></i> THÊM VÀO GIỎ
+                    </button>
                 </div>
             </div>
         </div>
@@ -510,14 +537,18 @@
 </div>
 
 {{-- =========================================================== --}}
-{{-- PHẦN 5: JAVASCRIPT (LOGIC ĐỒNG BỘ VỚI TRANG THỰC ĐƠN) --}}
+{{-- PHẦN 6: JAVASCRIPT (ĐÃ CẬP NHẬT LOGIC HIỂN THỊ COMBO) --}}
 {{-- =========================================================== --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Đồng bộ giỏ hàng với LocalStorage (chung với trang thực đơn)
+        // --- CẤU HÌNH ---
+        // Đường dẫn trang booking (Sửa lại nếu cần)
+        const BOOKING_URL = "/booking"; 
+
+        // --- KHỞI TẠO ---
         let cart = JSON.parse(localStorage.getItem("oceanCart")) || [];
         
         // Elements
@@ -529,7 +560,6 @@
         const emptyCartMsg = document.getElementById("emptyCartMsg");
         const cartTotalDisplay = document.getElementById("cartTotalDisplay");
         const detailModal = new bootstrap.Modal(document.getElementById('productDetailModal'));
-        const formNote = document.getElementById('formNote');
 
         // Toast config
         const Toast = Swal.mixin({
@@ -540,7 +570,7 @@
             }
         });
 
-        // 1. RENDER GIỎ HÀNG (CÓ NÚT TĂNG GIẢM)
+        // 1. RENDER GIỎ HÀNG
         function renderCartUI() {
             const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
             cartCountBadge.innerText = totalCount;
@@ -626,24 +656,59 @@
             Toast.fire({ icon: 'success', title: 'Đã thêm món!' });
         }
 
-        // 3. SỰ KIỆN UI
+        // 3. SỰ KIỆN UI & MODAL CHI TIẾT
         floatingCartIcon.addEventListener('click', () => { cartModal.show(); });
 
-        // Click Sản phẩm -> Mở Modal chi tiết
+        // --- SỰ KIỆN CLICK SẢN PHẨM (QUAN TRỌNG: XỬ LÝ COMBO) ---
         document.querySelectorAll('.product-card-trigger').forEach(card => {
             card.addEventListener('click', function(e) {
                 if(e.target.closest('.btn-quick-add')) return;
                 
                 const d = this.dataset;
+                
+                // Điền thông tin cơ bản
                 document.getElementById('modalName').innerText = d.name;
                 document.getElementById('modalPrice').innerText = parseInt(d.price).toLocaleString('vi-VN') + ' VNĐ';
                 document.getElementById('modalDesc').innerText = d.desc;
                 if(d.img) document.getElementById('modalImg').src = d.img;
                 
-                // Config Type Badge
+                // Config Badge
                 const badge = document.getElementById('modalType');
-                if(d.type === 'combo') { badge.className='badge bg-danger mb-3 px-3 py-2 rounded-pill'; badge.innerText='Combo Hot'; }
-                else { badge.className='badge bg-success mb-3 px-3 py-2 rounded-pill'; badge.innerText='Món Ngon'; }
+                if(d.type === 'combo') { 
+                    badge.className='badge bg-danger mb-3 px-3 py-2 rounded-pill'; 
+                    badge.innerText='Combo Hot'; 
+                } else { 
+                    badge.className='badge bg-success mb-3 px-3 py-2 rounded-pill'; 
+                    badge.innerText='Món Ngon'; 
+                }
+
+                // 👇👇👇 XỬ LÝ HIỂN THỊ DANH SÁCH MÓN TRONG COMBO 👇👇👇
+                const comboSection = document.getElementById('modalComboItems');
+                const comboList = document.getElementById('modalComboList');
+                comboList.innerHTML = ''; // Xóa danh sách cũ
+
+                if (d.type === 'combo' && d.dishes) {
+                    try {
+                        const dishesArray = JSON.parse(d.dishes);
+                        if (dishesArray.length > 0) {
+                            comboSection.style.display = 'block'; 
+                            dishesArray.forEach(dishName => {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item bg-transparent px-0 py-1';
+                                li.innerHTML = `<i class="fa fa-check text-success me-2"></i> ${dishName}`;
+                                comboList.appendChild(li);
+                            });
+                        } else {
+                            comboSection.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error("Lỗi parse JSON món ăn:", error);
+                        comboSection.style.display = 'none';
+                    }
+                } else {
+                    comboSection.style.display = 'none';
+                }
+                // 👆👆👆 KẾT THÚC XỬ LÝ COMBO 👆👆👆
 
                 document.getElementById('modalAddToCartBtn').onclick = function() {
                     addToCart({ 
@@ -691,36 +756,40 @@
                 backgroundColor: "#ffffff", scale: 2
             }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'Bill_TrangChu.png';
+                link.download = 'Bill_ThucDon.png';
                 link.href = canvas.toDataURL();
                 link.click();
                 Toast.fire({ icon: 'success', title: 'Đã tải ảnh hóa đơn' });
             });
         });
 
-        // 8. CHỐT ĐƠN => CHUYỂN HƯỚNG SANG TRANG ĐẶT BÀN
+        // 4. CHUYỂN HƯỚNG BOOKING
         document.getElementById('btnCheckout').addEventListener('click', () => {
-        if(cart.length === 0) return;
-        
-        // Ẩn sidebar đi cho gọn trước khi chuyển trang
-        cartModal.hide();
-        
-        Swal.fire({
-        title: 'Xác nhận đơn hàng?',
-        text: 'Chúng tôi sẽ chuyển bạn đến trang Đặt Bàn để hoàn tất thông tin.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Đồng ý, Chuyển đi',
-        cancelButtonText: 'Xem lại',
-        confirmButtonColor: '#FEA116',
-        cancelButtonColor: '#d33'
-        }).then((result) => {
-        if (result.isConfirmed) {
-        // --- THAY ĐỔI Ở ĐÂY: Chuyển hướng sang trang /booking ---
-        window.location.href = "/booking";
-        }
+            if(cart.length === 0) {
+                Toast.fire({ icon: 'warning', title: 'Giỏ hàng đang trống!' });
+                return;
+            }
+
+            cartModal.hide();
+            Swal.fire({
+                title: 'Xác nhận đơn hàng?',
+                text: 'Chúng tôi sẽ chuyển bạn đến trang Đặt Bàn để hoàn tất thông tin.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý, Chuyển đi',
+                cancelButtonText: 'Xem lại',
+                confirmButtonColor: '#FEA116',
+                cancelButtonColor: '#d33'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = BOOKING_URL;
+                } else {
+                    cartModal.show();
+                }
+            });
         });
-        });
+
+        // Render lần đầu
         renderCartUI();
     });
 </script>

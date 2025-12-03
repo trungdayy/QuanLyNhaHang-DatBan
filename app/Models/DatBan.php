@@ -42,9 +42,9 @@ class DatBan extends Model
      */
     public function chiTietDatBan()
     {
-        return $this->hasMany(ChiTietDatBan::class, 'dat_ban_id');
+        // 🔴 SỬA: Đổi từ ChiTietDatBan::class thành DatBanCombo::class
+        return $this->hasMany(DatBanCombo::class, 'dat_ban_id', 'id');
     }
-
     /**
      * [MỚI] Quan hệ Many-to-Many: Lấy trực tiếp danh sách các ComboBuffet
      * Dùng để hiển thị tên combo, giá...

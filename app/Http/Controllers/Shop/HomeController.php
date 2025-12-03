@@ -21,11 +21,12 @@ class HomeController extends Controller
             ->limit(10)
             ->get();
 
-        // 2. Lấy các combo đang bán (Cho phần Slider Ưu đãi chạy chữ ở dưới)
-        $combos = ComboBuffet::where('trang_thai', 'dang_ban')
-            ->orderByDesc('created_at')
-            ->limit(6)
-            ->get();
+        // MỚI (Thêm with('monAn') để lấy danh sách món):
+        $combos = ComboBuffet::with('monAn') // <--- QUAN TRỌNG NHẤT
+                             ->where('trang_thai', 'dang_ban')
+                             ->orderByDesc('id')
+                             ->limit(6)
+                             ->get();
 
         // 3. Lấy danh sách khu vực (Để hiển thị phần Hệ thống cơ sở)
         $khuVucs = KhuVuc::all();

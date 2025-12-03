@@ -168,12 +168,14 @@
                 <div class="card mon-card h-100 position-relative overflow-hidden shadow-sm rounded-3 product-card-trigger border-0"
                     data-key="mon_{{ $mon->id }}" data-type="mon" data-name="{{ $mon->ten_mon }}"
                     data-price="{{ $mon->gia }}" data-desc="{{ $mon->mo_ta ?? 'Món ăn ngon miệng' }}"
-                    data-img="{{ $mon->hinh_anh ? asset('uploads/monan/' . $mon->hinh_anh) : '' }}">
+                    {{-- SỬA LẠI: Chỉ dùng asset($mon->hinh_anh) vì DB đã có đường dẫn đầy đủ --}}
+                    data-img="{{ $mon->hinh_anh ? asset($mon->hinh_anh) : '' }}">
 
                     <div class="position-relative">
                         @if($mon->hinh_anh)
-                        <img src="{{ asset('uploads/monan/' . $mon->hinh_anh) }}" alt="{{ $mon->ten_mon }}"
-                            class="card-img-top" style="height:200px; object-fit:cover;">
+                        {{-- SỬA LẠI: Bỏ phần nối chuỗi 'uploads/monan/' --}}
+                        <img src="{{ asset($mon->hinh_anh) }}" alt="{{ $mon->ten_mon }}" class="card-img-top"
+                            style="height:200px; object-fit:cover;">
                         @else
                         <div class="bg-secondary d-flex align-items-center justify-content-center"
                             style="height:200px;">
@@ -208,10 +210,6 @@
     </div>
     @endforeach
 </div>
-
-{{-- =========================================================== --}}
-{{-- PHẦN 3: FORM ĐẶT BÀN (ĐỂ HỖ TRỢ CHỨC NĂNG CHỐT ĐƠN) --}}
-{{-- =========================================================== --}}
 
 {{-- =========================================================== --}}
 {{-- PHẦN 4: FLOATING UI (ICON & CART MODAL NẰM GIỮA) --}}
@@ -294,14 +292,19 @@
 </div>
 
 {{-- =========================================================== --}}
-{{-- PHẦN 5: JAVASCRIPT (LOGIC NHƯ TRANG CHỦ) --}}
+{{-- PHẦN 5: JAVASCRIPT (ĐÃ CẬP NHẬT LOGIC CHUYỂN TRANG) --}}
 {{-- =========================================================== --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Đồng bộ giỏ hàng với LocalStorage (chung với trang chủ)
+        // --- CẤU HÌNH ---
+        // 🔴 QUAN TRỌNG: Thay đổi đường dẫn trang booking tại đây
+        // Nếu dùng đường dẫn cứng: "/dat-ban"
+        const BOOKING_URL = "{{ route('booking.index') }}"; 
+
+        // --- KHỞI TẠO ---
         let cart = JSON.parse(localStorage.getItem("oceanCart")) || [];
         
         // Elements
@@ -313,7 +316,7 @@
         const emptyCartMsg = document.getElementById("emptyCartMsg");
         const cartTotalDisplay = document.getElementById("cartTotalDisplay");
         const detailModal = new bootstrap.Modal(document.getElementById('productDetailModal'));
-        const formNote = document.getElementById('formNote');
+        // Không cần formNote nữa vì sẽ chuyển trang
 
         // Toast config
         const Toast = Swal.mixin({
@@ -371,7 +374,7 @@
             cartTotalDisplay.innerText = formattedTotal;
             document.getElementById('cartTotalPrint').innerText = formattedTotal;
 
-            // Gắn sự kiện Tăng/Giảm
+            // Gắn sự kiện Tăng/Giảm sau khi render
             document.querySelectorAll('.btn-plus').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const idx = this.dataset.index;
@@ -462,7 +465,7 @@
             })
         });
 
-        // Lưu bill
+        // Lưu ảnh bill
         document.getElementById('btnSaveBill').addEventListener('click', () => {
             if(cart.length === 0) return;
             document.getElementById('totalSection').classList.remove('d-none');
@@ -477,32 +480,34 @@
             });
         });
 
-        // Chốt đơn -> Form
+        // =======================================================
+        // 4. XỬ LÝ NÚT XÁC NHẬN -> CHUYỂN TRANG BOOKING
+        // =======================================================
         document.getElementById('btnCheckout').addEventListener('click', () => {
-            if(cart.length === 0) return;
+            if(cart.length === 0) {
+                Toast.fire({ icon: 'warning', title: 'Giỏ hàng đang trống!' });
+                return;
+            }
 
-            let noteContent = "--- ĐƠN TẠM TÍNH (Từ Trang Thực Đơn) ---\n";
-            cart.forEach((item, i) => {
-                noteContent += `${i+1}. ${item.name} (x${item.quantity}) - ${(item.price * item.quantity).toLocaleString('vi-VN')}đ\n`;
-            });
-            noteContent += `\n>> TỔNG CỘNG: ${cartTotalDisplay.innerText}`;
-            
-            formNote.value = noteContent;
+            // Hiệu ứng nút bấm để người dùng biết đang xử lý
+            const btn = document.getElementById('btnCheckout');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ĐANG CHUYỂN...';
+            btn.disabled = true;
+
+            // Đảm bảo dữ liệu đã được lưu vào LocalStorage
+            localStorage.setItem("oceanCart", JSON.stringify(cart));
+
+            // Đóng modal (cho đẹp)
             cartModal.hide();
-            
-            Swal.fire({
-                title: 'Đã xác nhận!',
-                text: 'Đơn hàng đã được điền vào form bên dưới. Vui lòng nhập tên và SĐT để hoàn tất.',
-                icon: 'success',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#FEA116'
-            }).then(() => {
-                document.getElementById('reservation-section').scrollIntoView({behavior: 'smooth'});
-                formNote.style.border = "2px solid #FEA116";
-                setTimeout(() => formNote.style.border = "", 2000);
-            });
+
+            // Chuyển hướng sau 500ms (tạo cảm giác mượt mà)
+            setTimeout(() => {
+                window.location.href = BOOKING_URL;
+            }, 500);
         });
 
+        // Render lần đầu khi load trang
         renderCartUI();
     });
 </script>
