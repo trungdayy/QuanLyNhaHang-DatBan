@@ -7,12 +7,25 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarCollapse">
         <div class="navbar-nav ms-auto py-0 pe-4">
-            <a href="{{ route('home') }}" class="nav-item nav-link active">Home</a>
-            <a href="{{ route('about') }}" class="nav-item nav-link">About</a>
-            <a href="{{ route('service') }}" class="nav-item nav-link">Service</a>
-            <a href="{{ route('combos.index') }}" class="nav-item nav-link">Combo Buffet</a>
-            <a href="{{ route('contact') }}" class="nav-item nav-link">Contact</a>
+
+            <a href="{{ route('home') }}" class="nav-item nav-link {{ Route::is('home') ? 'active' : '' }}">
+                Home
+            </a>
+            <a href="{{ route('about') }}" class="nav-item nav-link {{ Route::is('about') ? 'active' : '' }}">
+                About
+            </a>
+            <a href="{{ route('service') }}" class="nav-item nav-link {{ Route::is('service') ? 'active' : '' }}">
+                Service
+            </a>
+            <a href="{{ route('combos.index') }}"
+                class="nav-item nav-link {{ Route::is('combos.index') || Route::is('combos.*') ? 'active' : '' }}">
+                Combo Buffet
+            </a>
+            <a href="{{ route('contact') }}" class="nav-item nav-link {{ Route::is('contact') ? 'active' : '' }}">
+                Contact
+            </a>
+
         </div>
-        <a href="{{ route('booking.index') }}" class="btn btn-primary py-2 px-4">Book A Table</a>
+        <a href="{{ route('booking.index') }}" class="btn btn-primary py-2 px-4">Đặt Bàn</a>
     </div>
 </nav>

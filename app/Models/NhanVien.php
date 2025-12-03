@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable; // Kế thừa cho mục đích xác thực
+use Illuminate\Notifications\Notifiable;
 
-class NhanVien extends Model
+class NhanVien extends Authenticatable // Kế thừa Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable; // Bỏ HasApiTokens để tránh lỗi
 
     protected $table = 'nhan_vien';
 
@@ -20,11 +21,28 @@ class NhanVien extends Model
         'trang_thai',
     ];
 
+    // Các thuộc tính cần ẩn (đã bao gồm remember_token chuẩn Laravel)
+    protected $hidden = [
+        'mat_khau',
+        'remember_token',
+    ];
+
+    // Khai báo cột mật khẩu tên là 'mat_khau'
+    public function getAuthPassword()
+    {
+        return $this->mat_khau;
+    }
+
+    // ============================================================
+    // CÁC HÀM LOGIC CỦA BẠN (GIỮ NGUYÊN)
+    // ============================================================
+
     /**
      * Quan hệ: Một nhân viên có thể có nhiều đơn đặt bàn (phục vụ)
      */
     public function datBans()
     {
+        // Lưu ý: Đảm bảo bạn đã có model DatBan
         return $this->hasMany(DatBan::class, 'nhan_vien_id', 'id');
     }
 
@@ -45,11 +63,11 @@ class NhanVien extends Model
     }
 
     /**
-     * Kiểm tra nhân viên có phải phục vụ không
+     * Kiểm tra nhân viên có phải phục vụ/lễ tân không
      */
     public function isPhucVu()
     {
-        return $this->vai_tro === 'phuc_vu';
+        return $this->vai_tro === 'phuc_vu' || $this->vai_tro === 'le_tan'; // Thêm check 'le_tan' để bao quát
     }
 
     /**
@@ -70,7 +88,7 @@ class NhanVien extends Model
     }
 
     /**
-     * Kiểm tra trạng thái nhân viên
+     * Kiểm tra trạng thái nhân viên (Đang làm)
      */
     public function isDangLam()
     {
