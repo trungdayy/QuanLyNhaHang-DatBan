@@ -67,28 +67,8 @@ class ThanhToanController extends Controller
         $gioRa = now();
         $thoiGianPhucVu = $gioVao->diffInMinutes($gioRa);
 
-        // Tính chi tiết phụ thu thời gian (lấy thời gian quy định từ combo đầu tiên hoặc combo có thời gian dài nhất)
-        $thoiGianQuyDinh = 0;
-        $thoiGianMienPhi = 0;
-        $thoiGianVuot = 0;
-        $soLan10Phut = 0;
-        $phuThuThoiGian = 0;
-        
-        // Lấy thời gian quy định từ combo đầu tiên (hoặc combo có thời gian dài nhất)
-        $comboDauTien = $datBan->chiTietDatBan->first();
-        if ($comboDauTien && $comboDauTien->combo && $comboDauTien->combo->thoi_luong_phut) {
-            $thoiGianQuyDinh = $comboDauTien->combo->thoi_luong_phut;
-            $thoiGianMienPhi = $thoiGianQuyDinh + 10; // Thời gian quy định + 10 phút miễn phí
-            
-            if ($thoiGianPhucVu > $thoiGianMienPhi) {
-                $thoiGianVuot = $thoiGianPhucVu - $thoiGianMienPhi;
-                $soLan10Phut = ceil($thoiGianVuot / 10); // Làm tròn lên: phút 1-10 = 1 lần, phút 11-20 = 2 lần, phút 21-30 = 3 lần...
-                $phuThuThoiGian = $soLan10Phut * 30000; // Mỗi 10 phút = 30k
-            }
-        }
-
-        // Tính phụ thu tự động (bao gồm cả phụ phí món)
-        $phuThuTuDong = $this->tinhPhuThuTuDong($datBan, $thoiGianPhucVu);
+        // Không tính phụ thu tự động nữa (đã xóa logic phụ thu thời gian vượt quá)
+        $phuThuTuDong = 0;
 
         // Lấy danh sách voucher hợp lệ
         $vouchers = Voucher::where('trang_thai', 'dang_ap_dung')
@@ -97,8 +77,7 @@ class ThanhToanController extends Controller
             ->get();
 
         return view('Shop.nhanVien.thanh-toan.thanh-toan-tu-ban', compact(
-            'ban', 'datBan', 'tongTienOrder', 'tienCoc', 'vouchers', 'gioVao', 'gioRa', 'thoiGianPhucVu', 'phuThuTuDong',
-            'thoiGianQuyDinh', 'thoiGianMienPhi', 'thoiGianVuot', 'soLan10Phut', 'phuThuThoiGian'
+            'ban', 'datBan', 'tongTienOrder', 'tienCoc', 'vouchers', 'gioVao', 'gioRa', 'thoiGianPhucVu', 'phuThuTuDong'
         ));
     }
 
