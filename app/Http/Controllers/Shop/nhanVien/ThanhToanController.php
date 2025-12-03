@@ -303,6 +303,7 @@ class ThanhToanController extends Controller
             $tienTraLai = max(0, $tienKhachDua - $daThanhToan);
         }
 
+
         // Tạo hóa đơn
         $hoaDon = HoaDon::create([
             'dat_ban_id' => $datBan->id,
@@ -721,18 +722,102 @@ class ThanhToanController extends Controller
     public function vnpayPayment(Request $request, $banId)
     {
         $ban = BanAn::findOrFail($banId);
-        $tongTien = $request->input('tong_tien'); // từ form hoặc tính lại
-        $vnp_TmnCode = env('VNP_TMNCODE'); // Merchant code
-        $vnp_HashSecret = env('VNP_HASHSECRET'); 
-        $vnp_Url = env('VNP_URL');
+        
+        // Tìm đặt bàn đang hoạt động của bàn này (giống method thanhToanTuBan)
+        $datBan = DatBan::where('ban_id', $banId)
+            ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu', 'da_xac_nhan'])
+            ->with([
+                'chiTietDatBan.combo',
+                'orderMon.chiTietOrders.monAn',
+                'banAn.khuVuc'
+            ])
+            ->latest()
+            ->first();
+        
+        if (!$datBan) {
+            return redirect()
+                ->route('nhanVien.thanh-toan.ban', $banId)
+                ->with('error', 'Không tìm thấy đặt bàn!');
+        }
+        
+        // Tính tổng tiền combo chính
+        $tienComboChinh = 0;
+        $soTreEm = $datBan->tre_em ?? 0;
+        $soNguoiDaXuLy = 0;
+        
+        foreach($datBan->chiTietDatBan as $chiTietCombo) {
+            if($chiTietCombo->combo) {
+                $giaComboGoc = $chiTietCombo->combo->gia_co_ban;
+                $soLuongCombo = $chiTietCombo->so_luong ?? 1;
+                
+                for($i = 0; $i < $soLuongCombo; $i++) {
+                    if($soNguoiDaXuLy < $soTreEm) {
+                        $tienComboChinh += $giaComboGoc * 0.5;
+                        $soNguoiDaXuLy++;
+                    } else {
+                        $tienComboChinh += $giaComboGoc;
+                    }
+                }
+            }
+        }
+        
+        // Tính tiền món gọi thêm
+        $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
+        
+        // Tổng tiền thực tế = combo chính + món gọi thêm
+        $tongTienOrder = $tienComboChinh + $tongTienMonGoiThem;
+        
+        $tienCoc = (float) ($datBan->tien_coc ?? 0);
+        
+        // Tính phụ thu tự động
+        $gioVao = Carbon::parse($datBan->gio_den);
+        $gioRa = now();
+        $thoiGianPhucVu = $gioVao->diffInMinutes($gioRa);
+        $phuThuTuDong = $this->tinhPhuThuTuDong($datBan, $thoiGianPhucVu);
+        
+        // Phụ thu = phụ thu tự động + phụ thu thủ công (nếu có)
+        $phuThuThucCong = (float) ($request->phu_thu ?? 0);
+        $phuThu = $phuThuTuDong + $phuThuThucCong;
+        
+        // Xử lý voucher
+        $voucher = $request->voucher_id ? Voucher::find($request->voucher_id) : null;
+        $tienGiam = 0;
+        
+        if ($voucher) {
+            if ($voucher->loai_giam == 'phan_tram') {
+                $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
+                if ($voucher->gia_tri_toi_da && $tienGiam > $voucher->gia_tri_toi_da) {
+                    $tienGiam = $voucher->gia_tri_toi_da;
+                }
+            } else {
+                $tienGiam = $voucher->gia_tri;
+            }
+            if ($tienGiam > $tongTienOrder) {
+                $tienGiam = $tongTienOrder;
+            }
+        }
+        
+        // Tính tiền phải thanh toán
+        $tongTien = $tongTienOrder - $tienGiam + $phuThu - $tienCoc;
+        if ($tongTien < 0) $tongTien = 0;
+    
+        $vnp_TmnCode = env('VNPAY_TMN_CODE');
+        $vnp_HashSecret = env('VNPAY_HASH_SECRET'); 
+        $vnp_Url = env('VNPAY_URL');
         $vnp_Returnurl = route('nhanVien.thanh-toan.vnpay.callback', ['banId' => $banId]);
-
-        $vnp_TxnRef = time(); // mã giao dịch duy nhất
+    
+        // Kiểm tra cấu hình VNPay
+        if (empty($vnp_TmnCode) || empty($vnp_HashSecret) || empty($vnp_Url)) {
+            return redirect()
+                ->route('nhanVien.thanh-toan.ban', $banId)
+                ->with('error', 'Cấu hình VNPay chưa được thiết lập. Vui lòng liên hệ quản trị viên!');
+        }
+    
+        $vnp_TxnRef = time();
         $vnp_OrderInfo = "Thanh toán bàn $ban->so_ban";
-        $vnp_Amount = $tongTien * 100; // VNPay nhận amount *100 (đơn vị là VND)
-        $vnp_Locale = 'vn';
+        $vnp_Amount = $tongTien * 100;
         $vnp_IpAddr = $request->ip();
-
+    
         $inputData = [
             "vnp_Version" => "2.1.0",
             "vnp_TmnCode" => $vnp_TmnCode,
@@ -741,32 +826,51 @@ class ThanhToanController extends Controller
             "vnp_CreateDate" => date('YmdHis'),
             "vnp_CurrCode" => "VND",
             "vnp_IpAddr" => $vnp_IpAddr,
-            "vnp_Locale" => $vnp_Locale,
+            "vnp_Locale" => "vn",
             "vnp_OrderInfo" => $vnp_OrderInfo,
             "vnp_ReturnUrl" => $vnp_Returnurl,
             "vnp_TxnRef" => $vnp_TxnRef,
         ];
-
+    
         ksort($inputData);
         $query = http_build_query($inputData, '', '&', PHP_QUERY_RFC3986);
         $vnp_SecureHash = hash_hmac('sha512', $query, $vnp_HashSecret);
-        $vnp_Url = $vnp_Url . "?" . $query . "&vnp_SecureHash=" . $vnp_SecureHash;
-
-        return redirect($vnp_Url);
+    
+        // Đảm bảo URL VNPay có đầy đủ protocol
+        $vnp_Url = rtrim($vnp_Url, '/');
+        if (!preg_match('/^https?:\/\//', $vnp_Url)) {
+            $vnp_Url = 'https://' . $vnp_Url;
+        }
+    
+        $paymentUrl = $vnp_Url . "?" . $query . "&vnp_SecureHash=" . $vnp_SecureHash;
+    
+        return redirect($paymentUrl);
     }
+    
 
     public function vnpayCallback(Request $request, $banId)
     {
-        $vnp_ResponseCode = $request->get('vnp_ResponseCode');
-        $ban = BanAn::findOrFail($banId);
-
-        if($vnp_ResponseCode == "00"){
+        $vnp_SecureHash = $request->get('vnp_SecureHash');
+        $inputData = $request->except(['vnp_SecureHash', 'vnp_SecureHashType']);
+        ksort($inputData);
+    
+        $secureHash = hash_hmac('sha512', urldecode(http_build_query($inputData)), env('VNPAY_HASH_SECRET'));
+    
+        // Sai ký tự hash = request giả
+        if ($secureHash !== $vnp_SecureHash) {
+            return redirect()->route('nhanVien.ban-an.index')->with('error', 'Dữ liệu không hợp lệ!');
+        }
+    
+        if ($request->get('vnp_ResponseCode') == '00') {
+            $ban = BanAn::findOrFail($banId);
             $ban->trang_thai = 'da_thanh_toan';
             $ban->save();
-            return redirect()->route('nhanVien.ban-an.index')->with('success','Thanh toán VNPay thành công!');
-        } else {
-            return redirect()->route('nhanVien.ban-an.index')->with('error','Thanh toán VNPay thất bại!');
+    
+            return redirect()->route('nhanVien.ban-an.index')->with('success', 'Thanh toán VNPay thành công!');
         }
+    
+        return redirect()->route('nhanVien.ban-an.index')->with('error', 'Thanh toán VNPay thất bại!');
     }
+    
 
 }

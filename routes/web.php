@@ -14,8 +14,7 @@ use App\Http\Controllers\Admin\BanAnController;
 use App\Http\Controllers\Admin\DanhMucController;
 use App\Http\Controllers\Admin\MonAnController;
 use App\Http\Controllers\Admin\ComboBuffetController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\DatBanController;
 use App\Http\Controllers\Admin\ChiTietOrderController;
 use App\Http\Controllers\Admin\OrderMonController;
@@ -42,6 +41,15 @@ use App\Http\Controllers\Shop\Oderqr\OrderController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
+// ==================== AUTHENTICATION (NHÂN VIÊN) - ĐÃ VÔ HIỆU HÓA ====================
+// Route::prefix('auth')->name('auth.')->group(function () {
+//     Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
+//     Route::post('login', [AuthController::class, 'login']);
+//     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+//     Route::get('register', [AuthController::class, 'showRegistrationForm'])->name('register')->middleware(['auth.nhanvien', 'role:quan_ly']);
+//     Route::post('register', [AuthController::class, 'register'])->middleware(['auth.nhanvien', 'role:quan_ly']);
+// });
 
 // ==================== CLIENT SITE ====================
 Route::prefix('/')->group(function () {
@@ -196,27 +204,15 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
     Route::prefix('ban-an')->name('ban-an.')->group(function () {
         Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
 
-        // Check-in Walk-in (Khách vãng lai) - Giữ nguyên
+        // POST cho walk-in
         Route::post('/check-in-walkin', [NhanVienBanAnController::class, 'checkInWalkIn'])->name('check-in-walkin');
 
-        // --- SỬA ĐOẠN NÀY ---
-        // 1. Route hiển thị Form chọn bàn cho khách đặt trước (GET)
-        Route::get('/check-in-dattruoc/{id}', [NhanVienBanAnController::class, 'showCheckInForm'])->name('show-checkin-dattruoc');
+        // POST cho khách đặt trước
+        Route::post('/check-in-dattruoc', [NhanVienBanAnController::class, 'checkInDatTruoc'])->name('check-in-dattruoc');
 
-        // 2. Route Xử lý Check-in sau khi chọn bàn (POST)
-        Route::post('/process-check-in', [NhanVienBanAnController::class, 'processCheckIn'])->name('process-checkin');
-        // --------------------
+        // GET nút reset bàn (tất cả bàn quá hạn)
         Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
-
-        // 1. Route check thông báo (Sửa tên thành check_notif để khớp với JS)
-        Route::get('check-notifications', [App\Http\Controllers\Shop\NhanVien\KhuVuc\NhanVienBanAnController::class, 'checkNotifications'])
-            ->name('check_notif'); 
-
-        // 2. Route xác nhận (Sửa tên thành complete_support)
-        Route::post('complete-support', [App\Http\Controllers\Shop\NhanVien\KhuVuc\NhanVienBanAnController::class, 'completeSupport'])
-            ->name('complete_support');
     });
-
 
 
     // DatBan NhanVien
@@ -262,7 +258,7 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
         Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
         Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
         // thanh toán vnpay
-        Route::get('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
+        Route::post('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
         Route::get('/vnpay/callback/{banId}', 'vnpayCallback')->name('vnpay.callback');
     });
 });
@@ -329,10 +325,6 @@ Route::prefix('oderqr')->group(function () {
      */
     Route::post('order/cancel-item', [OrderController::class, 'cancelItem'])
         ->name('oderqr.cancel_item');
-
-    // API Khách gọi nhân viên
-    Route::post('call-staff', [App\Http\Controllers\Shop\Oderqr\OrderController::class, 'callStaff'])
-        ->name('oderqr.call_staff');
 });
 
 
@@ -340,26 +332,4 @@ Route::prefix('oderqr')->group(function () {
 // ===== PHẦN THÊM MỚI 3: ROUTE TRUY CẬP NHANH (DÙNG CHO DEMO) =====
 Route::get('/tong', function () {
     return view('quick-access');
-});
-
-
-// Thêm tạm vào web.php (ở cuối file)
-Route::get('/test-debug', function () {
-    // 1. Thử ghi và đọc cache test
-    \Illuminate\Support\Facades\Cache::put('test_key', 'Cache Hoạt Động Ngon!', 60);
-    $val = \Illuminate\Support\Facades\Cache::get('test_key');
-    
-    // 2. Kiểm tra xem có bàn nào đang gọi không
-    $bans = \App\Models\BanAn::all();
-    $dangGoi = [];
-    foreach($bans as $b) {
-        if(\Illuminate\Support\Facades\Cache::has('goi_nhan_vien_' . $b->id)) {
-            $dangGoi[] = "Bàn " . $b->so_ban . " (ID: " . $b->id . ") đang gọi";
-        }
-    }
-
-    return response()->json([
-        'Trang_thai_Cache_System' => $val ? 'OK (' . $val . ')' : 'LỖI (Không lưu được)',
-        'Cac_ban_dang_goi' => $dangGoi
-    ]);
 });
