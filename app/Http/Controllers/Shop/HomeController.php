@@ -25,8 +25,10 @@ class HomeController extends Controller
             ->get();
 
         // Lấy TẤT CẢ combo đang mở bán để chia Tab đầy đủ
-        // Sắp xếp theo giá tăng dần để Tab hiển thị đẹp (99k -> 199k -> 299k...)
-        $combos = ComboBuffet::where('trang_thai', 'dang_ban')
+        // Sắp xếp theo giá tăng dần
+        // QUAN TRỌNG: Thêm with('danhSachMon') để lấy kèm món ăn cho Popup
+        $combos = ComboBuffet::with('danhSachMon') 
+            ->where('trang_thai', 'dang_ban')
             ->orderBy('gia_co_ban', 'asc') 
             ->get();
 
@@ -48,47 +50,46 @@ class HomeController extends Controller
         ));
     }
 
-    /* ==========================================================
+    /* =====================================================================================================
        CÁC TRANG NỘI DUNG (PAGES)
        Khu vực xử lý các trang tĩnh: Giới thiệu, Dịch vụ, Team...
-    ========================================================== */
+    ====================================================================================================== */
 
-    /**
-     * Trang Giới Thiệu (About Us)
-     */
+    /* ==========================================================
+       Trang giới thiệu (About Us)
+    ========================================================== */
     public function about()
     {
         return view('restaurants.about');
     }
 
-    /**
-     * Trang Dịch Vụ (Services)
-     */
+    /* ==========================================================
+       Trang dịch vụ (Services)
+    ========================================================== */
     public function service()
     {
         return view('restaurants.service');
     }
 
-    /**
-     * Trang Đội Ngũ Đầu Bếp (Team)
-     */
+    /* ==========================================================
+       Trang đội ngũ nhà hàng (Team)
+    ========================================================== */
     public function team()
     {
         return view('restaurants.team');
     }
 
-    /**
-     * Trang Đánh Giá Khách Hàng (Testimonial)
-     */
+    /* ==========================================================
+       Trang đánh giá khách hàng (Testimonial)
+    ========================================================== */
     public function testimonial()
     {
         return view('restaurants.testimonial');
     }
 
-    /**
-     * Trang Thực Đơn (Full Menu)
-     * Load danh mục kèm theo món ăn để hiển thị dạng Tab
-     */
+    /* ==========================================================
+       Thực đơn menu
+    ========================================================== */
     public function menu()
     {
         $danhMucs = DanhMuc::where('hien_thi', 1)->with('monAn')->get();

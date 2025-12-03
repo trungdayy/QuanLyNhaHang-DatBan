@@ -118,5 +118,7 @@ public function chiTietDatBan()
         return $this->hasMany(ChiTietDatBan::class, 'combo_id', 'id');
     }
 
+
+
     
 }

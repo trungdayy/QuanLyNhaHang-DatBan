@@ -2058,22 +2058,40 @@
             }
         }
 
-        function startCountdown() {
-            const startMilli = orderStartTime || (bookingStartTime ? new Date(bookingStartTime.replace(' ', 'T'))
-                .getTime() : null);
-            if (!startMilli || bookingDuration <= 0) return document.getElementById('countdown-timer').innerText = "∞";
+function startCountdown() {
+            // 1. Nếu chưa có đơn gọi món (chưa có orderStartTime)
+            if (!orderStartTime) {
+                if (window.countdownInterval) clearInterval(window.countdownInterval);
+                // Hiển thị "--" thay vì số phút
+                document.getElementById('countdown-timer').innerText = "--"; 
+                return;
+            }
+
+            // 2. Nếu đã có gọi món, bắt đầu tính giờ từ lúc gọi món đó
+            const startMilli = orderStartTime;
+
+            // Nếu không giới hạn thời gian (bookingDuration = 0)
+            if (bookingDuration <= 0) return document.getElementById('countdown-timer').innerText = "∞";
+
             const endMilli = startMilli + bookingDuration * 60000;
+
             if (window.countdownInterval) clearInterval(window.countdownInterval);
+            
             window.countdownInterval = setInterval(() => {
                 const d = endMilli - new Date().getTime();
+                
                 if (d < 0) {
                     document.getElementById('countdown-timer').innerText = "Hết giờ";
+                    document.getElementById('countdown-timer').style.color = "#ff4d4f";
                     clearInterval(window.countdownInterval);
                     return;
                 }
+
                 const h = Math.floor(d / 3600000);
                 const m = Math.floor((d % 3600000) / 60000);
-                document.getElementById('countdown-timer').innerText = `${h}h ${m}p`;
+                
+                const mStr = m < 10 ? '0' + m : m;
+                document.getElementById('countdown-timer').innerText = h > 0 ? `${h}h ${mStr}p` : `${mStr}p`;
             }, 1000);
         }
 

@@ -9,9 +9,12 @@
 {{-- 2. CSS STYLING (Design System) --}}
 <style>
     :root {
-        --primary: #fea116; --primary-dark: #d98a12;
-        --dark: #0f172b; --white: #ffffff;
-        --text-main: #1e293b; --text-sub: #64748b;
+        --primary: #fea116;
+        --primary-dark: #d98a12;
+        --dark: #0f172b;
+        --white: #ffffff;
+        --text-main: #1e293b;
+        --text-sub: #64748b;
         --bg-light: #f8f9fa;
         --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
         --shadow-hover: 0 20px 40px -5px rgba(0, 0, 0, 0.1);
@@ -19,82 +22,380 @@
         --anim-fast: 0.2s ease;
     }
 
-    body { font-family: 'Nunito', sans-serif; background-color: var(--bg-light); color: var(--text-main); }
-    h3, h5, h6, strong, .font-heading { font-family: 'Heebo', sans-serif; }
+    body {
+        font-family: 'Nunito', sans-serif;
+        background-color: var(--bg-light);
+        color: var(--text-main);
+    }
+
+    h3,
+    h5,
+    h6,
+    strong,
+    .font-heading {
+        font-family: 'Heebo', sans-serif;
+    }
 
     /* --- HEADER CONTEXT --- */
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .header-title { color: var(--dark); font-weight: 800; font-size: 1.8rem; text-transform: uppercase; }
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .header-title {
+        color: var(--dark);
+        font-weight: 800;
+        font-size: 1.8rem;
+        text-transform: uppercase;
+    }
 
     /* --- CONTEXT BOX --- */
-    .context-box { background: var(--white); border-radius: var(--radius); padding: 15px 20px;
-        border-left: 4px solid var(--primary); box-shadow: var(--shadow-card);
-        margin-bottom: 30px; display: flex; align-items: center; gap: 20px; }
-    .context-item { display: flex; flex-direction: column; }
-    .context-label { font-size: 0.75rem; color: var(--text-sub); font-weight: 700; text-transform: uppercase; }
-    .context-value { font-size: 1.1rem; font-weight: 800; color: var(--dark); font-family: 'Heebo'; }
+    .context-box {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 15px 20px;
+        border-left: 4px solid var(--primary);
+        box-shadow: var(--shadow-card);
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .context-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .context-label {
+        font-size: 0.75rem;
+        color: var(--text-sub);
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .context-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--dark);
+        font-family: 'Heebo';
+    }
 
     /* --- MENU GRID --- */
     .dish-card {
-        background: var(--white); border-radius: var(--radius); padding: 10px;
-        border: 1px solid #f1f5f9; box-shadow: var(--shadow-card);
-        transition: var(--anim-fast); display: flex; align-items: center; gap: 15px;
-        cursor: pointer; position: relative; overflow: hidden;
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 10px;
+        border: 1px solid #f1f5f9;
+        box-shadow: var(--shadow-card);
+        transition: var(--anim-fast);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
     }
-    .dish-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); border-color: rgba(254, 161, 22, 0.4); }
-    .dish-thumb { width: 70px; height: 70px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
-    .dish-info { flex: 1; }
-    .dish-name { font-size: 0.95rem; font-weight: 700; color: var(--dark); margin-bottom: 2px; }
-    .dish-meta { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 4px; }
-    .dish-price { color: var(--primary); font-weight: 800; font-family: 'Heebo'; font-size: 0.9rem; }
+
+    .dish-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-hover);
+        border-color: rgba(254, 161, 22, 0.4);
+    }
+
+    .dish-thumb {
+        width: 70px;
+        height: 70px;
+        border-radius: 6px;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .dish-info {
+        flex: 1;
+    }
+
+    .dish-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 2px;
+    }
+
+    .dish-meta {
+        font-size: 0.75rem;
+        color: var(--text-sub);
+        margin-bottom: 4px;
+    }
+
+    .dish-price {
+        color: var(--primary);
+        font-weight: 800;
+        font-family: 'Heebo';
+        font-size: 0.9rem;
+    }
+
     .btn-add-quick {
-        width: 35px; height: 35px; border-radius: 50%; background: #f1f8ff;
-        color: var(--primary); border: 1px solid var(--primary);
-        display: flex; align-items: center; justify-content: center;
-        transition: var(--anim-fast); font-size: 1.1rem;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: #f1f8ff;
+        color: var(--primary);
+        border: 1px solid var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--anim-fast);
+        font-size: 1.1rem;
     }
-    .dish-card:hover .btn-add-quick { background: var(--primary); color: var(--white); }
+
+    .dish-card:hover .btn-add-quick {
+        background: var(--primary);
+        color: var(--white);
+    }
 
     /* --- CART SIDEBAR --- */
-    .cart-panel { position: sticky; top: 20px; background: var(--white);
-        border-radius: var(--radius); box-shadow: var(--shadow-card);
-        border: 1px solid #f1f5f9; overflow: hidden;
-        display: flex; flex-direction: column; max-height: calc(100vh - 40px); }
-    .cart-header { background: var(--dark); color: var(--white); padding: 15px;
-        font-family: 'Heebo'; font-weight: 700; text-transform: uppercase;
-        display: flex; align-items: center; gap: 8px;
-        background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
-        background-size: 20px 20px; }
-    .cart-body { flex: 1; overflow-y: auto; padding: 15px; }
-    .cart-item { display: flex; justify-content: space-between; align-items: flex-start;
-        padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px dashed #e2e8f0;
-        animation: slideIn 0.2s ease; }
-    .cart-item:last-child { border-bottom: none; margin-bottom: 0; }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-    .item-name { font-size: 0.9rem; font-weight: 700; color: var(--dark); line-height: 1.2; }
-    .item-qty { color: var(--primary); font-weight: 800; font-family: 'Heebo'; margin-left: 4px; }
-    .item-note { font-size: 0.75rem; color: var(--text-sub); font-style: italic; display: block; margin-top: 2px; }
-    .btn-icon { width: 24px; height: 24px; border-radius: 4px; border: none;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
-    .btn-edit-note { background: #e2e8f0; color: var(--text-sub); margin-right: 4px; }
-    .btn-edit-note:hover { background: #cbd5e1; color: var(--dark); }
-    .btn-remove { background: #fee2e2; color: #dc2626; }
-    .btn-remove:hover { background: #ef4444; color: white; }
-    .cart-footer { padding: 15px; border-top: 1px solid #f1f5f9; background: #f8fafc; }
-    .btn-submit {
-        width: 100%; border: none; padding: 12px; border-radius: 6px;
-        font-weight: 800; text-transform: uppercase; font-family: 'Heebo', sans-serif;
-        font-size: 0.9rem; cursor: pointer; transition: var(--anim-fast);
-        background: var(--primary); color: var(--white);
-        box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3);
-        display: flex; align-items: center; justify-content: center; gap: 8px;
+    .cart-panel {
+        position: sticky;
+        top: 20px;
+        background: var(--white);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-card);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 40px);
     }
-    .btn-submit:hover { background: var(--primary-dark); transform: translateY(-2px); }
-    .btn-back { background: #e2e8f0; color: var(--text-sub); text-decoration: none;
-        padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 0.85rem;
-        display: inline-flex; align-items: center; gap: 5px; transition: 0.2s; }
-    .btn-back:hover { background: #cbd5e1; color: var(--dark); }
+
+    .cart-header {
+        background: var(--dark);
+        color: var(--white);
+        padding: 15px;
+        font-family: 'Heebo';
+        font-weight: 700;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+        background-size: 20px 20px;
+    }
+
+    .cart-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+
+    .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        border-bottom: 1px dashed #e2e8f0;
+        animation: slideIn 0.2s ease;
+    }
+
+    .cart-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .item-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--dark);
+        line-height: 1.2;
+    }
+
+    .item-qty {
+        color: var(--primary);
+        font-weight: 800;
+        font-family: 'Heebo';
+        margin-left: 4px;
+    }
+
+    .item-note {
+        font-size: 0.75rem;
+        color: var(--text-sub);
+        font-style: italic;
+        display: block;
+        margin-top: 2px;
+    }
+
+    .btn-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .btn-edit-note {
+        background: #e2e8f0;
+        color: var(--text-sub);
+        margin-right: 4px;
+    }
+
+    .btn-edit-note:hover {
+        background: #cbd5e1;
+        color: var(--dark);
+    }
+
+    .btn-remove {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .btn-remove:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    .cart-footer {
+        padding: 15px;
+        border-top: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .btn-submit {
+        width: 100%;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        font-weight: 800;
+        text-transform: uppercase;
+        font-family: 'Heebo', sans-serif;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: var(--anim-fast);
+        background: var(--primary);
+        color: var(--white);
+        box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-submit:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+
+    .btn-back {
+        background: #e2e8f0;
+        color: var(--text-sub);
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: 0.2s;
+    }
+
+    .btn-back:hover {
+        background: #cbd5e1;
+        color: var(--dark);
+    }
+
+    .filter-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-row::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .filter-row::-webkit-scrollbar-thumb {
+        background-color: rgba(254, 161, 22, 0.6);
+        border-radius: 3px;
+    }
+
+    .filter-row::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+
+
+    .filter-btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid #f1f5f9;
+        background-color: var(--white);
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-main);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .filter-btn:hover {
+        background: var(--primary);
+        color: var(--white);
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: var(--shadow-hover);
+    }
+
+    .filter-btn.active {
+        background: var(--primary);
+        color: var(--white);
+        border-color: var(--primary-dark);
+        box-shadow: 0 4px 12px rgba(254, 161, 22, 0.25);
+    }
+
+    .filter-btn i {
+        margin-right: 6px;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    /* Responsive: thu nhỏ trên mobile */
+    @media (max-width: 768px) {
+        .filter-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+    }
 </style>
 
 
@@ -118,18 +419,17 @@
     </div>
     @endif
 
-    <h3 class="fw-bold mb-3">Thêm món vào Order số:{{ $order->id }}</h3>
-    <p class="mb-3"><b>Bàn:</b> {{ $order->banAn->so_ban ?? 'Không xác định' }}</p>
-    <hr>
-
     <div class="container py-4">
+        <h3 class="fw-bold mb-3">Thêm món vào Order số:{{ $order->id }}</h3>
+        <p class="mb-3"><b>Bàn:</b> {{ $order->banAn->so_ban ?? 'Không xác định' }}</p>
+        <hr>
         {{-- Flash Messages --}}
         @foreach(['success', 'warning', 'error'] as $msg)
-            @if(session($msg))
-                <div class="alert alert-{{ $msg == 'error' ? 'danger' : ($msg == 'warning' ? 'warning' : 'success') }} mb-4 shadow-sm border-0 fw-bold">
-                    {{ session($msg) }}
-                </div>
-            @endif
+        @if(session($msg))
+        <div class="alert alert-{{ $msg == 'error' ? 'danger' : ($msg == 'warning' ? 'warning' : 'success') }} mb-4 shadow-sm border-0 fw-bold">
+            {{ session($msg) }}
+        </div>
+        @endif
         @endforeach
 
         {{-- HEADER --}}
@@ -154,29 +454,57 @@
                 <span class="context-label">Bàn Phục Vụ</span>
                 <span class="context-value">
                     @if($order->banAn)
-                        Bàn {{ $order->banAn->so_ban }}
+                    Bàn {{ $order->banAn->so_ban }}
                     @else
-                        <span class="text-danger">--</span>
+                    <span class="text-danger">--</span>
                     @endif
                 </span>
             </div>
         </div>
 
         <div class="row">
-            {{-- LEFT: MENU GRID --}}
             <div class="col-md-8 mb-4">
+                <div class="filter-menu mb-4">
+                    {{-- Row 1: Danh mục  --}}
+                    <div class="filter-row" id="filter-category">
+                        <button class="filter-btn" data-type="category" data-value="6">Khai Vị (Appetizers)</button>
+                        <button class="filter-btn" data-type="category" data-value="7">Hải Sản Tươi Sống (Fresh Seafood)</button>
+                        <button class="filter-btn" data-type="category" data-value="8">Thịt (Meats)</button>
+                        <button class="filter-btn" data-type="category" data-value="9">Món Nóng / Quầy Line (Hot Dishes)</button>
+                        <button class="filter-btn" data-type="category" data-value="10">Rau & Nấm (Vegetables & Mushrooms)</button>
+                        <button class="filter-btn" data-type="category" data-value="11">Viên Thả Lẩu (Hotpot Balls)</button>
+                        <button class="filter-btn" data-type="category" data-value="12">Sashimi & Sushi</button>
+                        <button class="filter-btn" data-type="category" data-value="13">Tráng Miệng (Desserts)</button>
+                        <button class="filter-btn" data-type="category" data-value="14">Đồ Uống (Beverages)</button>
+                        <button class="filter-btn" data-type="category" data-value="15">Sốt Chấm & Gia Vị (Sauces)</button>
+                    </div>
+
+                    {{-- Row 2: Loại món  --}}
+                    <div class="filter-row" id="filter-type">
+                        <button class="filter-btn" data-type="loai" data-value="Chín">Chín</button>
+                        <button class="filter-btn" data-type="loai" data-value="Sống">Sống</button>
+                        <button class="filter-btn" data-type="loai" data-value="Nướng">Nướng</button>
+                        <button class="filter-btn" data-type="loai" data-value="Xào/Luộc">Xào/Luộc</button>
+                        <button class="filter-btn" data-type="loai" data-value="Nước có ga">Nước có ga</button>
+                        <button class="filter-btn" data-type="loai" data-value="Nước không ga">Nước không ga</button>
+                        <button class="filter-btn" data-type="loai" data-value="Trà/Cà phê">Trà/Cà phê</button>
+                        <button class="filter-btn" data-type="loai" data-value="Trái cây">Trái cây</button>
+                        <button class="filter-btn" data-type="loai" data-value="Bánh ngọt">Bánh ngọt</button>
+                    </div>
+                </div>
                 <div class="row g-3">
                     @foreach($monAns as $mon)
                     <div class="col-lg-6">
                         <div class="dish-card mon-card"
-                             data-id="{{ $mon->id }}"
-                             data-ten="{{ $mon->ten_mon }}"
-                             data-gia="{{ $mon->gia }}"
-                             data-loai="{{ $mon->loai_mon }}">
+                            data-id="{{ $mon->id }}"
+                            data-ten="{{ $mon->ten_mon }}"
+                            data-gia="{{ $mon->gia }}"
+                            data-loai="{{ $mon->loai_mon }}"
+                            data-category="{{ $mon->danh_muc_id }}">
 
                             {{-- Image --}}
                             <img src="{{ asset($mon->hinh_anh ?? 'https://placehold.co/70x70?text=IMG') }}"
-                                 class="dish-thumb" alt="{{ $mon->ten_mon }}">
+                                class="dish-thumb" alt="{{ $mon->ten_mon }}">
 
                             {{-- Info --}}
                             <div class="dish-info">
@@ -213,7 +541,7 @@
 
                     <div class="cart-footer">
                         <button id="submit-order-btn" class="btn-submit">
-                            <i class="fa-solid fa-paper-plane"></i> GỬI BẾP
+                            <i class="fa-solid fa-paper-plane"></i> THÊM MÓN ORDER
                         </button>
                     </div>
                 </div>
@@ -347,5 +675,39 @@
                 btn.disabled = false;
             }
         });
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const value = btn.dataset.value;
+
+                // Toggle active
+                btn.classList.toggle('active');
+
+                const activeCategories = Array.from(document.querySelectorAll('#filter-category .filter-btn.active')).map(b => b.dataset.value);
+                const activeTypes = Array.from(document.querySelectorAll('#filter-type .filter-btn.active')).map(b => b.dataset.value);
+
+                document.querySelectorAll('.mon-card').forEach(card => {
+                    const matchCategory = activeCategories.length === 0 || activeCategories.includes(card.dataset.category);
+                    const matchType = activeTypes.length === 0 || activeTypes.includes(card.dataset.loai);
+
+                    card.parentElement.style.display = (matchCategory && matchType) ? 'block' : 'none';
+                });
+            });
+        });
+
+        // Gán data-category cho card từ controller nếu chưa có
+        document.querySelectorAll('.mon-card').forEach(card => {
+            if (!card.dataset.category) {
+                card.dataset.category = card.dataset.danhmuc || ''; // fallback
+            }
+        });
+
+        document.querySelectorAll('.filter-row').forEach(row => {
+            row.addEventListener('wheel', function(e) {
+                e.preventDefault(); // ngăn cuộn dọc mặc định
+                row.scrollLeft += e.deltaY; // cuộn ngang thay vì dọc
+            });
+        });
     </script>
-@endsection
+    @endsection

@@ -34,4 +34,16 @@ class ChiTietDatBan extends Model
     {
         return $this->belongsTo(DatBan::class, 'dat_ban_id', 'id');
     }
+
+
+
+
+    /**
+     * (Tùy chọn) Alias: Giữ lại hàm này nếu code cũ của bạn có chỗ nào lỡ gọi ->comboBuffet
+     * Nó sẽ trỏ về hàm combo ở trên.
+     */
+    public function comboBuffet()
+    {
+        return $this->combo();
+    }
 }

@@ -21,7 +21,7 @@ use App\Http\Controllers\Admin\ChiTietOrderController;
 use App\Http\Controllers\Admin\OrderMonController;
 use App\Http\Controllers\Admin\HoaDonController;
 use App\Http\Controllers\Admin\VoucherController;
-use App\Http\Controllers\Shop\BookingController;
+// use App\Http\Controllers\Shop\BookingController;
 use App\Http\Controllers\Shop\OtpController;
 use App\Http\Controllers\Shop\MomoController;
 use App\Http\Controllers\Shop\ComboClientController;
@@ -31,6 +31,9 @@ use App\Http\Controllers\Shop\Bep\BepController;
 use App\Http\Controllers\Shop\NhanVien\NVDatBanController;
 use App\Http\Controllers\Shop\NhanVien\ThanhToanController;
 use App\Http\Controllers\Shop\Oderqr\OrderController;
+use App\Http\Controllers\Shop\Booking\BookingController;
+
+
 
 
 /*
@@ -56,8 +59,7 @@ Route::prefix('/')->group(function () {
     Route::get('/combos', [ComboClientController::class, 'index'])->name('combos.index');
     Route::get('/combos/{id}', [ComboClientController::class, 'show'])->name('combos.show');
 
-    // ==== 3. BOOKING ====
-    // Resource (trừ show)
+    // Booking: resource (trừ show)
     Route::resource('booking', BookingController::class)->except(['show']);
 
     // Trang đặt bàn thành công

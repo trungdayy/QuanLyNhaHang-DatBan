@@ -1,422 +1,534 @@
 @extends('layouts.Shop.layout-nhanvien')
 
-@section('title', 'Chi tiết Order')
-
-{{-- 1. IMPORT FONTS --}}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
-
-{{-- 2. CSS STYLING (Design System) --}}
-<style>
-    :root {
-        --primary: #fea116;
-        --primary-dark: #d98a12;
-        --dark: #0f172b;
-        --white: #ffffff;
-        --success: #20d489;
-        --danger: #ff4d4f;
-        --info: #0dcaf0;
-        --text-main: #1e293b;
-        --text-sub: #64748b;
-        --bg-light: #f8f9fa;
-        --radius: 8px;
-        --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
-    }
-
-    body {
-        font-family: 'Nunito', sans-serif;
-        background-color: var(--bg-light);
-        color: var(--text-main);
-    }
-
-    h2,
-    h3,
-    h5,
-    strong,
-    .font-heading {
-        font-family: 'Heebo', sans-serif;
-    }
-
-    /* --- CARD STYLE --- */
-    .card-box {
-        border: none;
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-card);
-        background: var(--white);
-        margin-bottom: 24px;
-        overflow: hidden;
-        border: 1px solid #f1f5f9;
-    }
-
-    .card-header-custom {
-        background: var(--dark);
-        color: var(--white);
-        padding: 15px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
-        background-size: 20px 20px;
-    }
-
-    .header-title {
-        font-family: 'Heebo', sans-serif;
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 1rem;
-        letter-spacing: 0.5px;
-    }
-
-    /* --- INFO ROW --- */
-    .info-row {
-        display: flex;
-        margin-bottom: 8px;
-        align-items: center;
-    }
-
-    .info-label {
-        width: 140px;
-        color: var(--text-sub);
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .info-value {
-        color: var(--dark);
-        font-weight: 700;
-        font-size: 1rem;
-    }
-
-    .total-money {
-        color: var(--primary);
-        font-size: 1.2rem;
-        font-weight: 800;
-        font-family: 'Heebo';
-    }
-
-    /* --- TABLE STYLE --- */
-    .custom-table thead th {
-        background: #f1f5f9;
-        color: var(--text-main);
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        border-bottom: 2px solid #e2e8f0;
-        padding: 12px;
-    }
-
-    .custom-table tbody td {
-        vertical-align: middle;
-        padding: 12px;
-        border-bottom: 1px dashed #f1f5f9;
-        color: var(--text-main);
-        font-size: 0.95rem;
-        font-weight: 600;
-    }
-
-    .custom-table tbody tr:hover {
-        background: #f8fafc;
-    }
-
-    /* --- STATUS BADGES (Glassmorphism) --- */
-    .badge-pill {
-        padding: 6px 12px;
-        border-radius: 30px;
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        display: inline-block;
-    }
-
-    /* Chờ bếp: Vàng/Cam nhạt */
-    .st-cho-bep {
-        background: rgba(254, 161, 22, 0.15);
-        color: #b45309;
-        border: 1px solid rgba(254, 161, 22, 0.3);
-    }
-
-    /* Đang làm: Xanh dương nhạt */
-    .st-dang-lam {
-        background: rgba(13, 202, 240, 0.15);
-        color: #0891b2;
-        border: 1px solid rgba(13, 202, 240, 0.3);
-    }
-
-    /* Đã lên: Xanh Mint nhạt */
-    .st-da-len {
-        background: rgba(32, 212, 137, 0.15);
-        color: #059669;
-        border: 1px solid rgba(32, 212, 137, 0.2);
-    }
-
-    /* Hủy: Đỏ nhạt */
-    .st-huy {
-        background: rgba(255, 77, 79, 0.1);
-        color: #dc2626;
-        border: 1px solid rgba(255, 77, 79, 0.2);
-    }
-
-    /* --- BUTTONS --- */
-    .btn-custom {
-        border: none;
-        border-radius: 6px;
-        font-weight: 700;
-        text-transform: uppercase;
-        font-family: 'Heebo', sans-serif;
-        font-size: 0.85rem;
-        padding: 8px 16px;
-        transition: 0.2s;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .btn-back {
-        background: #e2e8f0;
-        color: var(--text-sub);
-    }
-
-    .btn-back:hover {
-        background: #cbd5e1;
-        color: var(--dark);
-    }
-
-    .btn-add {
-        background: var(--primary);
-        color: var(--white);
-        box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3);
-    }
-
-    .btn-add:hover {
-        background: var(--primary-dark);
-        transform: translateY(-2px);
-    }
-
-    .btn-icon-small {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
-        transition: 0.2s;
-    }
-
-    .btn-edit {
-        background: #fff7ed;
-        color: #ea580c;
-        border: 1px solid #ffedd5;
-    }
-
-    .btn-edit:hover {
-        background: #ffedd5;
-    }
-
-    .btn-delete {
-        background: #fef2f2;
-        color: #dc2626;
-        border: 1px solid #fee2e2;
-    }
-
-    .btn-delete:hover {
-        background: #fee2e2;
-    }
-</style>
+@section('title', 'Danh sách bàn')
 
 @section('content')
 <main class="app-content">
-    {{-- Flash message --}}
-    @if(session('success'))
-    <div class="alert alert-success text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
-        {{ session('success') }}
-    </div>
-    @endif
-
-    @if(session('warning'))
-    <div class="alert alert-warning text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
-        {{ session('warning') }}
-    </div>
-    @endif
-
-    @if(session('error'))
-    <div class="alert alert-danger text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
-        {{ session('error') }}
-    </div>
-    @endif
-
-    <div class="container py-4">
-
-        {{-- FLASH MESSAGES --}}
-        @foreach (['success' => 'check-circle', 'warning' => 'exclamation-triangle', 'error' => 'times-circle'] as $msg => $icon)
-        @if(session($msg))
-        <div class="alert alert-{{ $msg == 'error' ? 'danger' : $msg }} mb-4 shadow-sm border-0 d-flex align-items-center gap-2"
-            style="font-weight: 600;">
-            <i class="fa-solid fa-{{ $icon }}"></i> {{ session($msg) }}
+    <div class="container-xxl px-4">
+        {{-- Flash message --}}
+        @if(session('success'))
+        <div class="alert alert-success text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
+            {{ session('success') }}
         </div>
         @endif
+
+        @if(session('warning'))
+        <div class="alert alert-warning text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
+            {{ session('warning') }}
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="alert alert-danger text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
+            {{ session('error') }}
+        </div>
+        @endif
+
+        {{-- Mini Dashboard --}}
+        <div class="row mb-4 g-3">
+            @php
+            $dashboardItems = [
+            ['label'=>'Tổng số bàn', 'count'=>$bans->count(), 'bg'=>'#28a74533', 'icon'=>'bi-grid-3x3-gap'],
+            ['label'=>'Bàn trống', 'count'=>$bans->where('trang_thai', 'trong')->count(), 'bg'=>'#6c757d33', 'icon'=>'bi-person-check'],
+            ['label'=>'Đang phục vụ', 'count'=>$bans->where('trang_thai', 'dang_phuc_vu')->count(), 'bg'=>'#dc354533', 'icon'=>'bi-people-fill'],
+            ['label'=>'Khách đến & chưa chọn combo', 'count'=>$bans->filter(function($ban) use ($orders) {
+            $datBanMoiNhat = \App\Models\DatBan::where('ban_id', $ban->id)->latest()->first();
+            return $datBanMoiNhat && $datBanMoiNhat->trang_thai == 'khach_da_den' && !$orders->has($ban->id);
+            })->count(), 'bg'=>'#17a2b833', 'icon'=>'bi-person-plus'],
+            ['label'=>'Bàn bảo trì', 'count'=>$bans->where('trang_thai', 'khong_su_dung')->count(), 'bg'=>'#6c757d88', 'icon'=>'bi-tools']
+            ];
+            @endphp
+
+            @foreach($dashboardItems as $item)
+            <div class="col d-flex">
+                <div class="p-3 rounded-4 shadow-sm text-center flex-fill" style="background: {{ $item['bg'] }}">
+                    <h5 class="fw-bold mb-1">
+                        <i class="bi {{ $item['icon'] }}"></i> {{ $item['count'] }}
+                    </h5>
+                    <small>{{ $item['label'] }}</small>
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        {{-- Phân khu vực --}}
+        @foreach($khuVucs as $khu)
+        <div class="mb-4">
+            <h3 class="fw-bold mb-3">
+                <i class="bi bi-building me-2"></i> {{ $khu->ten_khu_vuc }} (Tầng {{ $khu->tang }})
+            </h3>
+            <div class="row g-3 justify-content-start">
+                @foreach($bans->where('khu_vuc_id', $khu->id) as $ban)
+                @php
+                $order = $orders->has($ban->id) ? $orders[$ban->id] : null;
+                $datBanMoiNhat = \App\Models\DatBan::where('ban_id', $ban->id)->latest()->first();
+                if($ban->trang_thai == 'trong') {
+                $bgHeader = 'linear-gradient(135deg, #28a745, #7be495)';
+                $icon='bi-person-check';
+                } elseif($ban->trang_thai == 'dang_phuc_vu') {
+                $bgHeader='linear-gradient(135deg, #dc3545, #ff6b6b)';
+                $icon='bi-people-fill';
+                } elseif($ban->trang_thai == 'khong_su_dung') {
+                $bgHeader='linear-gradient(135deg, #6c757d, #adb5bd)'; // xám
+                $icon='bi-slash-circle';
+                } else {
+                $bgHeader='linear-gradient(135deg, #ffc107, #ffe58a)';
+                $icon='bi-tools';
+                }
+
+                @endphp
+
+                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-12 d-flex">
+                    <div class="card table-card shadow-sm rounded-4 border-0 position-relative overflow-hidden flex-fill d-flex flex-column">
+                        <div class="table-card-header text-center text-white fw-bold py-2 rounded-top"
+                            style="background: {{ $bgHeader }};">
+                            <h5 class="mb-1"><i class="bi {{ $icon }}"></i> Bàn {{ $ban->so_ban }}</h5>
+                            <div class="mt-2 w-100 text-center">
+                                @php
+                                if($ban->trang_thai == 'khong_su_dung') {
+                                $trangThaiText = 'Bảo trì';
+                                $trangThaiClass = 'bg-dark text-white';
+                                } elseif(isset($datBanMoiNhat)) {
+                                switch($datBanMoiNhat->trang_thai) {
+                                case 'da_xac_nhan':
+                                $trangThaiText='Đã đặt';
+                                $trangThaiClass='bg-warning text-dark';
+                                break;
+                                case 'khach_da_den':
+                                $trangThaiText = $order ? 'Đang phục vụ':'Khách đã đến';
+                                $trangThaiClass = $order ? 'bg-success text-white':'bg-info text-white';
+                                break;
+                                default:
+                                $trangThaiText = 'Trống';
+                                $trangThaiClass = 'bg-secondary';
+                                break;
+                                }
+                                } else {
+                                $trangThaiText = 'Trống';
+                                $trangThaiClass = 'bg-secondary';
+                                }
+                                @endphp
+                                <span class="badge {{ $trangThaiClass }}">{{ $trangThaiText }}</span>
+
+                            </div>
+                        </div>
+
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center p-3">
+                            @if($order)
+                            <p class="mb-1 text-truncate"><i class="bi bi-receipt"></i> <b>Order: {{ $order->id }}</b></p>
+                            @if($order->datBan)
+                            <p class="mb-1"><i class="bi bi-person-fill"></i> {{ $order->datBan->ten_khach }}</p>
+                            <p class="mb-1"><i class="bi bi-telephone-fill"></i> {{ $order->datBan->sdt_khach }}</p>
+                            @endif
+                            <p class="mb-1"><i class="bi bi-basket3"></i> {{ $order->tong_mon }} món</p>
+                            <p class="mb-2"><i class="bi bi-currency-dollar"></i> {{ number_format($order->tong_tien) }} đ</p>
+
+                            <a href="{{ route('nhanVien.order.page', $order->id) }}"
+                                class="btn btn-warning btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+                                style="width:50px; height:50px; padding:0;">
+                                <i class="bi bi-card-checklist fs-5"></i>
+                            </a>
+                            @else
+                            <form action="{{ route('nhanVien.order.mo-order') }}" method="POST" class="w-100 d-flex justify-content-center">
+                                @csrf
+                                <input type="hidden" name="ban_id" value="{{ $ban->id }}">
+                                <button type="submit"
+                                    class="btn btn-success btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+                                    style="width:50px; height:50px;">
+                                    <i class="bi bi-plus-circle fs-5"></i>
+                                </button>
+                            </form>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
         @endforeach
-
-        {{-- HEADER PAGE --}}
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div>
-                <a href="{{ route('nhanVien.order.index') }}" class="btn-custom btn-back mb-2" style="padding: 6px 12px; font-size: 0.75rem;">
-                    <i class="fa-solid fa-arrow-left"></i> Quay lại
-                </a>
-                <h3 class="m-0 font-heading" style="color: var(--dark); font-weight: 800; font-size: 1.8rem;">
-                    ORDER BÀN {{ $order->banAn->so_ban }}
-                </h3>
-            </div>
-            <a href="{{ route('nhanVien.chi-tiet-order.create', ['order_id' => $order->id]) }}" class="btn-custom btn-add">
-                <i class="fa-solid fa-plus"></i> Thêm món
-            </a>
-        </div>
-
-        <div class="row">
-            {{-- 1. THÔNG TIN CHUNG (CARD) --}}
-            <div class="col-md-4 order-md-2 mb-4">
-                <div class="card-box">
-                    <div class="card-header-custom">
-                        <span class="header-title"><i class="fa-solid fa-circle-info me-2"></i> Thông tin</span>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="info-row">
-                            <span class="info-label">Mã Order:</span>
-                            <span class="info-value">#{{ $order->id }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Bàn:</span>
-                            <span class="info-value">Số {{ $order->banAn->so_ban }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Combo:</span>
-                            <span class="info-value text-primary">{{ $order->datBan->comboBuffet->ten_combo ?? 'Gọi món lẻ' }}</span>
-                        </div>
-                        <hr style="border-color: #f1f5f9;">
-                        <div class="info-row">
-                            <span class="info-label">Tổng món:</span>
-                            <span class="info-value">{{ $order->tong_mon }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Tạm tính:</span>
-                            <span class="total-money">{{ number_format($order->tong_tien) }} đ</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 2. DANH SÁCH MÓN (TABLE) --}}
-            <div class="col-md-8 order-md-1">
-                <div class="card-box">
-                    <div class="card-header-custom">
-                        <span class="header-title"><i class="fa-solid fa-utensils me-2"></i> Danh sách món</span>
-                    </div>
-
-                    @if ($order->chiTietOrders->isEmpty())
-                    <div class="p-5 text-center text-muted">
-                        <i class="fa-solid fa-basket-shopping fa-3x mb-3 opacity-25"></i>
-                        <p class="fw-bold">Chưa có món nào được gọi.</p>
-                    </div>
-                    @else
-                    <div class="table-responsive">
-                        <table class="table custom-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Món ăn</th>
-                                    <th class="text-center">SL</th>
-                                    <th>Ghi chú</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="text-end">Xử lý</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($order->chiTietOrders as $ct)
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 700; color: var(--dark);">{{ $ct->monAn->ten_mon }}</div>
-                                    </td>
-                                    <td class="text-center">
-                                        <span style="font-family:'Heebo'; font-weight:800; font-size:1rem; color: var(--primary);">x{{ $ct->so_luong_hien_thi }}</span>
-                                    </td>
-                                    <td>
-                                        @if($ct->ghi_chu)
-                                        <small class="text-muted fst-italic"><i class="fa-regular fa-comment-dots"></i> {{ $ct->ghi_chu }}</small>
-                                        @else
-                                        <span class="text-muted opacity-50">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        @switch($ct->trang_thai)
-                                        @case('cho_bep')
-                                        <span class="badge-pill st-cho-bep">Chờ bếp</span>
-                                        @break
-                                        @case('dang_che_bien')
-                                        <span class="badge-pill st-dang-lam">Đang làm</span>
-                                        @break
-                                        @case('da_len_mon')
-                                        <span class="badge-pill st-da-len">Đã lên</span>
-                                        @break
-                                        @case('huy_mon')
-                                        <span class="badge-pill st-huy">Đã hủy</span>
-                                        @break
-                                        @default
-                                        <span class="badge bg-secondary">{{ $ct->trang_thai }}</span>
-                                        @endswitch
-                                    </td>
-                                    <td class="text-end">
-                                        <a href="{{ route('nhanVien.chi-tiet-order.edit', [$order->id, $ct->id]) }}"
-                                            class="btn-icon-small btn-edit" title="Sửa">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </a>
-
-                                        <form action="{{ route('nhanVien.chi-tiet-order.destroy', $ct->id) }}" method="POST" class="d-inline"
-                                            onsubmit="return confirm('Xóa món {{ $ct->monAn->ten_mon }}?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn-icon-small btn-delete ms-1" title="Xóa">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
 </main>
 
 <style>
-    .card {
+    .table-card {
         transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
     }
 
-    .card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    .table-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     }
 
-    .btn {
-        transition: all 0.3s;
+    .table-card-header .badge {
+        font-size: 0.75rem;
+        padding: 0.25em 0.6em;
+        border-radius: 12px;
     }
 
-    .btn:hover {
-        transform: translateY(-2px);
+    .card-body p {
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
     }
 
-    table th,
-    table td {
-        vertical-align: middle !important;
+    .card-body .btn {
+        transition: all 0.2s;
+        background: linear-gradient(135deg, #0dcaf0, #dbbf0cff);
+        color: white;
+        border: none;
+        box-shadow: 0 0 10px rgba(13, 202, 240, .6);
     }
 
-    .table-hover tbody tr:hover {
-        background-color: #f1f3f5;
+    .card-body .btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 25px rgba(13, 202, 240, .9);
+    }
+
+    .row.mb-4>.col {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Responsive 6 cột */
+    @media (max-width: 1200px) {
+        .col-xl-2 {
+            flex: 0 0 16.666667%;
+            max-width: 16.666667%;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .col-lg-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .col-md-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .col-sm-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+
+    .table-card.new-order {
+        animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+        0% {
+            box-shadow: 0 0 0 rgba(255, 193, 7, 0.8);
+        }
+
+        50% {
+            box-shadow: 0 0 15px rgba(255, 193, 7, 0.9);
+        }
+
+        100% {
+            box-shadow: 0 0 0 rgba(255, 193, 7, 0.8);
+        }
+    }
+
+    body {
+        background: radial-gradient(circle at top right, #e3f2ff, #f7f9fc, #f1f5ff);
+    }
+
+    .app-content {
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* =============================== */
+    /* MINI DASHBOARD */
+    /* =============================== */
+
+    .row.mb-4 .rounded-4 {
+        border-radius: 18px !important;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        transition: all 0.25s ease;
+    }
+
+    .row.mb-4 .rounded-4:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .row.mb-4 h5 {
+        font-size: 1.4rem;
+        letter-spacing: 0.3px;
+    }
+
+    .row.mb-4 small {
+        opacity: 0.8;
+        font-size: 0.8rem;
+    }
+
+    /* =============================== */
+    /* TABLE CARD */
+    /* =============================== */
+
+    .table-card {
+        border-radius: 18px !important;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+        transition: all 0.25s ease;
+    }
+
+    .table-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.18);
+    }
+
+    /* =============================== */
+    /* HEADER */
+    /* =============================== */
+
+    .table-card-header {
+        position: relative;
+        border-bottom-left-radius: 18px;
+        border-bottom-right-radius: 18px;
+        padding: 14px 10px 10px;
+    }
+
+    .table-card-header::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.12);
+        mix-blend-mode: overlay;
+    }
+
+    .table-card-header h5 {
+        letter-spacing: 0.5px;
+    }
+
+    /* =============================== */
+    /* BADGE */
+    /* =============================== */
+
+    .table-card-header .badge {
+        border-radius: 50px;
+        font-weight: 600;
+        padding: 5px 14px;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.15);
+    }
+
+    /* =============================== */
+    /* BODY */
+    /* =============================== */
+
+    .card-body {
+        text-align: center;
+    }
+
+    .card-body p {
+        font-size: 0.85rem;
+        opacity: 0.85;
+    }
+
+    .card-body p i {
+        color: #0d6efd;
+    }
+
+    .card-body p b {
+        font-size: 0.9rem;
+    }
+
+    /* =============================== */
+    /* BUTTON */
+    /* =============================== */
+
+    .card-body .btn {
+        border-radius: 50px !important;
+        transition: all 0.25s cubic-bezier(.4, 1.8, .6, .9);
+    }
+
+    .card-body .btn:hover {
+        transform: scale(1.15) rotate(3deg);
+    }
+
+    .card-body .btn:active {
+        transform: scale(0.9);
+    }
+
+    /* =============================== */
+    /* GLOW BY STATUS */
+    /* =============================== */
+
+    .table-card:has(.badge.bg-success) {
+        box-shadow: 0 0 12px rgba(40, 167, 69, 0.4);
+    }
+
+    .table-card:has(.badge.bg-warning) {
+        box-shadow: 0 0 12px rgba(255, 193, 7, 0.5);
+    }
+
+    .table-card:has(.badge.bg-info) {
+        box-shadow: 0 0 12px rgba(23, 162, 184, 0.5);
+    }
+
+    .table-card:has(.badge.bg-dark) {
+        opacity: 0.75;
+        filter: grayscale(70%);
+    }
+
+    /* =============================== */
+    /* NEW ORDER ANIMATION */
+    /* =============================== */
+
+    .table-card.new-order {
+        animation: pulseGlow 1.2s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+        from {
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+        }
+
+        to {
+            box-shadow: 0 0 30px rgba(255, 193, 7, 0.9);
+        }
+    }
+
+    /* =============================== */
+    /* SECTION TITLE */
+    /* =============================== */
+
+    h3 {
+        position: relative;
+        display: inline-block;
+        padding-left: 10px;
+        background: linear-gradient(90deg, #000000ff, #d8b00fff);
+        color: white;
+        padding: 8px 18px;
+        border-radius: 50px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .2);
+    }
+
+    h3::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 6px;
+        height: 60%;
+        width: 4px;
+        border-radius: 10px;
+    }
+
+    /* =============================== */
+    /* MOBILE */
+    /* =============================== */
+
+    @media (max-width: 768px) {
+        .table-card-header h5 {
+            font-size: 0.95rem;
+        }
+    }
+
+    .row.mb-4 .col:nth-child(1) .rounded-4 {
+        background: linear-gradient(135deg, #00c853, #b2ff59) !important;
+        color: #064d2a;
+    }
+
+    .row.mb-4 .col:nth-child(2) .rounded-4 {
+        background: linear-gradient(135deg, #90a4ae, #eceff1) !important;
+        color: #263238;
+    }
+
+    .row.mb-4 .col:nth-child(3) .rounded-4 {
+        background: linear-gradient(135deg, #ff5252, #ff867c) !important;
+        color: white;
+    }
+
+    .row.mb-4 .col:nth-child(4) .rounded-4 {
+        background: linear-gradient(135deg, #40c4ff, #81d4fa) !important;
+        color: white;
+    }
+
+    .row.mb-4 .col:nth-child(5) .rounded-4 {
+        background: linear-gradient(135deg, #616161, #9e9e9e) !important;
+        color: white;
+    }
+
+    .table-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 18px;
+        padding: 1px;
+        background: linear-gradient(140deg, #0dcaf0, #6610f2, #20c997);
+        -webkit-mask:
+            linear-gradient(#fff 0 0) content-box,
+            linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0.5;
+    }
+
+    .table-card-header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+        transform: rotate(20deg);
+        opacity: 0;
+        transition: .6s;
+    }
+
+    .table-card:hover .table-card-header::before {
+        opacity: 1;
+        top: 50%;
+        left: 50%;
+    }
+
+    .table-card::before,
+    .table-card::after,
+    .table-card-header::before,
+    .table-card-header::after {
+        pointer-events: none;
+    }
+
+    /* Đảm bảo button luôn nằm trên */
+    .card-body,
+    .card-body * {
+        position: relative;
+        z-index: 5;
+    }
+
+    /* Header vẫn đẹp nhưng không che */
+    .table-card-header {
+        position: relative;
+        z-index: 2;
+    }
+
+    /* Card nằm đúng lớp dưới button */
+    .table-card {
+        position: relative;
+        z-index: 1;
     }
 </style>
+
 @endsection
