@@ -60,8 +60,8 @@ class OrderController extends Controller
     }
 
     // Hàm xử lý bắt đầu gọi món với nhiều Combo
-// ... trong class OrderController
-// Hàm xử lý bắt đầu gọi món với nhiều Combo (ĐÃ BỎ AUTO ORDER)
+    // ... trong class OrderController
+    // Hàm xử lý bắt đầu gọi món với nhiều Combo (ĐÃ BỎ AUTO ORDER)
     public function startOrder(Request $request)
     {
         // 1. Validate dữ liệu
@@ -90,8 +90,26 @@ class OrderController extends Controller
         $inputCombos = $request->input('combos');
         $tenKhachInput = $request->input('ten_khach') ?: 'Khách Vãng Lai';
         $sdtKhachInput = $request->input('sdt_khach') ?: '0';
-        $nguoiLonInput = $request->input('nguoi_lon', 1);
-        $treEmInput = $request->input('tre_em', 0);
+        $nguoiLonInput = (int)$request->input('nguoi_lon', 1);
+        $treEmInput = (int)$request->input('tre_em', 0);
+
+        // =================================================================
+        // 🔥 [LOGIC MỚI] KIỂM TRA SỐ LƯỢNG COMBO >= TỔNG SỐ NGƯỜI
+        // =================================================================
+        $tongNguoi = $nguoiLonInput + $treEmInput;
+        $tongComboDaChon = 0;
+
+        foreach ($inputCombos as $c) {
+            $tongComboDaChon += (int)$c['so_luong'];
+        }
+
+        if ($tongComboDaChon < $tongNguoi) {
+            // Trả về lỗi và giữ lại input cũ
+            return back()
+                ->with('error', "Lỗi số lượng: Tổng số khách là $tongNguoi người, nhưng bạn chỉ chọn $tongComboDaChon suất combo. Vui lòng chọn đủ số lượng!")
+                ->withInput();
+        }
+        // =================================================================
 
         $nowObj = Carbon::now('Asia/Ho_Chi_Minh');
         $nowString = $nowObj->toDateTimeString();
@@ -106,7 +124,7 @@ class OrderController extends Controller
                     $maxThoiLuong = $comboInfo->thoi_luong_phut;
                 }
                 
-                // Lấy giá từ gia_co_ban (theo DB của bạn)
+                // Lấy giá từ gia_co_ban
                 $giaVe = $comboInfo->gia_co_ban ?? 0;
                 $tongTienComboBanDau += ($giaVe * $c['so_luong']);
             }
@@ -168,28 +186,21 @@ class OrderController extends Controller
             }
 
             // 5. TẠO ORDER (HÓA ĐƠN TẠM)
-            // Chỉ tạo OrderMon để ghi nhận tiền vé, KHÔNG tự động thêm món vào ChiTietOrder nữa
             $orderMon = OrderMon::firstOrCreate(
                 ['dat_ban_id' => $datBan->id, 'trang_thai' => 'dang_xu_li'],
                 [
                     'ban_id' => $datBan->ban_id, 
-                    'tong_mon' => 0, // Mới vào chưa gọi món nào
-                    'tong_tien' => $tongTienComboBanDau, // Tiền vé Buffet
+                    'tong_mon' => 0, 
+                    'tong_tien' => $tongTienComboBanDau, 
                     'created_at' => $nowString,
                     'updated_at' => $nowString
                 ]
             );
             
-            // Nếu order đã tồn tại (khách đổi combo), cập nhật lại tiền vé
             if (!$orderMon->wasRecentlyCreated) {
-                // Lưu ý logic này: Nếu bạn muốn cộng dồn tiền món gọi thêm cũ, 
-                // bạn cần lấy tổng tiền món gọi thêm hiện tại + tiền combo mới.
-                // Ở đây tôi cập nhật lại tiền Combo mới, giả sử chưa có món gọi thêm tính tiền.
                 $orderMon->tong_tien = $tongTienComboBanDau; 
                 $orderMon->save();
             }
-
-            // --- ĐÃ XÓA ĐOẠN LOGIC TỰ ĐỘNG INSERT VÀO CHI TIẾT ORDER TẠI ĐÂY ---
 
             DB::commit();
             return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr]);
@@ -243,8 +254,8 @@ class OrderController extends Controller
             // [SỬA LẠI TÊN CỘT Ở ĐÂY]
             // Kiểm tra kỹ trong database bảng combo_buffet xem cột giá tên là gì
             // Khả năng cao là 'gia_co_ban' hoặc 'gia_tien'
-            $giaCombo = $ct->combo->gia_co_ban ?? 0; 
-            
+            $giaCombo = $ct->combo->gia_co_ban ?? 0;
+
             $tienCombo += $giaCombo * $ct->so_luong;
         }
 
@@ -310,7 +321,7 @@ class OrderController extends Controller
     }
 
     // Xử lý gửi gọi món
-public function submitOrder(Request $request)
+    public function submitOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'dat_ban_id' => 'required|exists:dat_ban,id',
@@ -347,7 +358,7 @@ public function submitOrder(Request $request)
 
         foreach ($items as $item) {
             $monAn = MonAn::find($item['mon_an_id']);
-            
+
             // Nếu món hết hoặc không tồn tại thì bỏ qua
             if (!$monAn || $monAn->trang_thai !== 'con') continue;
 

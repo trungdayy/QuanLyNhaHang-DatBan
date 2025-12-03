@@ -12,42 +12,107 @@ use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
+    /**
+     * 1. TRANG CHỦ (HOMEPAGE)
+     * Hiển thị Slider, Món mới, Combo và Modal đặt bàn.
+     */
     public function index()
     {
-        // 1. Lấy danh sách món ăn MỚI NHẤT (để chạy Slider "Món mới ra lò")
-        // Phần này thêm vào để phục vụ giao diện Quán Nhậu Tự Do
+        // Lấy 10 món ăn mới nhất
         $newDishes = MonAn::where('trang_thai', 'con')
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
 
-        // 2. Lấy các combo đang bán (Cho phần Slider Ưu đãi chạy chữ ở dưới)
+        // Lấy TẤT CẢ combo đang mở bán để chia Tab đầy đủ
+        // Sắp xếp theo giá tăng dần để Tab hiển thị đẹp (99k -> 199k -> 299k...)
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')
-            ->orderByDesc('created_at')
-            ->limit(6)
+            ->orderBy('gia_co_ban', 'asc') 
             ->get();
 
-        // 3. Lấy danh sách khu vực (Để hiển thị phần Hệ thống cơ sở)
+        // Lấy danh sách khu vực (cho bộ lọc hoặc footer)
         $khuVucs = KhuVuc::all();
 
-        // 4. Dữ liệu cho form đặt bàn (Popup)
+        // Lấy danh sách bàn khả dụng cho Modal đặt bàn (Loại trừ bàn bận/hỏng)
         $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         
-        // 5. (Tùy chọn) Lấy danh mục nếu bạn muốn hiển thị trang thực đơn riêng
+        // Lấy danh mục hiển thị
         $danhMucs = DanhMuc::where('hien_thi', 1)->get();
 
         return view('restaurants.home', compact(
-            'newDishes', // Biến mới thêm
+            'newDishes', 
             'combos', 
             'khuVucs', 
             'banAns',
             'danhMucs'
         ));
     }
-    
-    // Hàm xử lý form liên hệ (để tránh lỗi route)
-    public function contact(Request $request)
+
+    /* ==========================================================
+       CÁC TRANG NỘI DUNG (PAGES)
+       Khu vực xử lý các trang tĩnh: Giới thiệu, Dịch vụ, Team...
+    ========================================================== */
+
+    /**
+     * Trang Giới Thiệu (About Us)
+     */
+    public function about()
     {
+        return view('restaurants.about');
+    }
+
+    /**
+     * Trang Dịch Vụ (Services)
+     */
+    public function service()
+    {
+        return view('restaurants.service');
+    }
+
+    /**
+     * Trang Đội Ngũ Đầu Bếp (Team)
+     */
+    public function team()
+    {
+        return view('restaurants.team');
+    }
+
+    /**
+     * Trang Đánh Giá Khách Hàng (Testimonial)
+     */
+    public function testimonial()
+    {
+        return view('restaurants.testimonial');
+    }
+
+    /**
+     * Trang Thực Đơn (Full Menu)
+     * Load danh mục kèm theo món ăn để hiển thị dạng Tab
+     */
+    public function menu()
+    {
+        $danhMucs = DanhMuc::where('hien_thi', 1)->with('monAn')->get();
+        return view('restaurants.menu', compact('danhMucs'));
+    }
+
+    /* ==========================================================
+       CHỨC NĂNG LIÊN HỆ (CONTACT)
+    ========================================================== */
+
+    /**
+     * Hiển thị Form Liên Hệ (Method: GET)
+     */
+    public function contact()
+    {
+        return view('restaurants.contact');
+    }
+    
+    /**
+     * Xử lý gửi Form Liên Hệ (Method: POST)
+     */
+    public function sendContact(Request $request)
+    {
+        // TODO: Thêm logic validate và lưu vào CSDL tại đây
         return back()->with('success', 'Cảm ơn bạn đã liên hệ!');
     }
 }

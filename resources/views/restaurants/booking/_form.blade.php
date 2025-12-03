@@ -1,5 +1,5 @@
 {{-- resources/views/restaurants/booking/create.blade.php --}}
-@extends('layouts.restaurants.layout-shop')
+@extends('layouts.page')
 
 @section('title', $method === 'PUT' ? 'Cập nhật đặt bàn' : 'Đặt Bàn Online')
 

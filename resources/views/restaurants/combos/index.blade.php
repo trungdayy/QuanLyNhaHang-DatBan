@@ -1,6 +1,5 @@
-@extends('layouts.restaurants.layout-shop')
-
-@section('title', 'Danh sách Combo Buffet')
+@extends('layouts.page')
+@section('title', 'Combo Buffet')
 
 @section('content')
 <div class="container py-4">

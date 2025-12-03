@@ -21,6 +21,16 @@
         body { font-family: 'Nunito', sans-serif; background-color: #f2f4f8; color: var(--text-main); padding-bottom: 100px; overflow-x: hidden; }
         .app-content { min-height: 100vh; padding: 20px 10px; display: flex; justify-content: center; }
         
+        /* --- [MỚI] ẨN HEADER/FOOTER TRÊN MOBILE --- */
+        @media (max-width: 768px) {
+            /* Ẩn các thẻ layout mặc định của web để tối ưu không gian */
+            header, footer, .banner, .top-bar, .site-header, .site-footer { 
+                display: none !important; 
+            }
+            body { padding-top: 0 !important; }
+            .app-content { padding-top: 0 !important; padding-bottom: 80px; }
+        }
+
         .form-container { 
             width: 100%; max-width: 850px; background: var(--white); 
             border-radius: 16px; box-shadow: var(--shadow); 
@@ -28,7 +38,7 @@
             transition: all 0.5s ease-in-out;
         }
 
-        /* Header */
+        /* Header Form */
         .form-header { background: var(--dark); padding: 30px 20px; text-align: center; color: var(--white); border-bottom: 4px solid var(--primary); }
         .form-header h1 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.8rem; margin: 0 0 5px 0; color: var(--primary); text-transform: uppercase; }
         .form-header p { margin: 0; opacity: 0.9; font-size: 0.9rem; color: #e2e8f0; }
@@ -36,6 +46,48 @@
         .form-body { padding: 20px; }
         .section-label { font-weight: 700; font-size: 1.1rem; color: var(--dark); margin-bottom: 15px; display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
         .section-label i { color: var(--primary); }
+        
+        /* --- [ĐÃ CẢI TIẾN] CUSTOMER INFO CARD (Khi có đặt bàn) --- */
+        .customer-info-card {
+            background: #fff8e8; /* Nền màu vàng nhạt */
+            border: 1px solid var(--primary); /* Viền màu Primary để nổi bật */
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 10px -5px rgba(254, 161, 22, 0.2); 
+            display: flex; 
+            flex-direction: column;
+        }
+
+        .customer-info-card strong {
+            color: var(--dark); 
+            font-weight: 800;
+            margin-right: 5px;
+        }
+
+        .customer-info-card .main-details {
+            font-size: 1.05rem; 
+            color: var(--text-main);
+            margin-bottom: 5px;
+            display: flex;
+            flex-wrap: wrap; 
+            gap: 15px; /* Tăng khoảng cách giữa 2 thông tin */
+        }
+
+        .customer-info-card small {
+            display: block;
+            color: #64748b; 
+            font-weight: 600;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed #fcd34d; 
+        }
+
+        .customer-info-card .highlight-count {
+            font-weight: 800;
+            color: var(--primary-dark);
+            font-size: 1.1rem;
+        }
 
         /* Input & Error */
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
@@ -45,136 +97,91 @@
         .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
         .alert-error ul { margin: 5px 0 0 20px; padding: 0; }
 
-        /* --- 2. LAYOUT NÚT CHỌN COMBO (3 TRÊN - 2 DƯỚI) --- */
-        .category-nav-wrapper {
-            background: #ffffff;
-            padding: 10px 0 20px 0;
-            margin: 0 -10px;
-            position: sticky;
-            top: 0;
-            z-index: 900;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        }
+        /* --- 2. CATEGORY NAV (NÚT CHỌN GIÁ - STYLE MỚI) --- */
+        .category-nav-wrapper { background: #ffffff; padding: 10px 0 20px 0; margin: 0 -10px; position: sticky; top: 0; z-index: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .category-nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 0 15px; transition: all 0.5s ease; min-height: 60px; }
 
-        .category-nav {
-            display: flex;
-            justify-content: center; 
-            flex-wrap: wrap; 
-            gap: 15px; 
-            padding: 0 15px;
-            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        /* STYLE CÁC Ô GIÁ */
         .cat-item {
-            padding: 25px 10px;
-            font-weight: 800; 
-            font-size: 1.3rem; 
-            text-align: center;
-            color: #475569; 
-            background-color: #fff; 
-            border: 2px solid #e2e8f0;
-            border-radius: 20px; 
-            cursor: pointer;
-            flex: 0 0 calc(33.333% - 15px); 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+            /* Trạng thái chưa chọn: Lớn, rõ ràng */
+            padding: 20px 15px; 
+            font-weight: 800; font-size: 1.2rem; 
+            text-align: center; color: #475569; background-color: #fff; 
+            border: 2px solid #e2e8f0; border-radius: 16px; 
+            cursor: pointer; 
+            flex: 1 0 calc(33.333% - 15px); /* Chia cột đều */
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
             max-width: 500px; 
-            max-height: 150px;
-            opacity: 1;
-            transform: scale(1);
-            margin: 0;
-            overflow: hidden;
-            position: relative; /* Để xác định vị trí z-index */
-        }
-
-        .cat-item:not(.active):hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(254, 161, 22, 0.15);
-            z-index: 2;
-        }
-        .cat-item:not(.active):active { transform: scale(0.98); }
-
-        .cat-item.active {
-            background-color: var(--primary); 
-            color: var(--white); 
-            border-color: var(--primary);
-            box-shadow: 0 10px 25px rgba(254, 161, 22, 0.4); 
-            flex: 0 0 auto; 
-            width: auto;
-            min-width: 200px; 
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            z-index: 10;
-        }
-
-        .cat-item.active.is-removable:hover {
-            background-color: #ef4444; border-color: #ef4444;
-            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
-        }
-        
-        .cat-item .reset-icon { margin-left: 10px; display: inline-block; font-size: 1rem; }
-
-        .cat-item.hidden-filter {
-            flex: 0 0 0; 
-            max-width: 0;
-            max-height: 0;
-            padding: 0 !important;
-            margin: 0 !important;
-            border-width: 0;
-            opacity: 0;
-            transform: scale(0.8);
-            pointer-events: none;
-        }
-
-        @media (max-width: 768px) {
-            .cat-item {
-                flex: 0 0 calc(50% - 10px); 
-                padding: 20px 5px;
-                font-size: 1.1rem;
-            }
-            .cat-item.hidden-filter { flex: 0 0 0; }
-        }
-
-        /* --- 3. GRID COMBO --- */
-        .combo-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 15px; 
             position: relative;
         }
-        @media (min-width: 768px) { .combo-grid { grid-template-columns: repeat(3, 1fr); } }
+        .cat-item:not(.active):hover { border-color: var(--primary); color: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(254, 161, 22, 0.15); z-index: 2; }
+        
+        /* Trạng thái Active: Nhỏ lại, thu vào giữa (Compact) */
+        .cat-item.active { 
+            background-color: var(--primary); 
+            color: var(--white); 
+            border-color: var(--primary); 
+            box-shadow: 0 8px 20px rgba(254, 161, 22, 0.4); 
+            /* Thu nhỏ kích thước */
+            flex: 0 0 auto; 
+            width: auto; 
+            min-width: 180px; 
+            padding: 10px 25px; 
+            border-radius: 50px; 
+            font-size: 1.1rem; 
+            margin-top: 5px;
+            z-index: 10; 
+        }
 
-        .combo-card {
-            background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
-            overflow: hidden; position: relative;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            cursor: pointer;
-            transform-origin: center center;
-            opacity: 1;
-            will-change: transform, opacity;
+        .cat-item.active.is-removable:hover { background-color: #ef4444; border-color: #ef4444; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); }
+        .cat-item .reset-icon { margin-left: 10px; display: inline-block; font-size: 1rem; }
+        .cat-item.hidden-filter { display: none; }
+        
+        @media (max-width: 768px) { .cat-item { flex: 0 0 calc(50% - 10px); padding: 15px 5px; font-size: 1.1rem; } }
+
+        /* --- 3. [UPDATED] COMBO CARD & ANIMATION --- */
+        .combo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; position: relative; }
+        @media (min-width: 768px) { .combo-grid { grid-template-columns: repeat(3, 1fr); } }
+        
+        .combo-card { 
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; position: relative; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); cursor: pointer; 
+            
+            /* Trạng thái mặc định: Ẩn và nằm thấp xuống sâu hơn (60px) */
+            opacity: 0; 
+            transform: translateY(60px) scale(0.95); 
+            transition: transform 0.2s, box-shadow 0.2s; /* Chỉ transition hover */
+            display: none; /* Ẩn khỏi layout */
         }
         
+        .combo-card.show-anim {
+            display: block;
+            /* Animation custom: Rõ ràng, dứt khoát */
+            animation: fadeInUpCustom 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes fadeInUpCustom {
+            0% {
+                opacity: 0;
+                transform: translateY(60px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
         .combo-card.hidden { display: none; } 
-        
         .combo-card:active { transform: scale(0.98); }
         .combo-card.selected { border: 2px solid var(--primary); background: #fffbf2; }
-
         .card-qty-badge { position: absolute; top: 8px; right: 8px; background: var(--primary); color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 0.85rem; font-weight: 800; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 5; }
         .card-qty-badge.show { display: flex; }
-
         .combo-img-wrap { width: 100%; padding-top: 60%; position: relative; background: #f1f5f9; }
         .combo-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
         .combo-info-card { padding: 12px; }
         .combo-title { font-weight: 800; font-size: 0.95rem; color: var(--dark); margin-bottom: 4px; height: 2.6em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .combo-price-tag { color: var(--primary-dark); font-weight: 800; font-size: 1rem; }
-
         .btn-fake-add { margin-top: 8px; width: 100%; padding: 8px; background: #f8fafc; color: var(--primary); border: 1px solid var(--primary); border-radius: 6px; font-weight: 700; font-size: 0.9rem; text-align: center; cursor: pointer; transition: 0.2s; }
         .btn-fake-add.added { background: var(--primary); color: #fff; border-color: var(--primary); }
 
@@ -207,7 +214,6 @@
         .cart-summary { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; }
         .summary-label { font-weight: 700; font-size: 1.1rem; color: var(--dark); }
         .summary-total { font-weight: 800; font-size: 1.4rem; color: var(--primary); }
-        
         .btn-confirm-order { width: 100%; padding: 15px; background: linear-gradient(to right, #fea116, #f59e0b); color: #fff; border: none; border-radius: 50px; font-weight: 800; font-size: 1.1rem; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 20px rgba(254, 161, 22, 0.4); transition: transform 0.2s; }
         .btn-confirm-order:disabled { background: #cbd5e1; cursor: not-allowed; box-shadow: none; }
         .btn-confirm-order:active { transform: scale(0.98); }
@@ -215,6 +221,18 @@
         .flying-img { position: fixed; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); pointer-events: none; transition: all 0.8s cubic-bezier(0.2, 1, 0.2, 1); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .detail-img-wrap { position: relative; height: 180px; }
         
+        /* CUSTOM WARNING MODAL */
+        .custom-warning-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); z-index: 4000; display: none; align-items: center; justify-content: center; }
+        .custom-warning-modal.show { display: flex; }
+        .warning-box { background: var(--white); border-radius: 16px; width: 85%; max-width: 380px; text-align: center; padding: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .warning-icon { font-size: 3rem; color: #f59e0b; margin-bottom: 15px; }
+        .warning-title { font-size: 1.2rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
+        .warning-content { font-size: 0.95rem; color: #64748b; line-height: 1.5; margin-bottom: 20px; }
+        .warning-btn { background: var(--primary); color: white; border: none; padding: 10px 30px; border-radius: 30px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 5px 15px rgba(254, 161, 22, 0.3); transition: all 0.2s; }
+        .warning-btn:active { transform: scale(0.95); }
+        @keyframes bounceIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Custom Confirm Modal */
         .custom-confirm-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 3000; display: none; align-items: center; justify-content: center; }
         .custom-confirm-modal.show { display: flex; }
         .confirm-box { background: var(--white); border-radius: var(--radius); width: 90%; max-width: 350px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); overflow: hidden; animation: zoomIn 0.2s ease-out; }
@@ -250,18 +268,34 @@
                             <ul>@foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach</ul>
                         </div>
                     @endif
+                    
+                    @if (session('error'))
+                        <div class="alert-error" style="background: #fff3cd; border-color: #ffeeba; color: #856404;">
+                            <strong><i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}</strong>
+                        </div>
+                    @endif
 
                     <div class="section-label"><i class="fa-solid fa-user-group"></i> Thông Tin Khách Hàng</div>
                     @if($datBan && $datBan->ten_khach && $datBan->ten_khach !== 'Khách Vãng Lai')
-                        <div style="background: #fffbf0; border: 1px solid #ffeeba; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
-                            <strong>Khách:</strong> {{ $datBan->ten_khach }} - <strong>SĐT:</strong> {{ $datBan->sdt_khach }}
-                            <br><small>Đã đặt: {{ $datBan->nguoi_lon }} Người lớn, {{ $datBan->tre_em }} Trẻ em</small>
+                        {{-- BLOCK ĐÃ CẢI TIẾN --}}
+                        <div class="customer-info-card">
+                            <div class="main-details">
+                                <div><strong>Khách:</strong> {{ $datBan->ten_khach }}</div>
+                                <div><strong>SĐT:</strong> {{ $datBan->sdt_khach }}</div>
+                            </div>
+                            <small>
+                                Đã đặt: 
+                                <span id="display-nguoi-lon" class="highlight-count">{{ $datBan->nguoi_lon }}</span> Người lớn, 
+                                <span id="display-tre-em" class="highlight-count">{{ $datBan->tre_em }}</span> Trẻ em
+                            </small>
+
                             <input type="hidden" name="ten_khach" value="{{ $datBan->ten_khach }}">
                             <input type="hidden" name="sdt_khach" value="{{ $datBan->sdt_khach }}">
-                            <input type="hidden" name="nguoi_lon" value="{{ $datBan->nguoi_lon }}">
-                            <input type="hidden" name="tre_em" value="{{ $datBan->tre_em }}">
+                            <input type="hidden" name="nguoi_lon" id="input-nguoi-lon" value="{{ $datBan->nguoi_lon }}">
+                            <input type="hidden" name="tre_em" id="input-tre-em" value="{{ $datBan->tre_em }}">
                         </div>
                     @else
+                        {{-- BLOCK NHẬP TAY --}}
                         <div class="input-grid">
                             <div class="form-group">
                                 <label>Họ Tên (*)</label>
@@ -273,41 +307,31 @@
                             </div>
                             <div class="form-group">
                                 <label>Người Lớn (*)</label>
-                                <input type="number" name="nguoi_lon" class="form-control" min="1" value="{{ old('nguoi_lon', 1) }}" required>
+                                <input type="number" name="nguoi_lon" id="input-nguoi-lon" class="form-control" min="1" value="{{ old('nguoi_lon', 1) }}" required>
                             </div>
                             <div class="form-group">
                                 <label>Trẻ Em</label>
-                                <input type="number" name="tre_em" class="form-control" min="0" value="{{ old('tre_em', 0) }}">
+                                <input type="number" name="tre_em" id="input-tre-em" class="form-control" min="0" value="{{ old('tre_em', 0) }}">
                             </div>
                         </div>
                     @endif
 
                     <div class="section-label" style="margin-top: 25px;"><i class="fa-solid fa-book-open"></i> Chọn Gói Buffet</div>
                     
-                    {{-- 2. CẤU TRÚC NAV --}}
+                    {{-- NAV CHỌN GIÁ --}}
                     <div class="category-nav-wrapper" id="categoryNavWrapper">
                         <div class="category-nav" id="categoryScrollBox">
-                            <div class="cat-item" data-filter-category="199k" onclick="filterCombos('199k', this)">
-                                Combo 199K <span class="reset-icon"></span>
-                            </div>
-                            <div class="cat-item" data-filter-category="299k" onclick="filterCombos('299k', this)">
-                                Combo 299K <span class="reset-icon"></span>
-                            </div>
-                            <div class="cat-item" data-filter-category="399k" onclick="filterCombos('399k', this)">
-                                Combo 399K <span class="reset-icon"></span>
-                            </div>
-                            <div class="cat-item" data-filter-category="499k" onclick="filterCombos('499k', this)">
-                                Combo 499K <span class="reset-icon"></span>
-                            </div>
-                            <div class="cat-item" data-filter-category="99k" onclick="filterCombos('99k', this)">
-                                Combo 99K <span class="reset-icon"></span>
-                            </div>
+                            @php $categories = $combos->pluck('loai_combo')->unique(); @endphp
+                            @foreach ($categories as $cat)
+                                <div class="cat-item" data-filter-category="{{ $cat }}" onclick="filterCombos('{{ $cat }}', this)">
+                                    Combo {{ strtoupper($cat) }} <span class="reset-icon"></span>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
 
                     <div class="combo-grid">
                         @foreach ($combos as $index => $combo)
-                            {{-- Mặc định ẩn --}}
                             <div class="combo-card hidden" 
                                 id="card-{{ $combo->id }}" 
                                 data-category="{{ $combo->loai_combo ?? 'khac' }}" 
@@ -332,6 +356,7 @@
                             <input type="hidden" name="combos[{{ $index }}][id]" id="input-id-{{ $combo->id }}" value="{{ $combo->id }}" disabled>
                             <input type="hidden" name="combos[{{ $index }}][so_luong]" id="input-qty-{{ $combo->id }}" value="0" disabled>
 
+                            {{-- MODAL CHI TIẾT --}}
                             <div class="modal-overlay" id="detail-modal-{{ $combo->id }}">
                                 <div class="modal-box" onclick="event.stopPropagation()">
                                     <div class="detail-img-wrap">
@@ -390,14 +415,23 @@
                 </div>
             </div>
             
+            {{-- WARNING MODAL --}}
+            <div id="custom-warning" class="custom-warning-modal" onclick="closeWarning()">
+                <div class="warning-box" onclick="event.stopPropagation()">
+                    <div class="warning-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="warning-title">Chưa Đủ Số Lượng!</div>
+                    <div class="warning-content" id="warning-message">Nội dung thông báo lỗi...</div>
+                    <button type="button" class="warning-btn" onclick="closeWarning()">Đã Hiểu</button>
+                </div>
+            </div>
+
             {{-- CUSTOM CONFIRM MODAL --}}
             <div id="custom-confirm" class="custom-confirm-modal" onclick="closeCustomConfirm()">
                 <div class="confirm-box" onclick="event.stopPropagation()">
                     <div class="confirm-header">
                         <i class="fa-solid fa-triangle-exclamation" style="color:var(--primary);"></i> Xác Nhận Thao Tác
                     </div>
-                    <div class="confirm-body" id="confirm-message">
-                        </div>
+                    <div class="confirm-body" id="confirm-message"></div>
                     <div class="confirm-footer">
                         <button type="button" class="confirm-btn confirm-btn-cancel" onclick="resolveCustomConfirm(false)">Hủy</button>
                         <button type="button" class="confirm-btn confirm-btn-ok" onclick="resolveCustomConfirm(true)">Đồng Ý</button>
@@ -425,7 +459,16 @@
     };
     const formatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
     
-    // --- CUSTOM CONFIRM HANDLERS ---
+    // --- WARNING HANDLER ---
+    function showCustomWarning(message) {
+        document.getElementById('warning-message').innerHTML = message;
+        document.getElementById('custom-warning').classList.add('show');
+    }
+    function closeWarning() {
+        document.getElementById('custom-warning').classList.remove('show');
+    }
+
+    // --- CONFIRM HANDLERS ---
     function customConfirm(message) {
         return new Promise((resolve) => {
             document.getElementById('confirm-message').innerHTML = message;
@@ -442,157 +485,97 @@
     // --- LOGIC CHÍNH ---
     async function handleActivePillClick(category, element) {
         const currentTotal = Object.values(combosInCart).reduce((sum, qty) => sum + qty, 0);
-        
-        // NẾU CÓ MÓN -> HỎI XÓA
         if (currentTotal > 0) {
             const message = `Bạn có chắc chắn muốn xóa toàn bộ <strong>Combo ${category}</strong> đã chọn và trở về màn hình lựa chọn mức giá không?`;
             const result = await customConfirm(message);
             if (result) resetAllCombosInCart();
             return;
         }
-        
-        // NẾU CHƯA CÓ MÓN -> TỰ ĐỘNG RESET VỀ BAN ĐẦU
         resetAllCombosInCart();
     }
     
     function resetAllCombosInCart() {
         for (let id in comboData) updateSystem(id, 0);
-        unlockMenu(); // Mở lại menu khi xóa hết
+        unlockMenu(); 
         selectedCategory = null;
     }
 
+    // --- [UPDATE] Logic Filter & Animation Staggering ---
     function filterCombos(category, element) {
+        // 1. Nếu click vào nút đang active -> hỏi reset
         if (element.classList.contains('active')) {
-             handleActivePillClick(category, element);
-             return;
+              handleActivePillClick(category, element);
+              return;
         }
 
-        // Reset active cũ
-        document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
-        
-        // Chặn nếu đang chọn combo khác
+        // 2. Nếu đã chọn category khác mà chưa xóa -> cảnh báo
         if (selectedCategory && category !== selectedCategory) {
-            alert(`Đã chọn Combo ${selectedCategory}. Vui lòng xóa hết Combo đã chọn để chuyển sang mức giá khác.`);
-            document.querySelector('.cat-item[data-filter-category="' + selectedCategory + '"]').classList.add('active');
+            showCustomWarning(`Đã chọn Combo ${selectedCategory}. Vui lòng xóa hết Combo đã chọn để chuyển sang mức giá khác.`);
             return;
         }
 
-        // Active nút mới
+        // 3. UI Buttons: Compact nút active
+        document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
+        selectedCategory = category;
+        lockMenu(selectedCategory);
 
-        setTimeout(() => {
-            selectedCategory = category;
-            lockMenu(selectedCategory); 
-        }, 50);
-
-        // --- NEW: LOGIC ANIMATION BAY RA (FLY OUT) ---
+        // 4. Animation Staggering (Hiệu ứng dây chuyền)
         const allCards = document.querySelectorAll('.combo-card');
-        const activeCards = [];
-        const btnRect = element.getBoundingClientRect(); // Lấy tọa độ nút bấm
-
-        // 1. Chuẩn bị: Ẩn tất cả card không khớp, lấy card khớp
+        
+        // Reset hết về ẩn
         allCards.forEach(card => {
-            const cardCat = card.getAttribute('data-category');
-            if (category === cardCat) {
-                card.classList.remove('hidden'); // Hiện ra DOM để tính toán
-                card.style.transition = 'none'; // Tắt animation để set vị trí đầu
-                
-                // Đặt vị trí ban đầu: Nằm ngay tại vị trí nút bấm
-                const cardRect = card.getBoundingClientRect();
-                const deltaX = btnRect.left + (btnRect.width/2) - (cardRect.left + (cardRect.width/2));
-                const deltaY = btnRect.top + (btnRect.height/2) - (cardRect.top + (cardRect.height/2));
-                
-                card.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0)`;
-                card.style.opacity = '0';
-                
-                activeCards.push(card);
-            } else {
-                card.classList.add('hidden');
-            }
+            card.classList.add('hidden');
+            card.classList.remove('show-anim');
+            card.style.animationDelay = '0s'; 
+            card.style.opacity = '0'; 
         });
 
-        // 2. Kích hoạt Animation: Bay về vị trí lưới
-        requestAnimationFrame(() => {
-            // Force reflow
-            document.body.offsetHeight; 
+        // Lọc card cần hiện
+        const activeCards = Array.from(allCards).filter(card => card.getAttribute('data-category') === category);
+        
+        // Gán delay theo thứ tự
+        activeCards.forEach((card, index) => {
+            card.classList.remove('hidden');
+            // Trigger reflow để restart animation
+            void card.offsetWidth; 
             
-            activeCards.forEach((card, i) => {
-                // Thêm delay nhẹ cho từng thẻ để tạo hiệu ứng lần lượt
-                setTimeout(() => {
-                    card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'; // Hiệu ứng nảy (spring)
-                    card.style.transform = 'translate(0, 0) scale(1)';
-                    card.style.opacity = '1';
-                }, i * 50);
-            });
+            // Mỗi card trễ nhau 0.1s -> tạo hiệu ứng sóng
+            const delay = index * 0.1; 
+            card.style.animationDelay = `${delay}s`; 
+            card.classList.add('show-anim');
         });
     }
     
     function lockMenu(category) {
         document.querySelectorAll('.cat-item').forEach(el => {
             const filterCat = el.getAttribute('data-filter-category');
-            if (filterCat !== category) {
-                el.classList.add('hidden-filter');
-            } else {
-                el.classList.remove('hidden-filter');
-            }
+            if (filterCat !== category) el.classList.add('hidden-filter');
+            else el.classList.remove('hidden-filter');
         });
     }
 
     function unlockMenu() {
-        // Hiện lại tất cả nút
-        document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('hidden-filter'));
-        
-        // --- NEW: LOGIC ANIMATION BAY VỀ (FLY BACK) ---
-        // Tìm nút đang active (hoặc vừa active) để làm điểm đích
-        let targetBtn = document.querySelector(`.cat-item[data-filter-category="${selectedCategory}"]`);
-        
-        // Nếu không tìm thấy (trường hợp hiếm), lấy đại nút đầu tiên
-        if (!targetBtn) targetBtn = document.querySelector('.cat-item'); 
-        
-        const btnRect = targetBtn.getBoundingClientRect();
-        const visibleCards = [];
-
-        // Lấy tất cả card đang hiện
-        document.querySelectorAll('.combo-card:not(.hidden)').forEach(card => {
-            visibleCards.push(card);
-        });
-
-        // Thực hiện bay về
-        visibleCards.forEach((card, i) => {
-             // Tính toán đích đến (là vị trí của nút giá)
-             const cardRect = card.getBoundingClientRect();
-             const deltaX = btnRect.left + (btnRect.width/2) - (cardRect.left + (cardRect.width/2));
-             const deltaY = btnRect.top + (btnRect.height/2) - (cardRect.top + (cardRect.height/2));
-
-             card.style.transition = 'all 0.5s ease-in';
-             card.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0)`;
-             card.style.opacity = '0';
-        });
-
-        // Sau khi bay xong thì mới ẩn display:none và reset style
-        setTimeout(() => {
-            visibleCards.forEach(card => {
-                card.classList.add('hidden');
-                card.style.transform = '';
-                card.style.opacity = '';
-                card.style.transition = '';
-            });
-        }, 500); // Khớp với thời gian transition ở trên
-
-        
-        // Reset trạng thái pill
+        // Reset Nav
         document.querySelectorAll('.cat-item').forEach(el => {
+            el.classList.remove('hidden-filter');
             el.classList.remove('active');
             el.classList.remove('is-removable');
             const resetIcon = el.querySelector('.reset-icon');
             if(resetIcon) resetIcon.innerHTML = '';
+        });
+
+        // Reset Cards
+        document.querySelectorAll('.combo-card').forEach(card => {
+            card.classList.add('hidden');
+            card.classList.remove('show-anim');
+            card.style.animationDelay = '0s';
         });
     }
 
     function updatePillState() {
         let currentTotal = 0;
         for (let id in combosInCart) currentTotal += combosInCart[id];
-        
         const activePill = document.querySelector('.cat-item.active');
         if (activePill) {
             const resetIcon = activePill.querySelector('.reset-icon');
@@ -654,18 +637,16 @@
         if(event) event.stopPropagation();
         const input = document.getElementById(`input-qty-${id}`);
         const currentQty = parseInt(input.value) || 0;
-        
         if (currentQty === 0) { 
             resetOtherCategories(id);
             selectedCategory = comboData[id].category;
             const filterEl = document.querySelector(`.cat-item[data-filter-category="${selectedCategory}"]`);
             if(filterEl) {
-                document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
-                filterEl.classList.add('active');
+                if(!filterEl.classList.contains('active')) {
+                   filterCombos(selectedCategory, filterEl);
+                }
             }
-            lockMenu(selectedCategory);
         }
-        
         let qty = currentQty + 1;
         updateSystem(id, qty);
         const btn = document.getElementById(`btn-add-${id}`);
@@ -756,25 +737,20 @@
     function updateCartItem(id, change) {
         const input = document.getElementById(`input-qty-${id}`);
         let qty = parseInt(input.value) || 0;
-        
-        // Nếu đang 0 mà bấm +, tự động chọn loại combo đó
         if (change > 0 && qty === 0) {
             resetOtherCategories(id);
             selectedCategory = comboData[id].category;
             const filterEl = document.querySelector(`.cat-item[data-filter-category="${selectedCategory}"]`);
             if(filterEl) {
-                document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
-                filterEl.classList.add('active');
+                if(!filterEl.classList.contains('active')) {
+                   filterCombos(selectedCategory, filterEl);
+                }
             }
-            lockMenu(selectedCategory);
         }
-        
         qty += change;
         if(qty < 0) qty = 0;
         updateSystem(id, qty);
         renderCartList();
-        
-        // Nếu giảm về 0 hết tất cả -> Reset về màn hình chọn giá
         let currentTotal = 0;
         for (let k in combosInCart) currentTotal += combosInCart[k];
         if (currentTotal === 0 && selectedCategory) {
@@ -784,9 +760,28 @@
 
     function validateForm() {
         const countBadge = document.getElementById('total-count-badge');
-        if(parseInt(countBadge.innerText) <= 0) { alert('Vui lòng chọn ít nhất 1 Combo để tiếp tục!'); return false; }
+        const currentCombo = parseInt(countBadge.innerText) || 0;
+        
+        if(currentCombo <= 0) { 
+            showCustomWarning('Vui lòng chọn ít nhất 1 Combo để tiếp tục!'); 
+            return false; 
+        }
+
         const nameInput = document.querySelector('input[name="ten_khach"]');
-        if(nameInput && nameInput.value.trim() === '') { alert('Vui lòng nhập tên khách hàng!'); nameInput.focus(); return false; }
+        if(nameInput && nameInput.value.trim() === '') { 
+            showCustomWarning('Vui lòng nhập tên khách hàng!'); 
+            return false; 
+        }
+
+        const nguoiLon = parseInt(document.getElementById('input-nguoi-lon').value) || 0;
+        const treEm = parseInt(document.getElementById('input-tre-em').value) || 0;
+        const tongNguoi = nguoiLon + treEm;
+
+        if (currentCombo < tongNguoi) {
+            showCustomWarning(`<strong>Tổng số khách: ${tongNguoi} người</strong><br>Đã chọn: ${currentCombo} suất Combo<br><br>Bạn cần chọn thêm ít nhất <strong style="color:#ef4444">${tongNguoi - currentCombo}</strong> suất nữa!`);
+            return false; 
+        }
+
         const btn = document.getElementById('btn-submit-all');
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
         btn.disabled = true;
@@ -794,6 +789,7 @@
     }
     
     document.addEventListener('DOMContentLoaded', function() {
+        // Khởi tạo trạng thái ban đầu: Ẩn tất cả combo
         document.querySelectorAll('.combo-card').forEach(card => card.classList.add('hidden'));
         document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
     });

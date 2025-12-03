@@ -30,11 +30,7 @@ use App\Http\Controllers\Shop\NhanVien\NhanVienOrderMonController;
 use App\Http\Controllers\Shop\Bep\BepController;
 use App\Http\Controllers\Shop\NhanVien\NVDatBanController;
 use App\Http\Controllers\Shop\NhanVien\ThanhToanController;
-
-
-// ===== PHẦN THÊM MỚI 1: KHAI BÁO CONTROLLER =====
 use App\Http\Controllers\Shop\Oderqr\OrderController;
-// ===============================================
 
 
 /*
@@ -46,14 +42,22 @@ use App\Http\Controllers\Shop\Oderqr\OrderController;
 // ==================== CLIENT SITE ====================
 Route::prefix('/')->group(function () {
 
-    // Trang chủ
-    Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::controller(HomeController::class)->group(function () {
+        Route::get('/', 'index')->name('home');              // Trang chủ
+        Route::get('/gioi-thieu', 'about')->name('about');   // About
+        Route::get('/dich-vu', 'service')->name('service');  // Service
+        Route::get('/thuc-don', 'menu')->name('menu');       // Menu
+        Route::get('/lien-he', 'contact')->name('contact');  // Contact
+        Route::get('/doi-ngu', 'team')->name('team');        // Team
+        Route::get('/danh-gia', 'testimonial')->name('testimonial'); 
+    });
 
-    // Combos
+    // ==== 2. COMBOS ====
     Route::get('/combos', [ComboClientController::class, 'index'])->name('combos.index');
     Route::get('/combos/{id}', [ComboClientController::class, 'show'])->name('combos.show');
 
-    // Booking: resource (trừ show)
+    // ==== 3. BOOKING ====
+    // Resource (trừ show)
     Route::resource('booking', BookingController::class)->except(['show']);
 
     // Trang đặt bàn thành công
@@ -62,20 +66,21 @@ Route::prefix('/')->group(function () {
     // AJAX: lấy bàn theo khu vực
     Route::get('booking/bans-by-khuvuc/{khu_vuc_id}', [BookingController::class, 'getBansByKhuVuc']);
 
-    // ==== OTP cho booking ====
+    // ==== 4. OTP CHO BOOKING ====
     Route::prefix('otp')->group(function () {
         Route::get('verify', [OtpController::class, 'showOtpForm'])->name('otp.form');
         Route::post('send', [OtpController::class, 'sendOtp'])->name('otp.send');
         Route::post('verify', [OtpController::class, 'verifyOtp'])->name('otp.verify');
     });
 
-    // ==== Chọn phương thức thanh toán sau khi xác thực OTP ====
+    // ==== 5. THANH TOÁN ====
+    // Chọn phương thức thanh toán sau khi xác thực OTP
     Route::get('booking/{booking_id}/payment-method', [BookingController::class, 'paymentMethod'])
         ->name('booking.payment_method');
 
-    // ==== Các phương thức thanh toán ====
+    // Các phương thức thanh toán
     Route::get('booking/{booking_id}/pay-cash', [BookingController::class, 'payCash'])->name('booking.pay_cash');
-    Route::get('booking/{booking_id}/pay-os', [BookingController::class, 'payOS'])->name('booking.pay_os'); // đúng với controller
+    Route::get('booking/{booking_id}/pay-os', [BookingController::class, 'payOS'])->name('booking.pay_os'); 
     Route::get('booking/{booking_id}/pay-vnpay', [BookingController::class, 'payVNPay'])->name('booking.pay_vnpay');
     Route::get('booking/{booking_id}/pay-vietqr', [BookingController::class, 'payVietQR'])->name('booking.pay_vietqr');
 

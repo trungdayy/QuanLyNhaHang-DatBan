@@ -14,12 +14,13 @@ class ComboBuffet extends Model
 
     protected $fillable = [
         'ten_combo',
+        'mo_ta',              // thêm dòng này
         'loai_combo',
         'gia_co_ban',
         'thoi_luong_phut',
         'thoi_gian_bat_dau',
         'thoi_gian_ket_thuc',
-        'anh', // ✅ THÊM DÒNG NÀY
+        'anh', // THÊM DÒNG NÀY
         'trang_thai',
     ];
 
