@@ -11,6 +11,7 @@ use App\Models\Voucher;
 use App\Models\BanAn;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class ThanhToanController extends Controller
 {
@@ -385,9 +386,17 @@ class ThanhToanController extends Controller
         // Cập nhật trạng thái đặt bàn
         $datBan->update(['trang_thai' => 'hoan_tat']);
 
-        // Cập nhật trạng thái bàn thành trống
+        // Cập nhật trạng thái bàn thành trống và tạo mới mã QR
         if ($datBan->banAn) {
-            $datBan->banAn->update(['trang_thai' => 'trong']);
+            $newUniqueCode = Str::random(12);
+            $baseUrl = config('app.url');
+            
+            // Tạo mã QR mới và đường dẫn QR mới
+            $datBan->banAn->update([
+                'trang_thai' => 'trong',
+                'ma_qr' => $newUniqueCode,
+                'duong_dan_qr' => $baseUrl . '/oderqr/menu/' . $newUniqueCode,
+            ]);
         }
 
         // Cập nhật trạng thái tất cả order
@@ -610,9 +619,17 @@ class ThanhToanController extends Controller
         // Cập nhật trạng thái đặt bàn
         $datBan->update(['trang_thai' => 'hoan_tat']);
 
-        // Cập nhật trạng thái bàn thành trống
+        // Cập nhật trạng thái bàn thành trống và tạo mới mã QR
         if ($datBan->banAn) {
-            $datBan->banAn->update(['trang_thai' => 'trong']);
+            $newUniqueCode = Str::random(12);
+            $baseUrl = config('app.url');
+            
+            // Tạo mã QR mới và đường dẫn QR mới
+            $datBan->banAn->update([
+                'trang_thai' => 'trong',
+                'ma_qr' => $newUniqueCode,
+                'duong_dan_qr' => $baseUrl . '/oderqr/menu/' . $newUniqueCode,
+            ]);
         }
 
         // Cập nhật trạng thái order
@@ -1136,9 +1153,17 @@ class ThanhToanController extends Controller
             // Cập nhật trạng thái đặt bàn
             $datBan->update(['trang_thai' => 'hoan_tat']);
 
-            // Cập nhật trạng thái bàn thành trống
+            // Cập nhật trạng thái bàn thành trống và tạo mới mã QR
             if ($datBan->banAn) {
-                $datBan->banAn->update(['trang_thai' => 'trong']);
+                $newUniqueCode = Str::random(12);
+                $baseUrl = config('app.url');
+                
+                // Tạo mã QR mới và đường dẫn QR mới
+                $datBan->banAn->update([
+                    'trang_thai' => 'trong',
+                    'ma_qr' => $newUniqueCode,
+                    'duong_dan_qr' => $baseUrl . '/oderqr/menu/' . $newUniqueCode,
+                ]);
             }
 
             // Cập nhật trạng thái tất cả order
