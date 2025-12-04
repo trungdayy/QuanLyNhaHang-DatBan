@@ -95,6 +95,7 @@ class ComboBuffetController extends Controller
 
         $request->validate([
             'ten_combo' => 'required|string|max:255',
+            'mo_ta' => 'nullable|string',   // thêm dòng này
             'loai_combo' => 'nullable|in:nguoi_lon,tre_em,vip,khuyen_mai',
             'gia_co_ban' => 'required|numeric|min:1',
             'thoi_luong_phut' => 'nullable|integer|min:15',

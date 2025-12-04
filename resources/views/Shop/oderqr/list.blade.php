@@ -20,7 +20,7 @@
                     <select name="ban" class="form-select form-select-sm" onchange="this.form.submit()">
                         @foreach($banAns as $ban)
                             <option value="{{ $ban->id }}" {{ $selectedBan && $ban->id == $selectedBan->id ? 'selected' : '' }}>
-                                Bàn {{ $ban->so_ban }}
+                                 {{ $ban->so_ban }}
                             </option>
                         @endforeach
                     </select>
@@ -31,14 +31,13 @@
                         $finalUrl = url('/oderqr/menu/' . $selectedBan->ma_qr);
                     @endphp
 
-                    <h4 class="text-primary mt-4 mb-3">Bàn {{ $selectedBan->so_ban }}</h4>
+                    <h4 class="text-primary mt-4 mb-3"> {{ $selectedBan->so_ban }}</h4>
 
                     {{-- QR code lớn --}}
                     <div class="qr-image mb-3">
                         {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(350)->generate($finalUrl) !!}
                     </div>
 
-                    <p class="text-muted mb-1">ID Bàn: {{ $selectedBan->id }}</p>
 
                     <a href="{{ $finalUrl }}" target="_blank" class="small text-info" style="word-break: break-all;">
                         {{ $finalUrl }}

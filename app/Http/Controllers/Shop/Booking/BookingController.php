@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Shop\Booking;
 
 use App\Http\Controllers\Controller;
 use App\Models\DatBan;
-use App\Models\DatBanCombo; // Import model mới
+use App\Models\ChiTietDatBan; // Import model mới
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB; // Import DB để dùng Transaction
 use Illuminate\Support\Facades\Log; // Import Log facade
@@ -87,7 +87,7 @@ class BookingController extends Controller
 
                             // Đảm bảo ID tồn tại mới lưu
                             if ($realComboId) {
-                                DatBanCombo::create([
+                                ChiTietDatBan::create([
                                     'dat_ban_id' => $datBan->id,
                                     'combo_id'   => $realComboId, // ID này buộc phải có trong bảng combo_buffet
                                     'so_luong'   => $item['quantity'] ?? 1,
@@ -148,7 +148,7 @@ class BookingController extends Controller
 
                 // BƯỚC 1: Xóa sạch chi tiết cũ của đơn này trước
                 // (Để đảm bảo nếu khách xóa bớt món trên giao diện thì trong DB cũng mất)
-                DatBanCombo::where('dat_ban_id', $datBan->id)->delete();
+                ChiTietDatBan::where('dat_ban_id', $datBan->id)->delete();
 
                 // BƯỚC 2: Thêm lại danh sách mới (nếu có)
                 $cartItems = json_decode($request->cart_data, true);
@@ -161,7 +161,7 @@ class BookingController extends Controller
                             // Lấy ID chuẩn (Xóa chữ 'combo_' đi)
                             $realComboId = str_replace('combo_', '', $item['key']);
 
-                            DatBanCombo::create([
+                            ChiTietDatBan::create([
                                 'dat_ban_id' => $datBan->id,
                                 'combo_id'   => $realComboId,
                                 'so_luong'   => $item['quantity'] ?? 1,

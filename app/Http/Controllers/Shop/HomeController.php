@@ -9,46 +9,103 @@ use App\Models\MonAn;
 use App\Models\BanAn;
 use App\Models\KhuVuc;
 use Illuminate\Http\Request;
+use App\Models\DanhGia;
 
 class HomeController extends Controller
 {
+    /**
+     * 1. TRANG CHỦ (HOMEPAGE)
+     * Hiển thị Slider, Món mới, Combo và Modal đặt bàn.
+     */
     public function index()
     {
-        // 1. Lấy danh sách món ăn MỚI NHẤT (để chạy Slider "Món mới ra lò")
-        // Phần này thêm vào để phục vụ giao diện Quán Nhậu Tự Do
+        // Lấy 10 món ăn mới nhất
         $newDishes = MonAn::where('trang_thai', 'con')
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
 
-        // MỚI (Thêm with('monAn') để lấy danh sách món):
-        $combos = ComboBuffet::with('monAn') // <--- QUAN TRỌNG NHẤT
-                             ->where('trang_thai', 'dang_ban')
-                             ->orderByDesc('id')
-                             ->limit(6)
-                             ->get();
-
-        // 3. Lấy danh sách khu vực (Để hiển thị phần Hệ thống cơ sở)
+        // Code mới đã sửa
+        $combos = ComboBuffet::with('monAn') // <--- Sửa ở đây
+            ->where('trang_thai', 'dang_ban')
+            ->orderBy('gia_co_ban', 'asc')
+            ->get();
+        // Lấy danh sách khu vực
         $khuVucs = KhuVuc::all();
 
-        // 4. Dữ liệu cho form đặt bàn (Popup)
+        // Lấy danh sách bàn khả dụng
         $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
         
-        // 5. (Tùy chọn) Lấy danh mục nếu bạn muốn hiển thị trang thực đơn riêng
+        // Lấy danh mục hiển thị
         $danhMucs = DanhMuc::where('hien_thi', 1)->get();
 
+        // [MỚI] Lấy danh sách đánh giá để hiện lên Carousel ở trang chủ
+        // Chỉ lấy những đánh giá đã duyệt (hien_thi), lấy mới nhất, giới hạn khoảng 6-10 cái
+        $danhGias = DanhGia::where('trang_thai', 'hien_thi')
+                            ->orderBy('created_at', 'desc')
+                            ->take(10)
+                            ->get();
+
         return view('restaurants.home', compact(
-            'newDishes', // Biến mới thêm
+            'newDishes', 
             'combos', 
             'khuVucs', 
             'banAns',
-            'danhMucs'
+            'danhMucs',
+            'danhGias' // <--- Đã thêm biến này vào view
         ));
     }
+
+    /* ==========================================================
+       CÁC TRANG NỘI DUNG (PAGES)
+    ========================================================== */
+
+    public function about()
+    {
+        return view('restaurants.about');
+    }
+
+    public function service()
+    {
+        return view('restaurants.service');
+    }
+
+    public function team()
+    {
+        return view('restaurants.team');
+    }
+
+    public function menu()
+    {
+        $danhMucs = DanhMuc::where('hien_thi', 1)->with('monAn')->get();
+        return view('restaurants.menu', compact('danhMucs'));
+    }
+
+    /* ==========================================================
+       CHỨC NĂNG LIÊN HỆ (CONTACT)
+    ========================================================== */
+
+    public function contact()
+    {
+        return view('restaurants.contact');
+    }
     
-    // Hàm xử lý form liên hệ (để tránh lỗi route)
-    public function contact(Request $request)
+    public function sendContact(Request $request)
     {
         return back()->with('success', 'Cảm ơn bạn đã liên hệ!');
+    }
+
+    /* ==========================================================
+       CHỨC NĂNG ĐÁNH GIÁ (TESTIMONIAL) - Trang riêng
+    ========================================================== */
+
+    public function testimonial()
+    {
+        // Trang này dùng phân trang (paginate)
+        $danhGias = DanhGia::where('trang_thai', 'hien_thi')
+                            ->orderBy('created_at', 'desc')
+                            ->paginate(9);
+
+        return view('restaurants.testimonial', compact('danhGias'));
     }
 }

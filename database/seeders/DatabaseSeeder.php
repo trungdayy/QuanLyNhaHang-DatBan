@@ -16,19 +16,20 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 $this->call([
-    KhuVucSeeder::class,
-    BanAnSeeder::class,
-    DanhMucMonSeeder::class,
-    MonAnSeeder::class,
-    ComboBuffetSeeder::class,
-    MonTrongComboSeeder::class,
-    DatBanSeeder::class,
-    NhanVienSeeder::class,
-    OrderMonSeeder::class,
+    // KhuVucSeeder::class,
+    // BanAnSeeder::class,
+    // DanhMucMonSeeder::class,
+    // MonAnSeeder::class,
+    // ComboBuffetSeeder::class,
+    // MonTrongComboSeeder::class,
+    // DatBanSeeder::class,
+    // NhanVienSeeder::class,
+    // OrderMonSeeder::class,
 
-    VoucherSeeder::class,    
-    ChiTietOrderSeeder::class,
-    HoaDonSeeder::class,
+    // VoucherSeeder::class,    
+    // ChiTietOrderSeeder::class,
+    // HoaDonSeeder::class,
+    DanhGiaSeeder::class,
 ]);
 
     }

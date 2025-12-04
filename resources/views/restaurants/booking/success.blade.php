@@ -1,4 +1,4 @@
-@extends('layouts.restaurants.layout-shop')
+@extends('layouts.page')
 @section('title', 'Đặt Bàn Thành Công')
 @section('content')
 

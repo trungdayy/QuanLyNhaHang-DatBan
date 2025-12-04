@@ -14,11 +14,12 @@ use App\Models\ChiTietOrder;
 use App\Models\MonAn;
 use App\Models\ComboBuffet;
 use App\Models\BanAn;
-use App\Models\ChiTietDatBan; // [MỚI] Model bảng trung gian
+use App\Models\ChiTietDatBan;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB; // [MỚI] Dùng Transaction
+use Illuminate\Support\Facades\DB;
+
 
 class OrderController extends Controller
 {
@@ -43,7 +44,7 @@ class OrderController extends Controller
             ->where('trang_thai', 'khach_da_den')
             ->first();
 
-        // [SỬA] Kiểm tra nếu bàn này đã chọn combo rồi (check trong bảng chi tiết)
+        // Kiểm tra nếu bàn này đã chọn combo rồi
         if ($datBan && $datBan->chiTietDatBan()->exists()) {
             return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr])
                 ->with('info', 'Bàn này đã chọn combo. Vui lòng tiếp tục gọi món.');
@@ -58,19 +59,20 @@ class OrderController extends Controller
         ]);
     }
 
-    // [QUAN TRỌNG] Hàm xử lý bắt đầu gọi món với nhiều Combo
+    // Hàm xử lý bắt đầu gọi món với nhiều Combo
+    // ... trong class OrderController
+    // Hàm xử lý bắt đầu gọi món với nhiều Combo (ĐÃ BỎ AUTO ORDER)
     public function startOrder(Request $request)
     {
         // 1. Validate dữ liệu
-        // Input 'combos' là mảng: [{id: 1, so_luong: 2}, ...]
         $validator = Validator::make($request->all(), [
             'ma_qr' => 'required|exists:ban_an,ma_qr',
             'dat_ban_id' => 'nullable|exists:dat_ban,id',
-            
-            'combos' => 'required|array|min:1', 
+            'combos' => 'required|array|min:1',
             'combos.*.id' => 'required|exists:combo_buffet,id',
             'combos.*.so_luong' => 'required|integer|min:1',
-
+            'nguoi_lon' => 'required|integer|min:1',
+            'tre_em' => 'nullable|integer|min:0',
             'ten_khach' => 'nullable|string|max:255',
             'sdt_khach' => 'nullable|string|max:20',
         ]);
@@ -88,22 +90,46 @@ class OrderController extends Controller
         $inputCombos = $request->input('combos');
         $tenKhachInput = $request->input('ten_khach') ?: 'Khách Vãng Lai';
         $sdtKhachInput = $request->input('sdt_khach') ?: '0';
+        $nguoiLonInput = (int)$request->input('nguoi_lon', 1);
+        $treEmInput = (int)$request->input('tre_em', 0);
+
+        // =================================================================
+        // 🔥 [LOGIC MỚI] KIỂM TRA SỐ LƯỢNG COMBO >= TỔNG SỐ NGƯỜI
+        // =================================================================
+        $tongNguoi = $nguoiLonInput + $treEmInput;
+        $tongComboDaChon = 0;
+
+        foreach ($inputCombos as $c) {
+            $tongComboDaChon += (int)$c['so_luong'];
+        }
+
+        if ($tongComboDaChon < $tongNguoi) {
+            // Trả về lỗi và giữ lại input cũ
+            return back()
+                ->with('error', "Lỗi số lượng: Tổng số khách là $tongNguoi người, nhưng bạn chỉ chọn $tongComboDaChon suất combo. Vui lòng chọn đủ số lượng!")
+                ->withInput();
+        }
+        // =================================================================
 
         $nowObj = Carbon::now('Asia/Ho_Chi_Minh');
         $nowString = $nowObj->toDateTimeString();
 
-        // Tính tổng số khách và thời lượng lớn nhất
-        $tongSoKhach = 0;
         $maxThoiLuong = 0;
+        $tongTienComboBanDau = 0;
 
         foreach ($inputCombos as $c) {
-            $tongSoKhach += $c['so_luong'];
             $comboInfo = ComboBuffet::find($c['id']);
-            if ($comboInfo && $comboInfo->thoi_luong_phut > $maxThoiLuong) {
-                $maxThoiLuong = $comboInfo->thoi_luong_phut;
+            if ($comboInfo) {
+                if ($comboInfo->thoi_luong_phut > $maxThoiLuong) {
+                    $maxThoiLuong = $comboInfo->thoi_luong_phut;
+                }
+                
+                // Lấy giá từ gia_co_ban
+                $giaVe = $comboInfo->gia_co_ban ?? 0;
+                $tongTienComboBanDau += ($giaVe * $c['so_luong']);
             }
         }
-        if ($maxThoiLuong == 0) $maxThoiLuong = 120; // Mặc định
+        if ($maxThoiLuong == 0) $maxThoiLuong = 120; 
 
         // --- BẮT ĐẦU TRANSACTION ---
         DB::beginTransaction();
@@ -123,24 +149,22 @@ class OrderController extends Controller
             }
 
             if ($datBan) {
-                // [CASE A] CẬP NHẬT
                 $datBan->update([
-                    'nguoi_lon' => $tongSoKhach, // Cập nhật tổng khách
+                    'nguoi_lon' => $nguoiLonInput,
+                    'tre_em' => $treEmInput,
                     'thoi_luong_phut' => $maxThoiLuong,
                     'ten_khach' => $request->filled('ten_khach') ? $tenKhachInput : $datBan->ten_khach,
                     'sdt_khach' => $request->filled('sdt_khach') ? $sdtKhachInput : $datBan->sdt_khach,
                     'updated_at' => $nowString,
                 ]);
             } else {
-                // [CASE B] TẠO MỚI
                 $datBan = DatBan::create([
                     'ma_dat_ban' => 'QR' . $nowObj->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2))),
                     'ten_khach' => $tenKhachInput,
                     'sdt_khach' => $sdtKhachInput,
-                    'nguoi_lon' => $tongSoKhach,
-                    'tre_em' => 0,
+                    'nguoi_lon' => $nguoiLonInput,
+                    'tre_em' => $treEmInput,
                     'ban_id' => $banId,
-                    // 'combo_id' => null, // Đã bỏ cột này
                     'gio_den' => $nowString,
                     'thoi_luong_phut' => $maxThoiLuong,
                     'trang_thai' => 'khach_da_den',
@@ -148,78 +172,41 @@ class OrderController extends Controller
                     'updated_at' => $nowString,
                 ]);
             }
-            
+
             $ban->update(['trang_thai' => 'dang_phuc_vu']);
 
-            // 4. LƯU CHI TIẾT COMBO (Xóa cũ tạo mới để tránh trùng)
+            // 4. LƯU CHI TIẾT COMBO (Vé Buffet)
             ChiTietDatBan::where('dat_ban_id', $datBan->id)->delete();
-
             foreach ($inputCombos as $item) {
-                $comboModel = ComboBuffet::find($item['id']);
                 ChiTietDatBan::create([
                     'dat_ban_id' => $datBan->id,
                     'combo_id' => $item['id'],
                     'so_luong' => $item['so_luong'],
-
                 ]);
             }
 
-            // 5. TẠO ORDER VÀ ĐẨY MÓN TỰ ĐỘNG
+            // 5. TẠO ORDER (HÓA ĐƠN TẠM)
             $orderMon = OrderMon::firstOrCreate(
                 ['dat_ban_id' => $datBan->id, 'trang_thai' => 'dang_xu_li'],
-                ['ban_id' => $datBan->ban_id, 'tong_mon' => 0, 'tong_tien' => 0]
+                [
+                    'ban_id' => $datBan->ban_id, 
+                    'tong_mon' => 0, 
+                    'tong_tien' => $tongTienComboBanDau, 
+                    'created_at' => $nowString,
+                    'updated_at' => $nowString
+                ]
             );
-
-            // Kiểm tra xem đã lên món lần nào chưa
-            $hasItems = ChiTietOrder::where('order_id', $orderMon->id)
-                ->where('loai_mon', 'combo')
-                ->exists();
-
-            if (!$hasItems) {
-                $itemsToInsert = [];
-                // Tổng số lượng suất ăn để nhân món (Logic cũ của bạn là nhân theo tổng người)
-                // Hoặc Logic mới: Món của combo nào thì nhân theo số lượng combo đó?
-                // Ở đây mình giữ Logic cũ: Tổng người lớn + trẻ em = Số lượng món được lên
-                $tongNguoiAn = $datBan->nguoi_lon + $datBan->tre_em;
-
-                // Lấy tất cả món từ các combo đã chọn
-                foreach ($inputCombos as $c) {
-                    $monTrongCombo = MonTrongCombo::where('combo_id', $c['id'])->get();
-                    
-                    foreach ($monTrongCombo as $mon) {
-                        // Kiểm tra trùng: Nếu món này đã được thêm vào mảng itemsToInsert rồi thì thôi
-                        // (Tránh trường hợp 2 combo có cùng 1 món, khách ăn bị double món quá nhiều)
-                        $alreadyAdded = false;
-                        foreach ($itemsToInsert as $inserted) {
-                            if ($inserted['mon_an_id'] == $mon->mon_an_id) {
-                                $alreadyAdded = true; break;
-                            }
-                        }
-                        if ($alreadyAdded) continue;
-
-                        $monAn = MonAn::find($mon->mon_an_id);
-                        if ($monAn && $monAn->trang_thai === 'con') {
-                            $itemsToInsert[] = [
-                                'order_id' => $orderMon->id,
-                                'mon_an_id' => $mon->mon_an_id,
-                                'so_luong' => $tongNguoiAn, // Mỗi người 1 phần
-                                'loai_mon' => 'combo',
-                                'trang_thai' => 'cho_bep',
-                                'ghi_chu' => null,
-                                'created_at' => $nowString,
-                                'updated_at' => $nowString,
-                            ];
-                        }
-                    }
-                }
-                if (!empty($itemsToInsert)) ChiTietOrder::insert($itemsToInsert);
+            
+            if (!$orderMon->wasRecentlyCreated) {
+                $orderMon->tong_tien = $tongTienComboBanDau; 
+                $orderMon->save();
             }
 
-            DB::commit(); // Lưu thành công
+            DB::commit();
             return redirect()->route('oderqr.menu', ['qrKey' => $ban->ma_qr]);
-
+            
         } catch (\Exception $e) {
-            DB::rollBack(); // Lỗi thì hoàn tác
+            DB::rollBack();
             return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage())->withInput();
         }
     }
@@ -234,7 +221,6 @@ class OrderController extends Controller
             ->where('trang_thai', 'khach_da_den')
             ->first();
 
-        // [SỬA] Check quan hệ chi tiết thay vì combo_id
         if (!$datBan || !$datBan->chiTietDatBan()->exists()) {
             return redirect()->route('oderqr.select_combo', ['qrKey' => $qrKey]);
         }
@@ -254,21 +240,45 @@ class OrderController extends Controller
 
         $datBan = DatBan::where('ban_id', $ban->id)
             ->where('trang_thai', 'khach_da_den')
-            ->with(['banAn', 'chiTietDatBan.combo']) // [MỚI] Eager load
+            ->with(['banAn', 'chiTietDatBan.combo'])
             ->first();
 
         if (!$datBan) return response()->json(['message' => 'Bàn này chưa sẵn sàng phục vụ.'], 404);
 
-        $thoiGianConLaiPhut = 0;
-        if ($datBan->gio_den && $datBan->thoi_luong_phut) {
-            $gioKetThuc = Carbon::parse($datBan->gio_den)->addMinutes($datBan->thoi_luong_phut);
-            $thoiGianConLaiPhut = $gioKetThuc->isFuture() ? $gioKetThuc->diffInMinutes(now()) : 0;
+        // --- [MỚI] TÍNH TIỀN RIÊNG BIỆT ---
+        $tienCombo = 0;
+        $tienGoiThem = 0;
+
+        // 1. Tính tiền Combo
+        foreach ($datBan->chiTietDatBan as $ct) {
+            // [SỬA LẠI TÊN CỘT Ở ĐÂY]
+            // Kiểm tra kỹ trong database bảng combo_buffet xem cột giá tên là gì
+            // Khả năng cao là 'gia_co_ban' hoặc 'gia_tien'
+            $giaCombo = $ct->combo->gia_co_ban ?? 0;
+
+            $tienCombo += $giaCombo * $ct->so_luong;
         }
 
-        // [SỬA] Lấy danh sách ID món ăn từ TẤT CẢ combo đã chọn
+        // 2. Tính tiền Món gọi thêm
+        $order = OrderMon::where('dat_ban_id', $datBan->id)->first();
+        if ($order) {
+            $monGoiThem = ChiTietOrder::where('order_id', $order->id)
+                ->where('loai_mon', 'goi_them')
+                ->where('trang_thai', '!=', 'huy_mon') // Không tính món hủy
+                ->with('monAn') // Load món để lấy giá
+                ->get();
+
+            foreach ($monGoiThem as $item) {
+                $giaMon = $item->monAn->gia ?? 0;
+                $tienGoiThem += $giaMon * $item->so_luong;
+            }
+        }
+        // ----------------------------------
+
+        // Lấy danh sách ID món ăn từ TẤT CẢ combo đã chọn
         $ownedComboIds = $datBan->chiTietDatBan->pluck('combo_id')->toArray();
         $monTrongComboIds = [];
-        
+
         if (!empty($ownedComboIds)) {
             $monTrongComboIds = MonTrongCombo::whereIn('combo_id', $ownedComboIds)
                 ->pluck('mon_an_id')
@@ -276,23 +286,24 @@ class OrderController extends Controller
                 ->toArray();
         }
 
+        // Truy vấn menu (Đã xóa đoạn lặp thừa)
         $menu = DanhMuc::where('hien_thi', 1)
             ->with(['monAn' => function ($query) {
-                $query->where('trang_thai', 'con');
+                $query->where('trang_thai', 'con')
+                    ->with('thuVienAnh'); // Đã thêm lấy ảnh
             }])
             ->get();
 
         $menu->each(function ($danhMuc) use ($monTrongComboIds) {
             if ($danhMuc->monAn) {
                 $danhMuc->monAn->each(function ($monAn) use ($monTrongComboIds) {
-                    // Check nếu món nằm trong danh sách được phép gọi miễn phí (combo)
                     $monAn->is_in_combo = in_array($monAn->id, $monTrongComboIds);
                 });
             }
         });
 
         // Thông tin các combo đã chọn để hiển thị FE
-        $selectedCombosInfo = $datBan->chiTietDatBan->map(function($item) {
+        $selectedCombosInfo = $datBan->chiTietDatBan->map(function ($item) {
             return [
                 'ten' => $item->combo->ten_combo ?? 'Combo cũ',
                 'sl' => $item->so_luong
@@ -303,12 +314,15 @@ class OrderController extends Controller
             'dat_ban_info' => $datBan,
             'selected_combos' => $selectedCombosInfo,
             'menu' => $menu,
+            // [TRẢ VỀ 2 BIẾN MỚI]
+            'tien_combo' => $tienCombo,
+            'tien_goi_them' => $tienGoiThem
         ]);
     }
 
+    // Xử lý gửi gọi món
     public function submitOrder(Request $request)
     {
-        // ... (Giữ nguyên logic cũ của bạn) ...
         $validator = Validator::make($request->all(), [
             'dat_ban_id' => 'required|exists:dat_ban,id',
             'items' => 'required|array|min:1',
@@ -332,14 +346,21 @@ class OrderController extends Controller
 
         $nowString = Carbon::now('Asia/Ho_Chi_Minh')->toDateTimeString();
 
+        // Tìm hoặc tạo OrderMon
         $orderMon = OrderMon::firstOrCreate(
             ['dat_ban_id' => $datBanId, 'trang_thai' => 'dang_xu_li'],
             ['ban_id' => $datBan->ban_id, 'tong_mon' => 0, 'tong_tien' => 0, 'created_at' => $nowString, 'updated_at' => $nowString]
         );
 
+        // [MỚI] Biến tạm để tính tổng tiền và số lượng đợt gọi này
+        $themTien = 0;
+        $themSl = 0;
+
         foreach ($items as $item) {
             $monAn = MonAn::find($item['mon_an_id']);
-            if ($monAn->trang_thai !== 'con') continue;
+
+            // Nếu món hết hoặc không tồn tại thì bỏ qua
+            if (!$monAn || $monAn->trang_thai !== 'con') continue;
 
             ChiTietOrder::create([
                 'order_id' => $orderMon->id,
@@ -347,11 +368,25 @@ class OrderController extends Controller
                 'so_luong' => $item['so_luong'],
                 'loai_mon' => $item['loai_mon'],
                 'trang_thai' => 'cho_bep',
-                'ghi_chu' => $item['ghi_chu'],
+                'ghi_chu' => $item['ghi_chu'] ?? null,
                 'created_at' => $nowString,
                 'updated_at' => $nowString
             ]);
+
+            // [MỚI] Cộng dồn số lượng
+            $themSl += $item['so_luong'];
+
+            // [MỚI] Chỉ cộng tiền nếu là món gọi thêm (Món trong combo giá = 0 ở bước này)
+            if ($item['loai_mon'] === 'goi_them') {
+                $themTien += ($monAn->gia * $item['so_luong']);
+            }
         }
+
+        // [MỚI] Cập nhật lại tổng tiền và tổng món vào bảng OrderMon (cho Admin/Thu ngân xem)
+        $orderMon->tong_mon += $themSl;
+        $orderMon->tong_tien += $themTien;
+        $orderMon->updated_at = $nowString;
+        $orderMon->save();
 
         return response()->json([
             'message' => 'Gửi order thành công!',
@@ -359,13 +394,15 @@ class OrderController extends Controller
         ], 201);
     }
 
+    // [CẬP NHẬT] Lấy trạng thái món (Thêm thời gian chế biến cho Timer)
     public function getOrderStatus(Request $request, $datBanId)
     {
         $chiTietMonAn = ChiTietOrder::whereHas('orderMon', function ($query) use ($datBanId) {
             $query->where('dat_ban_id', $datBanId);
         })
-            ->with('monAn:id,ten_mon,hinh_anh')
-            ->select('id', 'mon_an_id', 'so_luong', 'trang_thai', 'loai_mon', 'created_at')
+            // [QUAN TRỌNG] Thêm thoi_gian_che_bien vào đây
+            ->with('monAn:id,ten_mon,hinh_anh,thoi_gian_che_bien')
+            ->select('id', 'mon_an_id', 'so_luong', 'trang_thai', 'loai_mon', 'created_at', 'ghi_chu')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -374,6 +411,30 @@ class OrderController extends Controller
         }
 
         return response()->json(['items' => $chiTietMonAn]);
+    }
+
+    // [MỚI] Hàm xử lý Hủy món
+    public function cancelItem(Request $request)
+    {
+        try {
+            $id = $request->input('id');
+            $item = ChiTietOrder::find($id);
+
+            if (!$item) {
+                return response()->json(['message' => 'Không tìm thấy món.'], 404);
+            }
+
+            // Chỉ cho phép hủy nếu trạng thái là 'cho_bep'
+            if ($item->trang_thai === 'cho_bep') {
+                $item->trang_thai = 'huy_mon'; // Hoặc $item->delete() nếu muốn xóa hẳn
+                $item->save();
+                return response()->json(['message' => 'Đã hủy món thành công.', 'status' => 'success']);
+            } else {
+                return response()->json(['message' => 'Món đang nấu hoặc đã lên, không thể hủy!'], 400);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
+        }
     }
 
     public function showQrListPage(Request $request)

@@ -1,40 +1,59 @@
 @extends('layouts.shop.layout-nhanvien')
 
-@section('title', 'Quản lý bàn ăn')
+@section('title', 'Quản lý bàn ăn - Buffet Ocean')
 
 @section('content')
-    {{-- Import Fonts --}}
+    {{-- Import Fonts chuẩn theo style Buffet Ocean --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Nunito:wght@600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- BỘ BIẾN MÀU (Đồng bộ Menu) --- */
+        /* --- BỘ NHẬN DIỆN THƯƠNG HIỆU BUFFET OCEAN --- */
         :root {
-            --primary: #fea116;       /* Cam vàng */
-            --primary-dark: #d98a12;  /* Cam đậm */
-            --dark: #0f172b;          /* Xanh đen */
-            --white: #ffffff;
-            --success: #20d489;       /* Xanh mint */
-            --danger: #ff4d4f;        /* Đỏ */
+            --primary: #fea116;       /* Màu cam chủ đạo của logo/nút */
+            --primary-hover: #db8a10;
+            --dark: #0f172b;          /* Màu nền dark của header trang chủ */
+            --light: #F1F8FF;         /* Màu nền website sạch sẽ */
             --text-main: #1e293b;
             --text-sub: #64748b;
-            --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
-            --shadow-hover: 0 20px 40px -5px rgba(0, 0, 0, 0.1);
-            --radius: 8px;
+            --white: #ffffff;
+            --radius: 4px;            /* Bo góc nhẹ giống style nút trang chủ */
+            --shadow-card: 0 0 45px rgba(0, 0, 0, 0.08); /* Đổ bóng mịn */
         }
 
-        body {
-            font-family: 'Nunito', sans-serif;
-            background-color: #f8f9fa;
-            color: var(--text-main);
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background-color: var(--light); 
+            color: var(--text-main); 
         }
 
-        h3, h4, h5, strong, .table-number {
+        /* --- TIÊU ĐỀ TRANG (GIỐNG STYLE "Về Chúng Tôi") --- */
+        .page-header-title {
             font-family: 'Heebo', sans-serif;
+            font-weight: 800;
+            color: var(--dark);
+            text-transform: uppercase;
+            position: relative;
+            padding-left: 15px;
+            font-size: 1.5rem;
+        }
+        
+        /* Đường gạch dọc màu cam giống tiêu đề trang chủ */
+        .page-header-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 80%;
+            width: 5px;
+            background-color: var(--primary);
+            border-radius: 2px;
         }
 
-        /* --- GLOBAL CARD --- */
-        .card {
+        /* --- CARD STYLE (KHU VỰC) --- */
+        .card-zone {
             border: none;
             border-radius: var(--radius);
             box-shadow: var(--shadow-card);
@@ -42,232 +61,262 @@
             margin-bottom: 24px;
             overflow: hidden;
         }
-
-        .card-header {
-            background: var(--dark) !important;
-            color: var(--white);
+        
+        .card-zone-header {
+            background: var(--dark); /* Màu tối sang trọng */
+            color: var(--primary);   /* Chữ cam nổi bật */
             padding: 15px 20px;
-            border-bottom: none;
+            font-family: 'Heebo', sans-serif;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            letter-spacing: 1px;
+            border-bottom: 3px solid var(--primary); /* Viền cam dưới chân header */
         }
-        
-        .card-header strong { font-size: 1.1rem; }
-        .card-header small { color: rgba(255,255,255, 0.6); }
 
-        /* --- TABLE CARD (BÊN TRÁI - GIỮ NGUYÊN STYLE CŨ) --- */
+        /* --- TABLE CARD (BÀN ĂN) --- */
         .table-card {
             background: var(--white);
             border-radius: var(--radius);
             padding: 15px;
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
+            height: 100%;
+            min-height: 230px;
+            display: flex; 
+            flex-direction: column; 
             justify-content: space-between;
-            border: 1px solid #f1f5f9;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
             transition: all 0.3s ease;
             position: relative;
+            overflow: hidden;
         }
 
-        .table-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-hover);
-            border-color: rgba(254, 161, 22, 0.3);
+        /* Hover hiệu ứng nâng lên giống các khối dịch vụ */
+        .table-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            border-color: var(--primary);
+        }
+
+        /* Trạng thái bàn */
+        .card-active { 
+            background: #fff8e6; /* Màu cam nhạt */
+            border: 1px solid var(--primary); 
+        }
+        .card-reserved { 
+            background: #f1f5f9; 
+            border: 1px dashed #94a3b8; 
         }
 
         .table-number {
-            font-size: 1.8rem;
+            font-family: 'Heebo', sans-serif;
+            font-size: 2rem;
             font-weight: 800;
             color: var(--dark);
             line-height: 1;
         }
-
-        .table-seats {
-            font-size: 0.85rem;
-            color: var(--text-sub);
-            font-weight: 600;
-        }
-
-        /* --- BADGES TRÒN (PILL) CÓ ICON (GIỮ NGUYÊN) --- */
-        .badge-status {
-            padding: 6px 12px;
-            border-radius: 30px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .badge-trong { background: rgba(32, 212, 137, 0.15); color: #15803d; border: 1px solid rgba(32, 212, 137, 0.2); }
-        .badge-co-khach { background: rgba(254, 161, 22, 0.15); color: #b45309; border: 1px solid rgba(254, 161, 22, 0.3); }
-        .badge-dadat, .badge-giu { background: #e2e8f0; color: var(--dark); border: 1px solid #cbd5e1; }
-        .badge-khong-su-dung { background: #f1f5f9; color: #94a3b8; }
-
-        /* --- INFO KHÁCH --- */
-        .guest-info {
-            background: #f8fafc;
-            border-radius: 6px;
-            padding: 8px;
-            font-size: 0.85rem;
-            border-left: 3px solid var(--success);
-            color: var(--text-main);
-            margin-bottom: 8px;
-        }
-
-        /* --- BUTTONS --- */
-        .btn-custom {
-            border: none;
-            border-radius: 6px;
-            font-weight: 700;
-            font-family: 'Heebo', sans-serif;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            padding: 8px 12px;
-            transition: 0.2s;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        .btn-checkin { background: var(--white); border: 1px solid var(--primary); color: var(--primary); }
-        .btn-checkin:hover { background: var(--primary); color: var(--white); }
-        .btn-payment { background: var(--primary); color: var(--white); box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3); }
-        .btn-payment:hover { background: var(--primary-dark); transform: translateY(-2px); }
-
-           CỘT PHẢI: CUSTOM LẠI THÀNH DẠNG CHỮ (TEXT ONLY)
-        .incoming-item {
-            background: var(--white);
-            border-bottom: 1px dashed #e2e8f0;
-            padding: 15px 0;
-            transition: 0.2s;
-        }
-        .incoming-item:last-child { border-bottom: none; }
-
-        /* 1. Nhãn Text (Thay icon) */
-        .lbl {
-            color: #94a3b8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-right: 4px;
-        }
-
-        /* 2. Badge Trạng thái chữ */
-        .status-tag-text {
-            font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
-            padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 0;
-        }
-        .st-waiting { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
-        .st-serving { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
-
-        /* 3. Nút Check-in Chữ (Vuông bo góc nhẹ) */
-        .btn-checkin-text {
-            background: var(--primary); color: #fff; border: none;
-            font-size: 0.8rem; font-weight: 800; padding: 8px 14px;
-            border-radius: 6px; text-transform: uppercase;
-            font-family: 'Heebo', sans-serif; cursor: pointer;
-            box-shadow: 0 2px 5px rgba(254, 161, 22, 0.2);
-            transition: 0.2s;
-        }
-        .btn-checkin-text:hover { background: var(--primary-dark); transform: translateY(-1px); }
-
-        /* 4. Badge Đã Vào */
-        .badge-da-vao {
-            font-weight: 800; color: var(--success); font-size: 0.8rem;
-            border: 2px solid var(--success); padding: 5px 10px; border-radius: 6px;
-            text-transform: uppercase; display: inline-block; background: #f0fdf4;
-        }
         
-        /* Form Search */
-        .form-control-custom { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; font-size: 0.9rem; }
+        .table-icon-bg {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 4rem;
+            color: rgba(254, 161, 22, 0.1); /* Logo mờ nền */
+            transform: rotate(15deg);
+        }
+
+        /* --- BADGES & BUTTONS --- */
+        .badge-custom {
+            padding: 5px 12px;
+            border-radius: 0px; /* Style vuông vức hiện đại */
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+        }
+        .badge-trong { background: rgba(32, 212, 137, 0.1); color: #10b981; }
+        .badge-co-khach { background: var(--primary); color: #fff; }
+        .badge-dadat { background: #e2e8f0; color: #475569; }
+
+        /* Nút bấm style Buffet Ocean */
+        .btn-ocean {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 2px; /* Bo góc rất nhẹ */
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 10px;
+            width: 100%;
+            font-family: 'Heebo', sans-serif;
+            transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            text-decoration: none;
+        }
+        .btn-ocean:hover {
+            background: var(--primary-hover);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(254, 161, 22, 0.3);
+        }
+
+        .btn-ocean-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            border-radius: 2px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 8px;
+            width: 100%;
+            display: block; text-align: center; text-decoration: none;
+            transition: 0.3s;
+        }
+        .btn-ocean-outline:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* --- INFO BOX (Khách đang ngồi) --- */
+        .customer-info {
+            background: #fff;
+            border-left: 4px solid var(--primary);
+            padding: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-top: 10px;
+        }
+        .live-timer {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--dark);
+            color: var(--primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        .timer-dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- SIDEBAR LIST --- */
+        .sidebar-card {
+            border: none;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
+            background: #fff;
+        }
+        .sidebar-header {
+            background: var(--dark);
+            color: #fff;
+            padding: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-family: 'Heebo', sans-serif;
+        }
+        .incoming-item {
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: 0.2s;
+        }
+        .incoming-item:hover { background: #fffcf5; }
+        .form-search {
+            border: 2px solid #e2e8f0;
+            padding: 8px 15px;
+            border-radius: 4px;
+            width: 100%;
+            outline: none;
+        }
+        .form-search:focus { border-color: var(--primary); }
     </style>
 
     {{-- Flash messages --}}
-    @if (session('success'))
-        <div class="alert alert-success mb-3 shadow-sm border-0" style="background: #dcfce7; color: #166534;"><i class="fa-solid fa-check-circle"></i> {{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger mb-3 shadow-sm border-0" style="background: #fee2e2; color: #991b1b;"><i class="fa-solid fa-exclamation-circle"></i> {{ session('error') }}</div>
-    @endif
+    @if (session('success')) <div class="alert alert-success m-4 mb-0 border-0 shadow-sm"><i class="fa-solid fa-check-circle"></i> {{ session('success') }}</div> @endif
+    @if (session('error')) <div class="alert alert-danger m-4 mb-0 border-0 shadow-sm"><i class="fa-solid fa-exclamation-circle"></i> {{ session('error') }}</div> @endif
 
-    <div class="container py-4">
-        <div class="d-flex align-items-center gap-2 mb-4">
-            <h3 class="m-0 text-uppercase" style="color: var(--dark); font-weight: 800;"><i class="fa-solid fa-layer-group text-primary"></i> Quản lý bàn ăn</h3>
+    <div class="container-fluid py-4 px-4">
+        
+        {{-- HEADER TRANG --}}
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h4 class="page-header-title m-0">Quản lý bàn ăn</h4>
+                <p class="text-muted small ms-3 mb-0 mt-1">Theo dõi trạng thái và phục vụ khách hàng</p>
+            </div>
+            <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-white shadow-sm border fw-bold text-dark">
+                <i class="fa-solid fa-rotate text-primary"></i> Làm mới dữ liệu
+            </a>
         </div>
 
-        <div class="row">
-            {{-- Left: Sơ đồ bàn (GIỮ NGUYÊN ICON BADGES) --}}
-            <div class="col-md-8">
+        <div class="row g-4">
+            {{-- CỘT TRÁI: DANH SÁCH BÀN --}}
+            <div class="col-lg-9 col-md-8">
                 @foreach ($khuVucs as $khu)
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <i class="fa-solid fa-map-location-dot text-primary"></i> {{ $khu->ten_khu_vuc }}
-                            <small class="ms-2" style="font-weight: 400;">(Tầng {{ $khu->tang }})</small>
-                        </div>
-                        <form method="get" action="{{ route('nhanVien.ban-an.index') }}">
-                            @if(request('search')) <input type="hidden" name="search" value="{{ request('search') }}"> @endif
-                            <button type="submit" class="btn btn-sm btn-outline-light border-0"><i class="fa-solid fa-rotate"></i> Làm mới</button>
-                        </form>
+                <div class="card-zone">
+                    <div class="card-zone-header d-flex justify-content-between align-items-center">
+                        <span><i class="fa-solid fa-utensils me-2"></i> {{ $khu->ten_khu_vuc }}</span>
+                        <span class="badge bg-white text-dark" style="opacity: 0.9;">Tầng {{ $khu->tang }}</span>
                     </div>
-                    <div class="card-body bg-light">
+                    <div class="card-body p-4 bg-light-subtle">
                         <div class="row g-3">
                             @foreach ($khu->banAns as $ban)
                             @php
-                                $status = $ban->trang_thai;
-                                $isHeld = $ban->giu_den && $ban->giu_den > now();
+                                $khachDangNgoi = $datBans->where('ban_id', $ban->id)->where('trang_thai', 'khach_da_den')->first();
+                                $donDatTruoc = $datBans->where('ban_id', $ban->id)->where('trang_thai', 'da_xac_nhan')->first();
+                                
+                                $cardClass = '';
+                                if ($khachDangNgoi) $cardClass = 'card-active';
+                                elseif ($donDatTruoc) $cardClass = 'card-reserved';
                             @endphp
-                            <div class="col-6 col-sm-4 col-md-3">
-                                <div class="table-card">
-                                    {{-- Phần trên --}}
+
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <div class="table-card {{ $cardClass }}">
+                                    {{-- Icon nền trang trí --}}
+                                    <i class="fa-solid fa-bowl-food table-icon-bg"></i>
+
                                     <div>
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="d-flex justify-content-between align-items-start mb-2 position-relative">
                                             <div class="table-number">{{ $ban->so_ban }}</div>
-                                            <div class="table-seats"><i class="fa-solid fa-chair"></i> {{ $ban->so_ghe }}</div>
+                                            <div class="text-secondary fw-bold small"><i class="fa-solid fa-chair text-primary"></i> {{ $ban->so_ghe }}</div>
                                         </div>
 
-                                        {{-- Badge có ICON (Style cũ) --}}
+                                        {{-- TRẠNG THÁI --}}
                                         <div class="mb-3">
-                                            @if ($status === 'trong' && !$isHeld)
-                                                <span class="badge-status badge-trong"><i class="fa-solid fa-circle-check"></i> Trống</span>
-                                            @elseif($status === 'dang_phuc_vu' || $status === 'khach_da_den')
-                                                <span class="badge-status badge-co-khach"><i class="fa-solid fa-utensils"></i> Đang ăn</span>
-                                            @elseif ($status === 'da_dat' && $isHeld)
-                                                <span class="badge-status badge-giu" data-countdown="{{ $ban->giu_den }}"><i class="fa-solid fa-clock"></i> Giữ...</span>
-                                            @elseif ($status === 'da_dat')
-                                                <span class="badge-status badge-dadat"><i class="fa-solid fa-calendar-check"></i> Đã đặt</span>
+                                            @if($khachDangNgoi)
+                                                <span class="badge-custom badge-co-khach">Đang phục vụ</span>
+                                            @elseif($donDatTruoc)
+                                                <span class="badge-custom badge-dadat">Đã đặt trước</span>
+                                            @elseif($ban->trang_thai == 'khong_su_dung')
+                                                <span class="badge-custom badge-dadat">Bảo trì</span>
                                             @else
-                                                <span class="badge-status badge-khong-su-dung"><i class="fa-solid fa-ban"></i> Đóng</span>
+                                                <span class="badge-custom badge-trong">Bàn trống</span>
                                             @endif
                                         </div>
 
-                                        @if(!empty($ban->khach_dang_ngoi))
-                                            <div class="guest-info">
-                                                <div style="font-weight: 700;">{{ $ban->khach_dang_ngoi }}</div>
-                                                <div style="font-size: 0.75rem; color: var(--text-sub);">
-                                                    <i class="fa-regular fa-clock"></i> {{ \Carbon\Carbon::parse($ban->gio_bat_dau)->format('H:i') }}
+                                        {{-- THÔNG TIN KHÁCH --}}
+                                        @if($khachDangNgoi)
+                                            <div class="customer-info">
+                                                <div class="fw-bold text-dark text-truncate">{{ $khachDangNgoi->ten_khach }}</div>
+                                                <div class="small text-muted mt-1"><i class="fa-solid fa-clock"></i> Vào: {{ \Carbon\Carbon::parse($khachDangNgoi->gio_den)->format('H:i') }}</div>
+                                                
+                                                <div class="live-timer" data-start="{{ $khachDangNgoi->gio_den }}">
+                                                    <div class="timer-dot"></div> <span class="timer-text">00:00:00</span>
                                                 </div>
+                                            </div>
+                                        @elseif($donDatTruoc)
+                                            <div class="p-2 bg-light rounded border border-dashed mt-2">
+                                                <div class="small fw-bold text-primary">SẮP ĐẾN:</div>
+                                                <div class="fw-bold text-dark">{{ $donDatTruoc->ten_khach }}</div>
+                                                <div class="small text-danger"><i class="fa-regular fa-clock"></i> {{ \Carbon\Carbon::parse($donDatTruoc->gio_den)->format('H:i') }}</div>
                                             </div>
                                         @endif
                                     </div>
 
-                                    {{-- Phần dưới --}}
-                                    <div class="mt-2">
-                                        @php $datBan = $datBans->firstWhere('ban_id', $ban->id); @endphp
-                                        @if($datBan && $datBan->trang_thai === 'da_xac_nhan')
-                                            <form method="POST" action="{{ route('nhanVien.ban-an.check-in-dattruoc') }}">
-                                                @csrf
-                                                <input type="hidden" name="dat_ban_id" value="{{ $datBan->id }}">
-                                                <button class="btn-custom btn-checkin"><i class="fa-solid fa-user-check"></i> Check-in</button>
-                                            </form>
+                                    {{-- ACTIONS --}}
+                                    <div class="mt-3 position-relative" style="z-index: 2;">
+                                        @if($donDatTruoc)
+                                            <a href="{{ route('nhanVien.ban-an.show-checkin-dattruoc', $donDatTruoc->id) }}" class="btn-ocean-outline">
+                                                Check-in
+                                            </a>
                                         @endif
-                                        @if ($status === 'dang_phuc_vu' || $status === 'khach_da_den')
-                                            <a href="{{ route('nhanVien.thanh-toan.ban', $ban->id) }}" class="btn-custom btn-payment">
+                                        @if($khachDangNgoi)
+                                            <a href="{{ route('nhanVien.thanh-toan.ban', $ban->id) }}" class="btn-ocean">
                                                 <i class="fa-solid fa-file-invoice-dollar"></i> Thanh toán
                                             </a>
                                         @endif
@@ -281,106 +330,88 @@
                 @endforeach
             </div>
             
-            {{-- Right: Khách sắp đến (THAY ĐỔI: DÙNG TEXT THAY VÌ ICON) --}}
-            <div class="col-md-4">
-                <div class="card" style="position: sticky; top: 20px;">
-                    <div class="card-header">
-                        <span><i class="fa-solid fa-users-viewfinder"></i> Khách sắp đến</span>
+            {{-- CỘT PHẢI: LIST KHÁCH --}}
+            <div class="col-lg-3 col-md-4">
+                <div class="sidebar-card sticky-top" style="top: 20px; z-index: 99;">
+                    <div class="sidebar-header">
+                        <span><i class="fa-solid fa-clipboard-list me-2"></i> Danh sách chờ</span>
                     </div>
                     
-                    <div class="p-3 border-bottom bg-light">
+                    <div class="p-3 border-bottom">
                          <form method="get" action="{{ route('nhanVien.ban-an.index') }}" class="d-flex gap-2">
-                            <input type="text" name="search" class="form-control-custom w-100" placeholder="Tìm tên/SĐT/Mã..." value="{{ request('search') }}">
-                            <button type="submit" class="btn btn-sm btn-primary" style="background: var(--primary); border: none; font-weight:700;">TÌM</button>
-                            @if(request('search'))
-                                <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-sm btn-danger" style="font-weight:700;" title="Xóa tìm kiếm">X</a>
-                            @endif
+                            <input type="text" name="search" class="form-search" placeholder="Tìm tên hoặc SĐT..." value="{{ request('search') }}">
+                            <button type="submit" class="btn btn-warning text-white"><i class="fa-solid fa-search"></i></button>
                         </form>
                     </div>
 
                     <div class="card-body p-0">
-                        <div style="max-height: 70vh; overflow-y: auto; padding: 0 20px;">
+                        <div style="max-height: 70vh; overflow-y: auto;">
                             @forelse ($datBans as $datban)
-                            <div class="incoming-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div style="font-weight: 700; color: var(--primary); font-family: 'Heebo';">
-                                        {{ \Carbon\Carbon::parse($datban->gio_den)->format('H:i') }} 
-                                        <span class="text-muted small" style="font-weight: 400;">(#{{ $datban->ma_dat_ban ?? '...' }})</span>
-                                    </div>
-                                    <div class="my-1" style="font-size: 1rem;"><strong>{{ $datban->ten_khach }}</strong></div>
-                                    
-                                    {{-- NEW: Badge trạng thái Text --}}
-                                    <div>
-                                        @if($datban->trang_thai === 'da_xac_nhan')
-                                            <span class="status-tag-text st-waiting">SẮP ĐẾN</span>
-                                        @elseif($datban->trang_thai === 'khach_da_den')
-                                            <span class="status-tag-text st-serving">ĐANG PHỤC VỤ</span>
-                                        @endif
-                                    </div>
-
-                                    {{-- NEW: Nhãn Text --}}
-                                    <div class="mt-1" style="font-size: 0.9rem;">
-                                        <div class="incoming-label"><span class="lbl">SĐT:</span> {{ $datban->sdt_khach }}</div>
-                                        <div class="incoming-label">
-                                            <span class="lbl">BÀN:</span>
-                                            @if($datban->banAn)
-                                                <strong class="text-dark">Số {{ $datban->banAn->so_ban }}</strong>
-                                            @else
-                                                <span class="text-danger">Chưa xếp</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {{-- NEW: Nút Check-in Text --}}
-                                <div class="text-end ps-2">
+                            <div class="incoming-item">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="fw-bold text-dark" style="font-size: 1.1rem;">{{ \Carbon\Carbon::parse($datban->gio_den)->format('H:i') }}</span>
                                     @if($datban->trang_thai === 'da_xac_nhan')
-                                        <form method="POST" action="{{ route('nhanVien.ban-an.check-in-dattruoc') }}">
-                                            @csrf
-                                            <input type="hidden" name="dat_ban_id" value="{{ $datban->id }}">
-                                            <button class="btn-checkin-text" title="Khách đã đến quán">
-                                                CHECK-IN
-                                            </button>
-                                        </form>
+                                        <span class="badge bg-warning text-dark">Sắp đến</span>
                                     @elseif($datban->trang_thai === 'khach_da_den')
-                                        <span class="badge-da-vao">ĐÃ VÀO</span>
+                                        <span class="badge bg-success">Đang ăn</span>
                                     @endif
                                 </div>
+                                
+                                <h6 class="fw-bold text-primary m-0">{{ $datban->ten_khach }}</h6>
+                                <div class="small text-muted mb-2"><i class="fa-solid fa-phone me-1"></i> {{ $datban->sdt_khach }}</div>
+                                <div class="small text-muted">Mã: #{{ $datban->ma_dat_ban }}</div>
+
+                                @if($datban->trang_thai === 'da_xac_nhan')
+                                    <div class="mt-2 text-end">
+                                        <a href="{{ route('nhanVien.ban-an.show-checkin-dattruoc', $datban->id) }}" class="btn btn-sm btn-ocean" style="width: auto; display: inline-block;">
+                                            Check-in
+                                        </a>
+                                    </div>
+                                @endif
                             </div>
                             @empty
-                                <div class="text-center py-5 text-muted">
-                                    <i class="fa-solid fa-clipboard-list fa-2x mb-2 opacity-50"></i>
-                                    <p>Chưa có khách đặt sắp tới</p>
+                                <div class="text-center py-5">
+                                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486747.png" width="60" style="opacity: 0.5; margin-bottom: 10px;">
+                                    <p class="text-muted small">Không có khách đặt trước</p>
                                 </div>
                             @endforelse
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
-    {{-- Script --}}
+    {{-- Script Đồng hồ đếm giờ (Giữ nguyên logic của bạn) --}}
     <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const countdowns = document.querySelectorAll("[data-countdown]");
-        countdowns.forEach(el => {
-            const endTime = new Date(el.getAttribute("data-countdown")).getTime();
-            const timer = setInterval(function () {
-                const now = new Date().getTime();
-                const distance = endTime - now;
-                if (distance <= 0) {
-                    el.innerHTML = "<i class='fa-solid fa-circle-exclamation'></i> Hết giờ giữ";
-                    el.classList.remove("badge-giu"); el.classList.add("badge-dadat");
-                    el.style.background = "#e2e8f0"; el.style.color = "#0f172b";
-                    clearInterval(timer); return;
+        function updateTimers() {
+            const timers = document.querySelectorAll('.live-timer');
+            const now = new Date().getTime();
+
+            timers.forEach(timer => {
+                const startTimeStr = timer.getAttribute('data-start');
+                if (!startTimeStr) return;
+
+                const startTime = new Date(startTimeStr).getTime();
+                const diffMs = now - startTime;
+
+                if (diffMs > 0) {
+                    const diffHrs = Math.floor((diffMs % 86400000) / 3600000);
+                    const diffMins = Math.floor(((diffMs % 86400000) % 3600000) / 60000);
+                    const diffSecs = Math.floor((diffMs % 60000) / 1000);
+
+                    const h = diffHrs.toString().padStart(2, '0');
+                    const m = diffMins.toString().padStart(2, '0');
+                    const s = diffSecs.toString().padStart(2, '0');
+
+                    const textSpan = timer.querySelector('.timer-text');
+                    if(textSpan) textSpan.innerText = `${h}:${m}:${s}`;
                 }
-                const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const secs = Math.floor((distance % (1000 * 60)) / 1000);
-                el.innerHTML = `<i class='fa-regular fa-clock'></i> ${mins}p ${secs}s`;
-            }, 1000);
-        });
+            });
+        }
+        setInterval(updateTimers, 1000); 
+        updateTimers();
     });
     </script>
 @endsection

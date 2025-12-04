@@ -17,6 +17,13 @@
         background: #fff;
     }
 
+    /* Hiệu ứng khi xóa */
+    .removing-item {
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.5s ease;
+    }
+
     /* Card món ăn từng dòng */
     .cart-item-card {
         transition: all 0.2s;
@@ -66,8 +73,8 @@
 {{-- ============================================================= --}}
 <form action="{{ $action }}" method="POST" id="bookingForm" class="booking-form-container p-2">
     @csrf
-    @if(isset($method) && $method === 'PUT')
-    @method('PUT')
+    @if (isset($method) && $method === 'PUT')
+        @method('PUT')
     @endif
 
     {{-- Input ẩn chứa dữ liệu giỏ hàng --}}
@@ -188,8 +195,7 @@
         {{-- 4. GHI CHÚ --}}
         <div class="col-12">
             <div class="form-floating">
-                <textarea class="form-control" name="ghi_chu" id="floatNote" placeholder="Ghi chú"
-                    style="height: 100px;">{{ old('ghi_chu', $datBan->ghi_chu ?? '') }}</textarea>
+                <textarea class="form-control" name="ghi_chu" id="floatNote" placeholder="Ghi chú" style="height: 100px;">{{ old('ghi_chu', $datBan->ghi_chu ?? '') }}</textarea>
                 <label for="floatNote" class="text-muted"><i class="fa fa-sticky-note text-primary me-2"></i>Ghi chú
                     thêm (dị ứng, ghế trẻ em...)</label>
             </div>
@@ -199,10 +205,10 @@
         <div class="col-12 mt-4 mb-3">
             <button type="submit" class="btn btn-primary-custom w-100 py-3 rounded-pill btn-gradient-submit"
                 id="btnSubmitBooking">
-                @if(isset($method) && $method === 'PUT')
-                <i class="fa fa-save me-2"></i> LƯU CẬP NHẬT
+                @if (isset($method) && $method === 'PUT')
+                    <i class="fa fa-save me-2"></i> LƯU CẬP NHẬT
                 @else
-                <i class="fa fa-paper-plane me-2"></i> XÁC NHẬN ĐẶT BÀN
+                    <i class="fa fa-paper-plane me-2"></i> XÁC NHẬN ĐẶT BÀN
                 @endif
             </button>
         </div>
@@ -212,11 +218,13 @@
 {{-- ============================================================= --}}
 {{-- 3. JAVASCRIPT LOGIC (Giữ nguyên logic cũ như bạn yêu cầu) --}}
 {{-- ============================================================= --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         // --- CẤU HÌNH ---
         const CART_KEY = "oceanCart";
-        
+
         // --- ELEMENTS ---
         const container = document.getElementById('bookingCartContainer');
         const totalSection = document.getElementById('bookingCartTotalSection');
@@ -226,36 +234,42 @@
         const btnBulkDelete = document.getElementById('btnBulkDelete');
         const countDeleteSpan = document.getElementById('countDelete');
         const selectAllCheckbox = document.getElementById('selectAllCart');
-        
+
         // Định dạng tiền tệ
         const formatMoney = (amount) => parseInt(amount).toLocaleString('vi-VN') + ' đ';
 
         // --- 0. KHỞI TẠO DỮ LIỆU TỪ DB (KHI SỬA ĐƠN) ---
-        @if(isset($datBan) && $datBan->chiTietDatBan)
+        @if (isset($datBan) && $datBan->chiTietDatBan)
             try {
                 const dbItems = [
-                    @foreach($datBan->chiTietDatBan as $ct)
-                    {
-                        key: "{{ $ct->combo_buffet_id ? 'combo_'.$ct->combo_buffet_id : 'mon_'.$ct->mon_an_id }}", 
-                        name: "{{ $ct->comboBuffet->ten_combo ?? $ct->monAn->ten_mon ?? 'Món không xác định' }}",
-                        price: {{ $ct->comboBuffet->gia_co_ban ?? $ct->monAn->gia ?? 0 }},
-                        quantity: {{ $ct->so_luong }},
-                        img: "{{ $ct->comboBuffet ? asset('uploads/'.$ct->comboBuffet->anh) : ($ct->monAn ? asset($ct->monAn->hinh_anh) : '') }}"
-                    },
+                    @foreach ($datBan->chiTietDatBan as $ct)
+                        {
+                            key: "{{ $ct->combo_buffet_id ? 'combo_' . $ct->combo_buffet_id : 'mon_' . $ct->mon_an_id }}",
+                            name: "{{ $ct->comboBuffet->ten_combo ?? ($ct->monAn->ten_mon ?? 'Món không xác định') }}",
+                            price: {{ $ct->comboBuffet->gia_co_ban ?? ($ct->monAn->gia ?? 0) }},
+                            quantity: {{ $ct->so_luong }},
+                            img: "{{ $ct->comboBuffet ? asset('uploads/' . $ct->comboBuffet->anh) : ($ct->monAn ? asset($ct->monAn->hinh_anh) : '') }}"
+                        },
                     @endforeach
                 ];
                 // Chỉ ghi đè nếu muốn ưu tiên dữ liệu DB khi vào trang sửa
                 localStorage.setItem(CART_KEY, JSON.stringify(dbItems));
-            } catch (e) { console.error("Lỗi parse DB cart", e); }
+            } catch (e) {
+                console.error("Lỗi parse DB cart", e);
+            }
         @endif
 
         // --- 1. RENDER GIỎ HÀNG ---
         window.renderBookingCart = function() {
             let cart = [];
-            try { cart = JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch(e) { cart = []; }
+            try {
+                cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+            } catch (e) {
+                cart = [];
+            }
 
             // Cập nhật input hidden cho form submit
-            if(formInput) formInput.value = JSON.stringify(cart);
+            if (formInput) formInput.value = JSON.stringify(cart);
 
             // Xử lý giỏ hàng trống
             if (cart.length === 0) {
@@ -267,18 +281,18 @@
                             <i class="fa fa-arrow-left me-1"></i> Quay lại chọn món
                         </a>
                     </div>`;
-                if(totalSection) totalSection.classList.add('d-none');
-                if(cartHeader) cartHeader.style.setProperty('display', 'none', 'important');
-                if(btnBulkDelete) btnBulkDelete.classList.add('d-none');
-                
-                if(selectAllCheckbox) selectAllCheckbox.checked = false;
+                if (totalSection) totalSection.classList.add('d-none');
+                if (cartHeader) cartHeader.style.setProperty('display', 'none', 'important');
+                if (btnBulkDelete) btnBulkDelete.classList.add('d-none');
+
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
                 return;
             }
 
             // Hiển thị danh sách
-            if(totalSection) totalSection.classList.remove('d-none');
-            if(cartHeader) cartHeader.style.setProperty('display', 'flex', 'important');
-            
+            if (totalSection) totalSection.classList.remove('d-none');
+            if (cartHeader) cartHeader.style.setProperty('display', 'flex', 'important');
+
             let html = '';
             let grandTotal = 0;
 
@@ -316,13 +330,13 @@
 
             container.innerHTML = html;
             totalDisplay.innerText = formatMoney(grandTotal);
-            
+
             // QUAN TRỌNG: Gắn lại sự kiện cho các checkbox mới sinh ra
             attachCheckboxEvents();
-            
+
             // Reset trạng thái nút xóa về ẩn mỗi khi vẽ lại
             toggleDeleteButton(0);
-            if(selectAllCheckbox) selectAllCheckbox.checked = false;
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
         };
 
         // --- 2. XỬ LÝ CHECKBOX & ĐỒNG BỘ "CHỌN TẤT CẢ" ---
@@ -331,15 +345,17 @@
             checkboxes.forEach(cb => {
                 cb.addEventListener('change', function() {
                     // 1. Đếm số lượng đang check
-                    const checkedCount = document.querySelectorAll('.cart-checkbox:checked').length;
-                    
+                    const checkedCount = document.querySelectorAll('.cart-checkbox:checked')
+                        .length;
+
                     // 2. Cập nhật nút Xóa
                     toggleDeleteButton(checkedCount);
-                    
+
                     // 3. Đồng bộ với nút "Chọn tất cả"
                     // Nếu số lượng check == tổng số checkbox thì tick vào "Chọn tất cả", ngược lại thì bỏ tick
-                    if(selectAllCheckbox) {
-                        selectAllCheckbox.checked = (checkedCount === checkboxes.length && checkedCount > 0);
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = (checkedCount === checkboxes.length &&
+                            checkedCount > 0);
                     }
                 });
             });
@@ -348,22 +364,22 @@
         // --- 3. HÀM ẨN/HIỆN NÚT XÓA ---
         function toggleDeleteButton(count) {
             if (!btnBulkDelete) return;
-            
+
             if (count > 0) {
                 btnBulkDelete.classList.remove('d-none');
-                btnBulkDelete.classList.add('animate__fadeIn'); 
-                if(countDeleteSpan) countDeleteSpan.innerText = count;
+                btnBulkDelete.classList.add('animate__fadeIn');
+                if (countDeleteSpan) countDeleteSpan.innerText = count;
             } else {
                 btnBulkDelete.classList.add('d-none');
             }
         }
 
         // --- 4. SỰ KIỆN NÚT "CHỌN TẤT CẢ" ---
-        if(selectAllCheckbox) {
+        if (selectAllCheckbox) {
             selectAllCheckbox.addEventListener('change', function() {
                 const checkboxes = document.querySelectorAll('.cart-checkbox');
                 checkboxes.forEach(cb => cb.checked = this.checked);
-                
+
                 // Cập nhật nút xóa ngay lập tức
                 const count = this.checked ? checkboxes.length : 0;
                 toggleDeleteButton(count);
@@ -375,18 +391,18 @@
             // Dùng onclick để tránh bị gắn sự kiện nhiều lần nếu script chạy lại
             btnBulkDelete.onclick = function() {
                 const checkedBoxes = document.querySelectorAll('.cart-checkbox:checked');
-                
+
                 if (checkedBoxes.length === 0) return;
 
                 // Hàm thực thi xóa
                 const performDelete = () => {
                     let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
-                    
+
                     // Lấy danh sách index cần xóa
                     // QUAN TRỌNG: Sắp xếp GIẢM DẦN (b - a) để khi xóa index lớn không làm sai lệch index nhỏ
                     const indexesToDelete = Array.from(checkedBoxes)
-                                                .map(cb => parseInt(cb.value))
-                                                .sort((a, b) => b - a);
+                        .map(cb => parseInt(cb.value))
+                        .sort((a, b) => b - a);
 
                     indexesToDelete.forEach(idx => {
                         if (cart[idx]) cart.splice(idx, 1);
@@ -395,18 +411,23 @@
                     // Lưu và vẽ lại
                     localStorage.setItem(CART_KEY, JSON.stringify(cart));
                     renderBookingCart();
-                    
+
                     // Đồng bộ Mini Cart (nếu có)
                     if (typeof window.renderCartUI === "function") window.renderCartUI();
 
                     // Thông báo xóa thành công
-                    if(typeof Swal !== 'undefined'){
-                        Swal.fire({icon: 'success', title: 'Đã xóa!', timer: 1000, showConfirmButton: false});
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã xóa!',
+                            timer: 1000,
+                            showConfirmButton: false
+                        });
                     }
                 };
 
                 // Hiển thị hộp thoại xác nhận
-                if(typeof Swal !== 'undefined') {
+                if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         title: 'Xóa món đã chọn?',
                         text: `Bạn muốn xóa ${checkedBoxes.length} món này khỏi danh sách?`,
@@ -420,7 +441,7 @@
                     });
                 } else {
                     // Fallback nếu không có SweetAlert
-                    if(confirm(`Bạn muốn xóa ${checkedBoxes.length} món này?`)) performDelete();
+                    if (confirm(`Bạn muốn xóa ${checkedBoxes.length} món này?`)) performDelete();
                 }
             };
         }
@@ -436,31 +457,35 @@
                     renderBookingCart();
                 } else {
                     // Nếu giảm về 0 -> Bắt buộc dùng checkbox để xóa (theo yêu cầu của bạn)
-                    if(typeof Swal !== 'undefined'){
-                        Swal.fire('Số lượng tối thiểu là 1', 'Để xóa món, vui lòng tích vào ô chọn và bấm nút Xóa.', 'info');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Số lượng tối thiểu là 1',
+                            'Để xóa món, vui lòng tích vào ô chọn và bấm nút Xóa.', 'info');
                     } else {
-                        alert('Số lượng tối thiểu là 1. Để xóa món, vui lòng tích vào ô chọn và bấm nút Xóa.');
+                        alert(
+                            'Số lượng tối thiểu là 1. Để xóa món, vui lòng tích vào ô chọn và bấm nút Xóa.');
                     }
                 }
             }
         };
 
         // --- 7. THÔNG BÁO SAU KHI ĐẶT THÀNH CÔNG ---
-        @if(session('success'))
+        @if (session('success'))
             localStorage.removeItem(CART_KEY);
-            if(typeof Swal !== 'undefined'){
+            if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'success',
                     title: 'Thành công!',
                     text: "{!! session('success') !!}",
                     confirmButtonColor: '#FEA116',
                     confirmButtonText: 'OK'
-                }).then(() => { renderBookingCart(); });
+                }).then(() => {
+                    renderBookingCart();
+                });
             }
         @endif
 
-        @if(session('error'))
-            if(typeof Swal !== 'undefined'){
+        @if (session('error'))
+            if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'error',
                     title: 'Có lỗi xảy ra',

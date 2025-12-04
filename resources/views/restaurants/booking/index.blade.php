@@ -1,4 +1,4 @@
-@extends('layouts.restaurants.layout-shop')
+@extends('layouts.page')
 
 @section('title', 'Đặt Bàn & Tra Cứu')
 
@@ -21,21 +21,22 @@
     }
 
     /* --- NÂNG CẤP HERO SECTION (PHƯƠNG ÁN 1) --- */
-    .mini-hero {
-        /* Ảnh nền tối tạo chiều sâu (Bạn có thể thay link ảnh khác) */
-        background: linear-gradient(rgba(15, 23, 43, 0.9), rgba(15, 23, 43, 0.9)), url('https://technext.github.io/restoran/img/bg-hero.jpg');
-        background-position: center center;
-        background-repeat: no-repeat;
-        background-size: cover;
+.mini-hero {
+    /* Ảnh nền tối tạo chiều sâu */
+    background: linear-gradient(rgba(15, 23, 43, 0.9), rgba(15, 23, 43, 0.9)), url('https://technext.github.io/restoran/img/bg-hero.jpg');
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
 
-        padding: 100px 0 80px 0;
-        /* Tăng chiều cao */
-        margin-bottom: -60px;
-        /* Đẩy phần dưới đè lên */
-        color: white;
-        position: relative;
-        z-index: 0;
-    }
+    /* --- ĐÃ SỬA: Giảm padding đi 1 nửa --- */
+    /* Cũ: 100px 0 80px 0 */
+    padding: 100px 0 80px 0; 
+    
+    margin-bottom: -60px;
+    color: white;
+    position: relative;
+    z-index: 0;
+}
 
     .mini-hero::after {
         content: '';
@@ -208,15 +209,7 @@
 
 {{-- Mini Hero Section (ĐÃ CẬP NHẬT) --}}
 <div class="mini-hero text-center">
-    <div class="container">
-        <h1 class="hero-title">Đặt Bàn Online</h1>
 
-        {{-- Breadcrumb cho chuyên nghiệp --}}
-        <ul class="breadcrumb-custom">
-            <li><a href="/">Trang chủ</a></li>
-            <li>Đặt bàn & Tra cứu</li>
-        </ul>
-    </div>
 </div>
 
 <div class="container pb-5" style="margin-top: 20px;">
