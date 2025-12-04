@@ -844,10 +844,10 @@ class ThanhToanController extends Controller
         }
         $vnp_Url = rtrim($vnp_Url, '/');
         
-        $vnp_Returnurl = route('nhanVien.thanh-toan.vnpay.callback', ['banId' => $banId]);
+        $vnp_Returnurl = env('VNPAY_RETURN_URL') . "?banId=$banId";
 
         $vnp_TxnRef = time(); // mã giao dịch duy nhất
-        $vnp_OrderInfo = "Thanh toán bàn $ban->so_ban";
+        $vnp_OrderInfo = urlencode("Thanh toán bàn $ban->so_ban");
         $vnp_Amount = $tongTien * 100; // VNPay nhận amount *100 (đơn vị là VND)
         $vnp_Locale = 'vn';
         $vnp_IpAddr = $request->ip();
@@ -864,6 +864,7 @@ class ThanhToanController extends Controller
             "vnp_OrderInfo" => $vnp_OrderInfo,
             "vnp_ReturnUrl" => $vnp_Returnurl,
             "vnp_TxnRef" => $vnp_TxnRef,
+            "vnp_OrderType" => "billpayment",
         ];
 
         ksort($inputData);
