@@ -93,7 +93,29 @@ class HomeController extends Controller
     
     public function sendContact(Request $request)
     {
-        return back()->with('success', 'Cảm ơn bạn đã liên hệ!');
+        // 1. Kiểm tra dữ liệu đầu vào (Validate)
+        $data = $request->validate([
+            'ten_khach'   => 'required|string|max:255',
+            'sdt'         => 'required|string|max:20',
+            'so_sao'      => 'required|integer|min:1|max:5',
+            'noi_dung'    => 'required|string',
+            'email'       => 'nullable|email|max:255',
+            'nghe_nghiep' => 'nullable|string|max:255',
+        ], [
+            'required' => ':attribute không được để trống.',
+            'email'    => 'Email không đúng định dạng.',
+        ]);
+    
+        // 2. Set trạng thái mặc định
+        // Để 'cho_duyet' nếu muốn admin duyệt mới hiện.
+        // Để 'hien_thi' nếu muốn hiện luôn lên trang chủ (Cẩn thận spam).
+        $data['trang_thai'] = 'cho_duyet'; 
+    
+        // 3. Lưu vào database
+        DanhGia::create($data);
+    
+        // 4. Thông báo xong
+        return back()->with('success', 'Cảm ơn bạn đã gửi đánh giá! Chúng tôi sẽ xem xét và hiển thị sớm nhất.');
     }
 
     /* ==========================================================

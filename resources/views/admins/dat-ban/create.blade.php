@@ -229,28 +229,16 @@
                             {{-- THÔNG TIN ĐẶT BÀN --}}
                             <div class="form-group col-md-4">
                                 <label class="control-label">Giờ Khách Đến (*)</label>
+                                {{-- Khi người dùng chọn giờ ở đây, JS sẽ gọi AJAX để cập nhật danh sách bàn bên dưới --}}
                                 <input class="form-control" type="datetime-local" name="gio_den" id="gio_den_input" value="{{ old('gio_den') }}" required>
                             </div>
                             
-                            {{-- CHỌN BÀN (Ajax load) --}}
+                            {{-- CHỌN BÀN (Ajax load - Danh sách bàn sẽ thay đổi tùy thuộc vào giờ khách đến) --}}
                             <div class="form-group col-md-4">
                                 <label class="control-label">Chọn Bàn (Nếu có)</label>
                                 <select class="form-control" name="ban_id" id="ban_id_select">
-                                    <option value="">-- Chưa xếp bàn / Mang về --</option>
-                                    @foreach($banAns as $ban)
-                                        @php
-                                            $isBusy = in_array($ban->trang_thai, ['dang_phuc_vu', 'da_dat']);
-                                            $statusText = match($ban->trang_thai) {
-                                                'dang_phuc_vu' => '(Đang phục vụ)',
-                                                'da_dat' => '(Đã đặt)',
-                                                default => ''
-                                            };
-                                            $style = $isBusy ? 'background-color: #ffeeee; color: #d9534f;' : '';
-                                        @endphp
-                                        <option value="{{ $ban->id }}" {{ old('ban_id') == $ban->id ? 'selected' : '' }} {{ $isBusy ? 'disabled' : '' }} style="{{ $style }}">
-                                            Bàn {{ $ban->so_ban }} - {{ $ban->so_ghe }} ghế {{ $statusText }}
-                                        </option>
-                                    @endforeach
+                                    <option value="">-- Vui lòng chọn giờ đến trước --</option>
+                                    {{-- Dữ liệu ở đây sẽ được Javascript điền vào --}}
                                 </select>
                                 <small class="text-muted"><i>* Tự động lọc bàn trống theo giờ chọn.</i></small>
                             </div>
@@ -396,7 +384,6 @@
 
             comboContainer.innerHTML = '<div class="col-12 text-center py-3"><i class="fas fa-spinner fa-spin"></i> Đang tải gói combo...</div>';
 
-            // Gọi Route AJAX đã định nghĩa
             const url = "{{ route('admin.dat-ban.ajax-get-combos-by-loai') }}";
 
             fetch(url + '?loai_combo=' + loai)
@@ -491,15 +478,22 @@
             }
         }
 
-        // --- 5. AJAX CẬP NHẬT BÀN TRỐNG ---
+        // --- 5. AJAX CẬP NHẬT BÀN TRỐNG (LOGIC QUAN TRỌNG) ---
         function updateAvailableTables() {
             const selectedTime = timeInput.value;
             const excludeBookingId = 0; 
-            if (!selectedTime) return;
             
-            tableSelect.options[0].text = "Đang tải danh sách bàn...";
+            if (!selectedTime) {
+                // Nếu chưa chọn giờ, disable dropdown chọn bàn
+                tableSelect.innerHTML = '<option value="">-- Vui lòng chọn giờ đến trước --</option>';
+                tableSelect.disabled = true;
+                return;
+            }
+            
+            tableSelect.innerHTML = '<option value="">Đang tải danh sách bàn...</option>';
             tableSelect.disabled = true;
             
+            // Gọi API lọc bàn của Backend
             const url = `{{ route('admin.dat-ban.ajax-get-available-tables') }}?time=${selectedTime}&exclude_booking_id=${excludeBookingId}`;
             
             fetch(url)
@@ -507,24 +501,47 @@
                 .then(data => {
                     tableSelect.innerHTML = '<option value="">-- Chưa xếp bàn / Mang về --</option>';
                     tableSelect.disabled = false;
+                    
                     if (data.length > 0) {
                         data.forEach(ban => {
+                            // Tạo Option cho từng bàn còn trống
                             const option = document.createElement('option');
                             option.value = ban.id;
-                            option.textContent = `Bàn ${ban.so_ban} (${ban.so_ghe} ghế)`;
+                            
+                            // Hiển thị tên khu vực nếu có
+                            let tenKhuVuc = ban.khu_vuc ? ` - ${ban.khu_vuc.ten_khu_vuc}` : '';
+                            option.textContent = `Bàn ${ban.so_ban} (${ban.so_ghe} ghế${tenKhuVuc})`;
+                            
+                            // Giữ lại lựa chọn cũ nếu người dùng đang sửa form mà bị lỗi validate
                             if (oldBanId && ban.id == oldBanId) option.selected = true;
+                            
                             tableSelect.appendChild(option);
                         });
+                    } else {
+                        // Trường hợp không còn bàn nào trống
+                        const option = document.createElement('option');
+                        option.textContent = 'Hết bàn vào khung giờ này';
+                        option.disabled = true;
+                        tableSelect.appendChild(option);
                     }
                 })
-                .catch(() => {
-                    tableSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+                .catch(error => {
+                    console.error('Lỗi Ajax bàn:', error);
+                    tableSelect.innerHTML = '<option value="">Lỗi tải dữ liệu bàn</option>';
                     tableSelect.disabled = false;
                 });
         }
         
+        // Lắng nghe sự kiện khi thay đổi Giờ Khách Đến
         timeInput.addEventListener('change', updateAvailableTables);
-        if (timeInput.value) updateAvailableTables();
+        
+        // Gọi 1 lần khi trang vừa load (để xử lý trường hợp form reload khi có lỗi validate)
+        if (timeInput.value) {
+            updateAvailableTables();
+        } else {
+            // Mặc định disable nếu chưa có giờ
+            tableSelect.disabled = true;
+        }
 
         // --- 6. VALIDATE FORM SUBMIT ---
         const form = document.getElementById('datBanForm');
@@ -538,8 +555,8 @@
                 if (!input.disabled) tongCombo += parseInt(input.value) || 0;
             });
 
-            // Logic chặn: Nếu Tổng combo < Tổng người
-            if (tongCombo < tongNguoi) {
+            // Logic chặn: Chỉ khi ĐÃ CHỌN combo mà số lượng không khớp với tổng người mới báo lỗi
+            if (tongCombo > 0 && tongCombo < tongNguoi) {
                 e.preventDefault(); // Chặn gửi
                 showModal(tongNguoi, tongCombo); // Hiện Modal Custom
 
@@ -547,6 +564,7 @@
                 const comboArea = document.getElementById('combo-selection-container');
                 comboArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
+            // Nếu tongCombo == 0, form sẽ submit bình thường
         });
     });
 </script>

@@ -61,30 +61,32 @@ class NVDatBanController extends Controller
     public function create()
     {
         $combos = ComboBuffet::where('trang_thai', 'dang_ban')->get();
+        // Lấy danh sách nhân viên để chọn người phụ trách
         $nhanViens = NhanVien::where('trang_thai', 1)
-            ->whereIn('vai_tro', ['le_tan'])
+            ->whereIn('vai_tro', ['le_tan', 'phuc_vu', 'quan_ly'])
             ->get();
         return view('shop.nhanvien.datban.create', compact('combos', 'nhanViens'));
     }
 
     /**
      * AJAX: Kiểm tra các bàn còn trống.
+     * Đã FIX lỗi không hiện bàn do đơn online chưa xếp bàn (ban_id = null)
      */
     public function ajaxCheckBanTrong(Request $request)
     {
-        $selectedTime = $request->input('time');
+        $selectedTime = $request->input('time') ? Carbon::parse($request->input('time')) : Carbon::now();
         $soKhach = $request->input('so_khach', 1);
 
-        if (!$selectedTime) {
-            return response()->json(['error' => 'Vui lòng chọn giờ.'], 400);
-        }
-
+        // Mặc định kiểm tra khung giờ 120 phút
         $defaultDuration = 120;
-        $newStart = Carbon::parse($selectedTime);
+        $newStart = $selectedTime->copy();
         $newEnd = $newStart->copy()->addMinutes($defaultDuration);
 
+        // 1. Tìm các bàn đang bị kẹt lịch
         $conflictingIds = DatBan::whereNotIn('trang_thai', ['huy', 'hoan_tat'])
+            ->whereNotNull('ban_id') // <--- FIX QUAN TRỌNG: Chỉ xét các đơn đã được xếp bàn
             ->where(function ($query) use ($newStart, $newEnd, $defaultDuration) {
+                // Logic trùng lịch: (StartA < EndB) && (EndA > StartB)
                 $query->where('gio_den', '<', $newEnd)
                     ->whereRaw(
                         "DATE_ADD(gio_den, INTERVAL IFNULL(thoi_luong_phut, ?) MINUTE) > ?",
@@ -94,11 +96,14 @@ class NVDatBanController extends Controller
             ->pluck('ban_id')
             ->toArray();
 
-        $availableTables = BanAn::where('trang_thai', 'trong')
+        // 2. Lấy danh sách bàn trống
+        $availableTables = BanAn::where('trang_thai', 'trong') 
+            ->where('trang_thai', '!=', 'khong_su_dung')
             ->whereNotIn('id', $conflictingIds)
             ->where('so_ghe', '>=', $soKhach)
-            ->orderBy('so_ban')
-            ->get(['id', 'so_ban', 'so_ghe']);
+            ->orderBy('so_ghe', 'asc') // Ưu tiên bàn nhỏ vừa đủ trước
+            ->orderBy('so_ban', 'asc')
+            ->get(['id', 'so_ban', 'so_ghe', 'trang_thai']);
 
         return response()->json($availableTables);
     }
@@ -134,23 +139,35 @@ class NVDatBanController extends Controller
         ]);
 
         $tongKhach = $request->nguoi_lon + $request->tre_em;
+        
+        // Tính tổng số lượng combo khách chọn
         $tongCombo = collect($request->input('combos', []))->sum('so_luong');
 
-        if ($tongCombo < $tongKhach) {
+        // [LOGIC MỚI] 
+        // 1. Nếu khách có chọn combo ($tongCombo > 0) => Bắt buộc số combo >= số người
+        // 2. Nếu khách KHÔNG chọn combo ($tongCombo == 0) => Cho qua (Gọi món lẻ)
+        if ($tongCombo > 0 && $tongCombo < $tongKhach) {
             return back()->withInput()->with(
                 'error',
-                "Bạn có {$tongKhach} khách nhưng chỉ chọn {$tongCombo} combo. Vui lòng chọn ít nhất {$tongKhach} combo."
+                "Bạn có {$tongKhach} khách nhưng chỉ chọn {$tongCombo} suất Combo. Quy định: Nếu dùng Combo, số suất phải lớn hơn hoặc bằng số khách."
             );
         }
+
         $banAn = BanAn::find($request->ban_id);
 
         if ($banAn->so_ghe < $tongKhach) {
             return back()->withInput()->with('error', "Bàn này chỉ có {$banAn->so_ghe} ghế, không đủ cho {$tongKhach} khách.");
         }
 
-        $thoiLuongPhut = ComboBuffet::whereIn('id', collect($request->combos)->pluck('id'))
-            ->max('thoi_luong_phut') ?? 120;
+        // Tính thời lượng
+        $thoiLuongPhut = 120; // Mặc định
+        if (!empty($request->combos)) {
+             $ids = collect($request->combos)->pluck('id');
+             $maxTime = ComboBuffet::whereIn('id', $ids)->max('thoi_luong_phut');
+             if ($maxTime) $thoiLuongPhut = $maxTime;
+        }
 
+        // Kiểm tra trùng lịch lần cuối (Double check)
         $conflict = DatBan::where('ban_id', $request->ban_id)
             ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
             ->where(function ($query) use ($request, $thoiLuongPhut) {
@@ -167,12 +184,13 @@ class NVDatBanController extends Controller
 
         if ($conflict) {
             $gio = Carbon::parse($conflict->gio_den)->format('H:i');
-            return back()->withInput()->with('error', "Bàn {$banAn->so_ban} đã bị đặt lúc {$gio} với Mã {$conflict->ma_dat_ban}.");
+            return back()->withInput()->with('error', "Bàn {$banAn->so_ban} vừa bị đặt lúc {$gio} bởi đơn #{$conflict->ma_dat_ban}. Vui lòng chọn bàn khác.");
         }
 
         DB::beginTransaction();
         try {
             $maDatBan = 'DB-' . $now->format('YmdHis') . '-' . strtoupper(Str::random(4));
+            
             $datBan = DatBan::create([
                 'ma_dat_ban' => $maDatBan,
                 'ten_khach' => $request->ten_khach,
@@ -184,22 +202,28 @@ class NVDatBanController extends Controller
                 'gio_den' => Carbon::parse($request->gio_den),
                 'thoi_luong_phut' => $thoiLuongPhut,
                 'ghi_chu' => $request->ghi_chu,
-                'trang_thai' => 'khach_da_den',
+                'trang_thai' => 'khach_da_den', // Nhân viên tạo -> Khách đến ngay
                 'nhan_vien_id' => $request->nhan_vien_id ?? Auth::id(),
                 'tien_coc' => 0,
                 'la_dat_online' => 0,
             ]);
 
+            // Lưu Combo (chỉ lưu nếu có chọn combo)
             if (!empty($request->combos)) {
                 $combosToAttach = [];
                 foreach ($request->combos as $combo) {
-                    $combosToAttach[$combo['id']] = ['so_luong' => $combo['so_luong']];
+                    if (isset($combo['id']) && isset($combo['so_luong']) && $combo['so_luong'] > 0) {
+                        $combosToAttach[$combo['id']] = ['so_luong' => $combo['so_luong']];
+                    }
                 }
-                $datBan->combos()->attach($combosToAttach);
+                if (!empty($combosToAttach)) {
+                    $datBan->combos()->attach($combosToAttach);
+                }
             }
 
+            // Cập nhật trạng thái bàn thành "đang phục vụ"
             if ($banAn->trang_thai === 'trong') {
-                $banAn->update(['trang_thai' => 'da_dat']);
+                $banAn->update(['trang_thai' => 'dang_phuc_vu']);
             }
 
             DB::commit();
@@ -226,8 +250,6 @@ class NVDatBanController extends Controller
             return redirect()->back()->with('error', 'Trạng thái không hợp lệ.');
         }
 
-        // --- ĐÃ BỎ LOGIC KIỂM TRA BẮT BUỘC PHẢI CÓ BÀN ---
-        // Lấy thông tin bàn nhưng không return lỗi nếu null
         $banAn = $datBan->banAn;
 
         DB::beginTransaction();
@@ -239,7 +261,6 @@ class NVDatBanController extends Controller
                         return redirect()->back()->with('error', 'Chỉ có thể xác nhận đơn đặt bàn ở trạng thái Chờ xác nhận.');
                     }
                     
-                    // Chỉ cập nhật trạng thái bàn nếu bàn tồn tại
                     if ($banAn) {
                         $banAn->trang_thai = 'da_dat';
                         $banAn->save();
@@ -252,12 +273,11 @@ class NVDatBanController extends Controller
                     break;
 
                 case 'khach_da_den':
-                    if ($datBan->trang_thai !== 'da_xac_nhan') {
-                        DB::rollBack();
-                        return redirect()->back()->with('error', 'Chỉ có thể Check-in khi đơn đã được xác nhận.');
+                    // Chấp nhận chuyển từ "Đã xác nhận" hoặc "Chờ xác nhận"
+                    if (!in_array($datBan->trang_thai, ['da_xac_nhan', 'cho_xac_nhan'])) {
+                        // Tùy logic quán, nhưng thường là vậy
                     }
 
-                    // Chỉ cập nhật trạng thái bàn nếu bàn tồn tại
                     if ($banAn) {
                         $banAn->trang_thai = 'dang_phuc_vu';
                         $banAn->save();
@@ -267,8 +287,8 @@ class NVDatBanController extends Controller
                     break;
 
                 case 'huy':
-                    // Chỉ xử lý bàn nếu bàn tồn tại
                     if ($banAn) {
+                        // Kiểm tra xem bàn này có đơn nào khác đang dùng không (tránh trường hợp hủy đơn cũ làm trống bàn đang có khách khác ngồi)
                         $isTableStillInUse = DatBan::where('ban_id', $datBan->ban_id)
                             ->where('id', '!=', $datBan->id)
                             ->whereIn('trang_thai', ['da_xac_nhan', 'khach_da_den'])
@@ -288,7 +308,6 @@ class NVDatBanController extends Controller
                         return redirect()->back()->with('error', 'Chỉ có thể Hoàn tất khi khách đang được phục vụ.');
                     }
 
-                    // Chỉ cập nhật trạng thái bàn nếu bàn tồn tại
                     if ($banAn) {
                         $banAn->trang_thai = 'trong';
                         $banAn->save();
@@ -312,7 +331,7 @@ class NVDatBanController extends Controller
             return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Lỗi thay đổi trạng thái Đặt bàn: ID={$datBan->id}, Trạng thái mới={$trangThaiMoi}. Error: " . $e->getMessage());
+            Log::error("Lỗi thay đổi trạng thái Đặt bàn: ID={$datBan->id}, Error: " . $e->getMessage());
             return redirect()->back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
         }
     }

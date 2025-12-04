@@ -7,22 +7,24 @@ use App\Models\DatBan;
 use App\Models\BanAn;
 use App\Models\ComboBuffet;
 use App\Models\NhanVien;
-use App\Models\ChiTietDatBan; // Lưu ý: Đảm bảo Model này map đúng với bảng 'dat_ban_combo' trong SQL
+use App\Models\ChiTietDatBan; // Đảm bảo Model này đã map đúng bảng 'dat_ban_combo'
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 
 class DatBanController extends Controller
 {
-    // ... (Giữ nguyên hàm index) ...
+    /**
+     * Danh sách đặt bàn
+     */
     public function index(Request $request)
     {
         try {
             $query = DatBan::with(['chiTietDatBan.combo', 'banAn', 'nhanVien']);
 
+            // Tìm kiếm
             if ($request->filled('q')) {
                 $keyword = trim($request->q);
                 $query->where(function ($q) use ($keyword) {
@@ -31,12 +33,15 @@ class DatBanController extends Controller
                         ->orWhere('sdt_khach', 'LIKE', "%$keyword%");
                 });
             }
+            // Lọc trạng thái
             if ($request->filled('status')) {
                 $query->where('trang_thai', $request->status);
             }
+            // Lọc theo bàn
             if ($request->filled('ban_id')) {
                 $query->where('ban_id', $request->ban_id);
             }
+            // Lọc ngày
             if ($request->filled('date_from')) {
                 $query->where('gio_den', '>=', Carbon::parse($request->date_from)->startOfDay());
             }
@@ -54,13 +59,15 @@ class DatBanController extends Controller
         }
     }
 
-    // ... (Giữ nguyên hàm create) ...
+    /**
+     * Form tạo mới
+     */
     public function create()
     {
         try {
             $banAns = BanAn::where('trang_thai', '!=', 'khong_su_dung')->get();
             
-            // Lấy danh sách LOẠI COMBO duy nhất
+            // Lấy danh sách loại combo để hiển thị ra view
             $loaiCombos = ComboBuffet::where('trang_thai', 'dang_ban')
                 ->select('loai_combo', 'gia_co_ban')
                 ->groupBy('loai_combo', 'gia_co_ban')
@@ -74,52 +81,70 @@ class DatBanController extends Controller
         }
     }
 
-    /** ===========================
-     * 3. LƯU DATA (STORE) - ĐÃ BỔ SUNG VALIDATE
-     * =========================== */
+    /**
+     * Xử lý lưu đặt bàn (Store)
+     */
     public function store(Request $request)
     {
-        // 1. Validate cơ bản
+        // 1. Validate: Cho phép combos là null
         $request->validate([
             'ten_khach' => 'required|string|max:255',
             'sdt_khach' => 'required|string|max:20',
+            'email_khach' => 'nullable|email|max:255',
             'nguoi_lon' => 'required|integer|min:1',
             'tre_em'    => 'nullable|integer|min:0',
             'ban_id'    => 'nullable|exists:ban_an,id',
             'gio_den'   => 'required|date',
             'combos'    => 'nullable|array', 
-            'combos.*.id' => 'required|exists:combo_buffet,id',
-            'combos.*.so_luong' => 'required|integer|min:0',
+            'combos.*.id' => 'nullable|exists:combo_buffet,id',
+            'combos.*.so_luong' => 'nullable|integer|min:0',
         ]);
 
-        // 2. [QUAN TRỌNG] Validate Logic: Tổng Combo >= Tổng Người
         $tongNguoi = $request->nguoi_lon + ($request->tre_em ?? 0);
+        $hasCombo = false; // Cờ kiểm tra xem khách có chọn combo không
         $tongCombo = 0;
+        
+        // Tính tổng combo khách chọn
         if ($request->filled('combos')) {
             foreach ($request->combos as $c) {
-                $tongCombo += (int)$c['so_luong'];
+                $qty = (int)($c['so_luong'] ?? 0);
+                if ($qty > 0) {
+                    $tongCombo += $qty;
+                    $hasCombo = true;
+                }
             }
         }
 
-        // Nếu tổng combo = 0 (chưa chọn) hoặc nhỏ hơn số người -> Chặn luôn
-        if ($tongCombo < $tongNguoi) {
-            return back()->with('error', "Lỗi: Tổng số suất Combo ($tongCombo) không được ít hơn tổng số người ($tongNguoi).")->withInput();
+        // 2. Logic: Chỉ chặn nếu CÓ chọn combo mà chọn thiếu suất
+        if ($hasCombo && $tongCombo < $tongNguoi) {
+            return back()->with('error', "Lỗi: Bạn đã chọn combo nhưng số suất ($tongCombo) ít hơn số người ($tongNguoi). Vui lòng chọn đủ hoặc để trống nếu chưa muốn chọn món.")->withInput();
         }
 
-        $duration = 120;
+        // 3. Xử lý thời lượng (Duration)
+        $duration = 120; // Mặc định 120 phút nếu không chọn combo
+        
+        if ($hasCombo) {
+            // Lấy thời lượng lớn nhất từ các combo đã chọn
+            $comboIds = array_column($request->combos, 'id');
+            $dbMaxDuration = ComboBuffet::whereIn('id', $comboIds)->max('thoi_luong_phut');
+            if ($dbMaxDuration) {
+                $duration = $dbMaxDuration;
+            }
+        }
+
         $newStart = Carbon::parse($request->gio_den);
 
-        // 3. Check trùng lịch
+        // 4. Check trùng lịch (Overlap Check)
         if ($request->ban_id) {
             $conflict = DatBan::where('ban_id', $request->ban_id)
-                ->whereNotIn('trang_thai', ['huy', 'hoan_tat'])
+                ->whereNotIn('trang_thai', ['huy', 'hoan_tat']) // Không tính đơn đã hủy/xong
                 ->whereBetween('gio_den', [
                     $newStart->copy()->subMinutes($duration - 1),
                     $newStart->copy()->addMinutes($duration - 1)
                 ])->first();
 
             if ($conflict) {
-                return back()->with('error', "Bàn đã có khách lúc " . Carbon::parse($conflict->gio_den)->format('H:i'))->withInput();
+                return back()->with('error', "Bàn đã có khách vào lúc " . Carbon::parse($conflict->gio_den)->format('H:i') . ". Vui lòng chọn bàn khác hoặc giờ khác.")->withInput();
             }
         }
 
@@ -136,17 +161,17 @@ class DatBanController extends Controller
                 'tre_em'    => $request->tre_em ?? 0,
                 'ban_id' => $request->ban_id,
                 'gio_den' => $request->gio_den,
-                'thoi_luong_phut' => $duration,
+                'thoi_luong_phut' => $duration, 
                 'tien_coc' => $request->tien_coc ?? 0,
                 'ghi_chu' => $request->ghi_chu,
                 'trang_thai' => 'cho_xac_nhan',
                 'la_dat_online' => 0,
             ]);
 
-            // Lưu Combo
-            if ($request->filled('combos')) {
+            // Chỉ lưu chi tiết combo nếu khách có chọn
+            if ($hasCombo) {
                 foreach ($request->combos as $item) {
-                    if ($item['so_luong'] > 0) { // Chỉ lưu những combo có số lượng > 0
+                    if (($item['so_luong'] ?? 0) > 0) {
                         ChiTietDatBan::create([
                             'dat_ban_id' => $datBan->id,
                             'combo_id'   => $item['id'],
@@ -165,7 +190,9 @@ class DatBanController extends Controller
         }
     }
 
-    // ... (Giữ nguyên hàm edit, show, destroy, updateStatus, ajaxGetAvailableTables) ...
+    /**
+     * Chi tiết đặt bàn
+     */
     public function show($id) {
         try {
             $datBan = DatBan::with(['banAn', 'chiTietDatBan.combo', 'nhanVien'])->findOrFail($id);
@@ -175,6 +202,9 @@ class DatBanController extends Controller
         }
     }
 
+    /**
+     * Form chỉnh sửa (Đây là hàm bạn bị thiếu trước đó)
+     */
     public function edit($id)
     {
         try {
@@ -191,6 +221,7 @@ class DatBanController extends Controller
                 ->orderBy('gia_co_ban', 'asc')
                 ->get();
 
+            // Logic lấy combo hiện tại để fill vào form
             $currentLoaiCombo = null;
             if ($datBan->chiTietDatBan->count() > 0) {
                 $firstDetail = $datBan->chiTietDatBan->first();
@@ -208,10 +239,14 @@ class DatBanController extends Controller
 
             return view('admins.dat-ban.edit', compact('datBan', 'banAns', 'loaiCombos', 'currentLoaiCombo', 'combosOfCurrentType'));
         } catch (\Exception $e) {
+            Log::error("Lỗi edit: " . $e->getMessage());
             return redirect()->route('admin.dat-ban.index')->with('error', 'Lỗi tải đơn.');
         }
     }
 
+    /**
+     * Cập nhật đặt bàn (Update)
+     */
     public function update(Request $request, $id)
     {
         $datBan = DatBan::findOrFail($id);
@@ -219,28 +254,44 @@ class DatBanController extends Controller
         $request->validate([
             'ten_khach' => 'required|string|max:255',
             'sdt_khach' => 'required|string|max:20',
+            'email_khach' => 'nullable|email|max:255',
             'nguoi_lon' => 'required|integer|min:1',
+            'tre_em'    => 'nullable|integer|min:0',
             'gio_den'   => 'required|date',
             'combos'    => 'nullable|array',
-            'combos.*.id' => 'required|exists:combo_buffet,id',
-            'combos.*.so_luong' => 'required|integer|min:0',
+            'combos.*.id' => 'nullable|exists:combo_buffet,id',
+            'combos.*.so_luong' => 'nullable|integer|min:0',
         ]);
 
-        // Validate Tổng Combo Backend
         $tongNguoi = $request->nguoi_lon + ($request->tre_em ?? 0);
+        $hasCombo = false;
         $tongCombo = 0;
+
         if ($request->filled('combos')) {
             foreach ($request->combos as $c) {
-                $tongCombo += (int)$c['so_luong'];
+                $qty = (int)($c['so_luong'] ?? 0);
+                if ($qty > 0) {
+                    $tongCombo += $qty;
+                    $hasCombo = true;
+                }
             }
         }
-        if ($tongCombo < $tongNguoi) {
+
+        if ($hasCombo && $tongCombo < $tongNguoi) {
             return back()->with('error', "Lỗi: Tổng số suất Combo ($tongCombo) không được ít hơn tổng số người ($tongNguoi).")->withInput();
         }
 
+        // Tính lại thời lượng
         $duration = 120;
+        if ($hasCombo) {
+            $comboIds = array_column($request->combos, 'id');
+            $dbMaxDuration = ComboBuffet::whereIn('id', $comboIds)->max('thoi_luong_phut');
+            if ($dbMaxDuration) $duration = $dbMaxDuration;
+        }
+
         $newStart = Carbon::parse($request->gio_den);
 
+        // Check trùng lịch (Trừ chính đơn này ra)
         if ($request->ban_id) {
             $conflict = DatBan::where('ban_id', $request->ban_id)
                 ->where('id', '!=', $id)
@@ -251,7 +302,7 @@ class DatBanController extends Controller
                 ])->first();
 
             if ($conflict) {
-                return back()->with('error', "Bàn bị trùng giờ.")->withInput();
+                return back()->with('error', "Bàn bị trùng giờ với đơn khác.")->withInput();
             }
         }
 
@@ -265,14 +316,17 @@ class DatBanController extends Controller
                 'tre_em'    => $request->tre_em ?? 0,
                 'ban_id' => $request->ban_id,
                 'gio_den' => $request->gio_den,
+                'thoi_luong_phut' => $duration,
                 'tien_coc' => $request->tien_coc ?? 0,
                 'ghi_chu' => $request->ghi_chu,
             ]);
 
+            // Xóa hết combo cũ của đơn này và thêm mới (nếu có)
             ChiTietDatBan::where('dat_ban_id', $id)->delete();
-            if ($request->filled('combos')) {
+            
+            if ($hasCombo) {
                 foreach ($request->combos as $item) {
-                    if ($item['so_luong'] > 0) {
+                    if (($item['so_luong'] ?? 0) > 0) {
                         ChiTietDatBan::create([
                             'dat_ban_id' => $datBan->id,
                             'combo_id'   => $item['id'],
@@ -291,8 +345,10 @@ class DatBanController extends Controller
         }
     }
 
+    /**
+     * Xóa đặt bàn
+     */
     public function destroy($id) {
-        // ... (Code cũ của bạn) ...
         try {
             $datBan = DatBan::findOrFail($id);
             if ($datBan->trang_thai == 'khach_da_den') {
@@ -305,21 +361,26 @@ class DatBanController extends Controller
         }
     }
 
+    /**
+     * AJAX: Cập nhật trạng thái nhanh
+     */
     public function updateStatus(Request $request, $id) {
-        // ... (Code cũ của bạn) ...
-        // Nhớ validate và update
         $datBan = DatBan::findOrFail($id);
         $datBan->update(['trang_thai' => $request->trang_thai_moi]);
         return back()->with('success', 'Cập nhật trạng thái thành công!');
     }
 
+    /**
+     * AJAX: Lấy danh sách bàn trống theo giờ
+     */
     public function ajaxGetAvailableTables(Request $request) {
         $selectedTime = $request->input('time');
         $excludeBookingId = $request->input('exclude_booking_id', 0);
 
         if (!$selectedTime) return response()->json([]);
 
-        $duration = 120;
+        // Mặc định check theo 120 phút nếu chưa biết combo
+        $duration = 120; 
         $newStart = Carbon::parse($selectedTime);
 
         $conflictingIds = DatBan::whereNotIn('trang_thai', ['huy', 'hoan_tat'])
@@ -333,20 +394,18 @@ class DatBanController extends Controller
 
         $availableTables = BanAn::where('trang_thai', '!=', 'khong_su_dung')
             ->whereNotIn('id', $conflictingIds)
-            ->with('khuVuc') // Eager load khu vực để hiển thị tên
+            ->with('khuVuc')
             ->get();
 
         return response()->json($availableTables);
     }
 
-    /** ===========================
-     * [FIX LỖI] AJAX: LẤY DANH SÁCH COMBO
-     * =========================== */
+    /**
+     * AJAX: Lấy combo theo loại (99k, 199k...)
+     */
     public function ajaxGetCombosByLoai(Request $request)
     {
         $loai = $request->input('loai_combo');
-        
-        // [FIX] Luôn trả về JSON rỗng thay vì HTML để JS không bị lỗi
         if (!$loai) {
             return response()->json(['combos' => []]);
         }

@@ -5,12 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-
 class ChiTietDatBan extends Model
 {
     use HasFactory;
 
-    // Tên bảng trong Database (khớp với lệnh SQL create table dat_ban_combo)
+    // QUAN TRỌNG: Map đúng tên bảng trong database
     protected $table = 'dat_ban_combo';
 
     protected $fillable = [
@@ -35,12 +34,8 @@ class ChiTietDatBan extends Model
         return $this->belongsTo(DatBan::class, 'dat_ban_id', 'id');
     }
 
-
-
-
     /**
-     * (Tùy chọn) Alias: Giữ lại hàm này nếu code cũ của bạn có chỗ nào lỡ gọi ->comboBuffet
-     * Nó sẽ trỏ về hàm combo ở trên.
+     * Alias: Hỗ trợ code cũ nếu lỡ gọi $detail->comboBuffet
      */
     public function comboBuffet()
     {
