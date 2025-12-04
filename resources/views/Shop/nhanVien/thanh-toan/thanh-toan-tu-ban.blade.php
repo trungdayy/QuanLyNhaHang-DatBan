@@ -838,6 +838,50 @@ document.addEventListener('DOMContentLoaded', function() {
         const vnpayRadio = document.getElementById('vnpay');
         if(vnpayRadio.checked){
             e.preventDefault();
+            
+            // Lấy tổng tiền từ element
+            let tongTien = 0;
+            const tongTienTuBangElement = document.getElementById('tongTienTuBang');
+            if (tongTienTuBangElement) {
+                const tongTienFromData = tongTienTuBangElement.getAttribute('data-tong-tien');
+                if (tongTienFromData) {
+                    tongTien = parseFloat(tongTienFromData);
+                }
+            }
+            
+            // Lấy tổng tiền sau voucher nếu có
+            const tongTienSauVoucherElement = document.getElementById('tongTienSauVoucher');
+            if (tongTienSauVoucherElement && tongTienSauVoucherElement.textContent.trim() !== '0 đ') {
+                const tongTienSauVoucherText = tongTienSauVoucherElement.textContent.replace(/[^\d]/g, '');
+                if (tongTienSauVoucherText && tongTienSauVoucherText.length > 0) {
+                    tongTien = parseInt(tongTienSauVoucherText);
+                }
+            }
+            
+            // Lấy tiền cọc
+            const tienCoc = parseFloat(document.getElementById('tienCoc')?.value || 0);
+            
+            // Tính phải thanh toán
+            const phaiThanhToanElement = document.getElementById('phaiThanhToan');
+            let phaiThanhToan = tongTien - tienCoc;
+            if (phaiThanhToanElement) {
+                const phaiThanhToanText = phaiThanhToanElement.textContent.replace(/[^\d]/g, '');
+                if (phaiThanhToanText && phaiThanhToanText.length > 0) {
+                    phaiThanhToan = parseInt(phaiThanhToanText);
+                }
+            }
+            
+            // Thêm input hidden cho tổng tiền
+            let tongTienInput = document.getElementById('tong_tien_hidden');
+            if (!tongTienInput) {
+                tongTienInput = document.createElement('input');
+                tongTienInput.type = 'hidden';
+                tongTienInput.name = 'tong_tien';
+                tongTienInput.id = 'tong_tien_hidden';
+                this.appendChild(tongTienInput);
+            }
+            tongTienInput.value = phaiThanhToan > 0 ? phaiThanhToan : tongTien;
+            
             // Gửi form qua route VNPay
             this.action = '{{ route("nhanVien.thanh-toan.vnpay.payment", $ban->id) }}';
             this.submit();

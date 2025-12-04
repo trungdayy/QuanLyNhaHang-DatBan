@@ -95,8 +95,13 @@ class ThanhToanController extends Controller
             ->whereRaw('so_luong > so_luong_da_dung')
             ->get();
 
+        // Kiểm tra xem VNPay đã được cấu hình chưa
+        $vnp_TmnCode = config('services.vnpay.tmn_code') ?: env('VNP_TMNCODE');
+        $vnp_HashSecret = config('services.vnpay.hash_secret') ?: env('VNP_HASHSECRET');
+        $vnpayConfigured = !empty($vnp_TmnCode) && !empty($vnp_HashSecret);
+        
         return view('Shop.nhanVien.thanh-toan.thanh-toan-tu-ban', compact(
-            'ban', 'datBan', 'tongTienOrder', 'tienCoc', 'vouchers', 'gioVao', 'gioRa', 'thoiGianPhucVu', 'phuThuTuDong'
+            'ban', 'datBan', 'tongTienOrder', 'tienCoc', 'vouchers', 'gioVao', 'gioRa', 'thoiGianPhucVu', 'phuThuTuDong', 'vnpayConfigured'
         ));
     }
 
@@ -759,10 +764,86 @@ class ThanhToanController extends Controller
     public function vnpayPayment(Request $request, $banId)
     {
         $ban = BanAn::findOrFail($banId);
-        $tongTien = $request->input('tong_tien'); // từ form hoặc tính lại
-        $vnp_TmnCode = env('VNP_TMNCODE'); // Merchant code
-        $vnp_HashSecret = env('VNP_HASHSECRET'); 
-        $vnp_Url = env('VNP_URL');
+        
+        // Tìm đặt bàn đang hoạt động
+        $datBan = DatBan::where('ban_id', $banId)
+            ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu', 'da_xac_nhan'])
+            ->with([
+                'chiTietDatBan.combo',
+                'orderMon.chiTietOrders.monAn'
+            ])
+            ->latest()
+            ->first();
+        
+        if (!$datBan) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Không tìm thấy đặt bàn!');
+        }
+        
+        // Lấy tổng tiền từ request hoặc tính lại
+        $tongTien = $request->input('tong_tien') ?? $request->input('tongTien');
+        
+        // Nếu không có trong request, tính lại từ datBan
+        if (!$tongTien || $tongTien <= 0) {
+            // Tính tiền combo với giảm 50% cho trẻ em
+            $tienComboChinh = 0;
+            $soTreEm = $datBan->tre_em ?? 0;
+            $soNguoiDaXuLy = 0;
+            foreach ($datBan->chiTietDatBan as $chiTiet) {
+                if ($chiTiet->combo) {
+                    $giaComboGoc = $chiTiet->combo->gia_co_ban ?? 0;
+                    $soLuongCombo = $chiTiet->so_luong ?? 1;
+                    
+                    // Tính số người được giảm giá
+                    $soNguoiDuocGiam = 0;
+                    if($soTreEm > 0 && $soNguoiDaXuLy < $soTreEm) {
+                        $soTreEmConLai = $soTreEm - $soNguoiDaXuLy;
+                        $soNguoiDuocGiam = min($soTreEmConLai, $soLuongCombo);
+                    }
+                    
+                    $soNguoiKhongGiam = $soLuongCombo - $soNguoiDuocGiam;
+                    $thanhTienCombo = ($giaComboGoc * 0.5 * $soNguoiDuocGiam) + ($giaComboGoc * $soNguoiKhongGiam);
+                    $tienComboChinh += $thanhTienCombo;
+                    $soNguoiDaXuLy += $soLuongCombo;
+                }
+            }
+            
+            $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
+            $tongTien = $tienComboChinh + $tongTienMonGoiThem;
+        }
+        
+        // Lấy cấu hình VNPay từ config hoặc env
+        // Đọc từ nhiều nguồn để đảm bảo đọc được
+        $vnp_TmnCode = config('services.vnpay.tmn_code');
+        $vnp_HashSecret = config('services.vnpay.hash_secret'); 
+        $vnp_Url = config('services.vnpay.url');
+        
+        // Fallback: đọc trực tiếp từ env nếu config không có
+        if (empty($vnp_TmnCode)) {
+            $vnp_TmnCode = env('VNP_TMNCODE');
+        }
+        if (empty($vnp_HashSecret)) {
+            $vnp_HashSecret = env('VNP_HASHSECRET');
+        }
+        if (empty($vnp_Url)) {
+            $vnp_Url = env('VNP_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
+        }
+        
+        // Kiểm tra các biến môi trường VNPay (chỉ kiểm tra TMN_CODE và HASH_SECRET, URL có giá trị mặc định)
+        if (empty($vnp_TmnCode) || empty($vnp_HashSecret)) {
+            return redirect()
+                ->route('nhanVien.thanh-toan.ban', $banId)
+                ->with('error', 'Cấu hình VNPay chưa đầy đủ. Vui lòng kiểm tra file .env có các biến: VNP_TMNCODE, VNP_HASHSECRET. Sau đó chạy: php artisan config:clear và restart server');
+        }
+        
+        // Đảm bảo VNP_URL có protocol
+        $vnp_Url = trim($vnp_Url);
+        if (!preg_match('/^https?:\/\//', $vnp_Url)) {
+            $vnp_Url = 'https://' . ltrim($vnp_Url, '/');
+        }
+        $vnp_Url = rtrim($vnp_Url, '/');
+        
         $vnp_Returnurl = route('nhanVien.thanh-toan.vnpay.callback', ['banId' => $banId]);
 
         $vnp_TxnRef = time(); // mã giao dịch duy nhất
