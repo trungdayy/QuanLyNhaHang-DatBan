@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\NhanVien; // Cần import Model NhanVien
 
 class LoginController extends Controller
 {
@@ -28,7 +30,7 @@ class LoginController extends Controller
             }
         }
         
-        // Trả về view login
+        // Trả về view login (bao gồm cả form Đăng nhập và Đăng ký)
         return view('auth.login'); 
     }
 
@@ -45,7 +47,7 @@ class LoginController extends Controller
 
         // 2. Chuẩn bị thông tin đăng nhập. 
         // Key 'password' được yêu cầu bởi Auth::attempt, nhưng sẽ dùng cột 'mat_khau' 
-        // nhờ vào hàm getAuthPassword() trong Model NhanVien.
+        // nhờ vào hàm getAuthPassword() trong Model NhanVien (cần phải được định nghĩa).
         $credentials = [
             'email' => $request->email,
             'password' => $request->mat_khau 
@@ -85,9 +87,58 @@ class LoginController extends Controller
     }
 
     /**
+     * Xử lý đăng ký nhân viên mới (Phục vụ hoặc Bếp).
+     * Yêu cầu các trường: ho_ten, sdt, email, mat_khau, mat_khau_confirmation, vai_tro.
+     */
+    public function storeNhanVien(Request $request)
+    {
+        // 1. Validate dữ liệu đầu vào
+        $request->validate([
+            'ho_ten' => 'required|string|max:255',
+            'sdt' => 'required|string|max:20',
+            'email' => 'required|string|email|max:255|unique:nhan_vien,email',
+            'mat_khau' => 'required|string|min:6|confirmed', // min:6 cho dễ test, bạn có thể đổi thành min:8
+            'vai_tro' => 'required|in:phuc_vu,bep', // Chỉ cho phép đăng ký vai trò phục vụ hoặc bếp
+        ], [
+            'ho_ten.required' => 'Họ và tên là bắt buộc.',
+            'sdt.required' => 'Số điện thoại là bắt buộc.',
+            'email.required' => 'Email là bắt buộc.',
+            'email.email' => 'Email không đúng định dạng.',
+            'email.unique' => 'Email này đã được sử dụng.',
+            'mat_khau.required' => 'Mật khẩu là bắt buộc.',
+            'mat_khau.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'mat_khau.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'vai_tro.required' => 'Vai trò là bắt buộc.',
+            'vai_tro.in' => 'Vai trò được chọn không hợp lệ.',
+        ]);
+
+        try {
+            // 2. Hash mật khẩu trước khi lưu vào DB
+            $hashedPassword = Hash::make($request->mat_khau);
+
+            // 3. Tạo và lưu nhân viên mới
+            $nhanVien = NhanVien::create([
+                'ho_ten' => $request->ho_ten,
+                'sdt' => $request->sdt,
+                'email' => $request->email,
+                'mat_khau' => $hashedPassword,
+                'vai_tro' => $request->vai_tro, 
+                'trang_thai' => 1, // Mặc định là đang làm
+            ]);
+
+            // 4. Chuyển hướng thành công về trang Đăng nhập
+            return redirect()->route('login')->with('success', 'Đăng ký thành công! Vui lòng Đăng nhập.');
+
+        } catch (\Exception $e) {
+            // Xử lý lỗi (ví dụ: lỗi DB, lỗi server)
+            return redirect()->back()->withInput()->withErrors(['error' => 'Đăng ký thất bại. Vui lòng thử lại.']);
+        }
+    }
+
+    /**
      * Xử lý đăng xuất.
      */
-public function logout(Request $request)
+    public function logout(Request $request)
     {
         // Xóa phiên đăng nhập
         Auth::logout();
@@ -98,7 +149,7 @@ public function logout(Request $request)
         // Tái tạo token CSRF
         $request->session()->regenerateToken();
         
-        // 🔥 ĐÃ SỬA: Chuyển hướng về trang Đăng nhập (login)
+        // Chuyển hướng về trang Đăng nhập (login)
         return redirect()->route('login'); 
     }
 }

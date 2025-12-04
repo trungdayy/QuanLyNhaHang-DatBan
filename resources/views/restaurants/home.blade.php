@@ -108,7 +108,7 @@
 {{-- =========================================================== --}}
 
 {{-- Service Start --}}
-<div class="container-xxl py-5">
+{{-- <div class="container-xxl py-5">
     <div class="container">
         <div class="row g-4">
             <div class="col-lg-3 col-sm-6 wow fadeInUp" data-wow-delay="0.1s">
@@ -149,7 +149,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> --}}
 {{-- Service End --}}
 
 {{-- About Start --}}
@@ -349,22 +349,128 @@
             <h5 class="section-title ff-secondary text-center text-primary fw-normal">Đội Ngũ</h5>
             <h1 class="mb-5">Đầu Bếp Của Chúng Tôi</h1>
         </div>
-        <div class="row g-4">
-            <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
-                <div class="team-item text-center rounded overflow-hidden">
-                    <div class="rounded-circle overflow-hidden m-4"><img class="img-fluid" src="{{ asset('assets/img/team-1.jpg') }}" alt=""></div>
-                    <h5 class="mb-0">Full Name</h5><small>Bếp Trưởng</small>
-                    <div class="d-flex justify-content-center mt-3">
-                        <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-facebook-f"></i></a>
-                        <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-twitter"></i></a>
-                        <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-instagram"></i></a>
+                <div class="row g-4">
+                    <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
+                        <div class="team-item text-center rounded overflow-hidden">
+                            <div class="rounded-circle overflow-hidden m-4">
+                                <img class="img-fluid" src="assets/img/team-1.jpg" alt="">
+                            </div>
+                            <h5 class="mb-0">Full Name</h5>
+                            <small>Designation</small>
+                            <div class="d-flex justify-content-center mt-3">
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-facebook-f"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-twitter"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-instagram"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
+                        <div class="team-item text-center rounded overflow-hidden">
+                            <div class="rounded-circle overflow-hidden m-4">
+                                <img class="img-fluid" src="assets/img/team-2.jpg" alt="">
+                            </div>
+                            <h5 class="mb-0">Full Name</h5>
+                            <small>Designation</small>
+                            <div class="d-flex justify-content-center mt-3">
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-facebook-f"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-twitter"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-instagram"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.5s">
+                        <div class="team-item text-center rounded overflow-hidden">
+                            <div class="rounded-circle overflow-hidden m-4">
+                                <img class="img-fluid" src="assets/img/team-3.jpg" alt="">
+                            </div>
+                            <h5 class="mb-0">Full Name</h5>
+                            <small>Designation</small>
+                            <div class="d-flex justify-content-center mt-3">
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-facebook-f"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-twitter"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-instagram"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.7s">
+                        <div class="team-item text-center rounded overflow-hidden">
+                            <div class="rounded-circle overflow-hidden m-4">
+                                <img class="img-fluid" src="assets/img/team-4.jpg" alt="">
+                            </div>
+                            <h5 class="mb-0">Full Name</h5>
+                            <small>Designation</small>
+                            <div class="d-flex justify-content-center mt-3">
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-facebook-f"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-twitter"></i></a>
+                                <a class="btn btn-square btn-primary mx-1" href=""><i class="fab fa-instagram"></i></a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            {{-- ... --}}
+    </div>
+</div>
+
+        <!-- Đánh giá khách hàng -->
+<div class="container-xxl py-5 wow fadeInUp" data-wow-delay="0.1s">
+    <div class="container">
+        <div class="text-center">
+            <h5 class="section-title ff-secondary text-center text-primary fw-normal">Phản hồi</h5>
+            <h1 class="mb-5">Khách Hàng Nói Gì Về Chúng Tôi</h1>
+        </div>
+        <div class="owl-carousel testimonial-carousel">
+            
+            {{-- FIX: Kiểm tra biến tồn tại trước khi dùng --}}
+            @if(isset($danhGias) && $danhGias->count() > 0)
+                @foreach($danhGias as $item)
+                <div class="testimonial-item bg-transparent border rounded p-4">
+                    <i class="fa fa-quote-left fa-2x text-primary mb-3"></i>
+                    
+                    {{-- Nội dung đánh giá --}}
+                    <p>{{ $item->noi_dung }}</p>
+                    
+                    <div class="d-flex align-items-center">
+                        {{-- Ảnh mặc định vì database không có cột ảnh --}}
+                        <img class="img-fluid flex-shrink-0 rounded-circle" 
+                             src="{{ asset('assets/img/testimonial-1.jpg') }}" 
+                             style="width: 50px; height: 50px; object-fit: cover;">
+                        
+                        <div class="ps-3">
+                            <h5 class="mb-1">{{ $item->ten_khach }}</h5>
+                            <small>{{ $item->nghe_nghiep ?? 'Thực khách' }}</small>
+                            
+                            {{-- Hiển thị sao --}}
+                            <div class="small text-warning mt-1">
+                                @for($i = 1; $i <= 5; $i++)
+                                    @if($i <= $item->so_sao)
+                                        <i class="fas fa-star"></i>
+                                    @else
+                                        <i class="far fa-star"></i>
+                                    @endif
+                                @endfor
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            @else
+                {{-- Hiển thị mẫu nếu chưa có dữ liệu --}}
+                <div class="testimonial-item bg-transparent border rounded p-4">
+                    <i class="fa fa-quote-left fa-2x text-primary mb-3"></i>
+                    <p>Dịch vụ tuyệt vời, đồ ăn ngon. Chắc chắn sẽ quay lại!</p>
+                    <div class="d-flex align-items-center">
+                        <img class="img-fluid flex-shrink-0 rounded-circle" src="{{ asset('assets/img/testimonial-1.jpg') }}" style="width: 50px; height: 50px;">
+                        <div class="ps-3">
+                            <h5 class="mb-1">Khách hàng mẫu</h5>
+                            <small>Thực khách</small>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
         </div>
     </div>
 </div>
+        <!-- Kết thúc đánh giá -->
 
 {{-- =========================================================== --}}
 {{-- 4. UI ẨN & JAVASCRIPT --}}

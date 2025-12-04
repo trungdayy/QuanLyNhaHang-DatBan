@@ -28,6 +28,7 @@ use App\Http\Controllers\Shop\NhanVien\NVDatBanController;
 use App\Http\Controllers\Shop\NhanVien\ThanhToanController;
 use App\Http\Controllers\Shop\Oderqr\OrderController;
 use App\Http\Controllers\Shop\Booking\BookingController;
+use App\Http\Controllers\Admin\DanhGiaController;
 
 
 // ==========================================================
@@ -37,13 +38,13 @@ use App\Http\Controllers\Shop\Booking\BookingController;
 Route::prefix('/')->group(function () {
 
     Route::controller(HomeController::class)->group(function () {
-        Route::get('/', 'index')->name('home'); 
-        Route::get('/gioi-thieu', 'about')->name('about'); 
+        Route::get('/', 'index')->name('home');
+        Route::get('/gioi-thieu', 'about')->name('about');
         Route::get('/dich-vu', 'service')->name('service');
         Route::get('/thuc-don', 'menu')->name('menu');
         Route::get('/lien-he', 'contact')->name('contact');
         Route::get('/doi-ngu', 'team')->name('team');
-        Route::get('/danh-gia', 'testimonial')->name('testimonial'); 
+        Route::get('/danh-gia', 'testimonial')->name('testimonial');
     });
 
     // Combos
@@ -54,7 +55,7 @@ Route::prefix('/')->group(function () {
     Route::resource('booking', BookingController::class)->except(['show']);
     Route::get('booking/success', [BookingController::class, 'success'])->name('booking.success');
     Route::get('booking/bans-by-khuvuc/{khu_vuc_id}', [BookingController::class, 'getBansByKhuVuc']);
-    
+
     // OTP
     Route::prefix('otp')->group(function () {
         Route::get('verify', [OtpController::class, 'showOtpForm'])->name('otp.form');
@@ -65,7 +66,7 @@ Route::prefix('/')->group(function () {
     // Thanh toán trực tuyến (Sau khi xác thực OTP)
     Route::get('booking/{booking_id}/payment-method', [BookingController::class, 'paymentMethod'])->name('booking.payment_method');
     Route::get('booking/{booking_id}/pay-cash', [BookingController::class, 'payCash'])->name('booking.pay_cash');
-    Route::get('booking/{booking_id}/pay-os', [BookingController::class, 'payOS'])->name('booking.pay_os'); 
+    Route::get('booking/{booking_id}/pay-os', [BookingController::class, 'payOS'])->name('booking.pay_os');
     Route::get('booking/{booking_id}/pay-vnpay', [BookingController::class, 'payVNPay'])->name('booking.pay_vnpay');
     Route::get('booking/{booking_id}/pay-vietqr', [BookingController::class, 'payVietQR'])->name('booking.pay_vietqr');
 
@@ -101,11 +102,11 @@ Route::get('/tong', function () {
 Route::get('/test-debug', function () {
     \Illuminate\Support\Facades\Cache::put('test_key', 'Cache Hoạt Động Ngon!', 60);
     $val = \Illuminate\Support\Facades\Cache::get('test_key');
-    
+
     $bans = \App\Models\BanAn::all();
     $dangGoi = [];
-    foreach($bans as $b) {
-        if(\Illuminate\Support\Facades\Cache::has('goi_nhan_vien_' . $b->id)) {
+    foreach ($bans as $b) {
+        if (\Illuminate\Support\Facades\Cache::has('goi_nhan_vien_' . $b->id)) {
             $dangGoi[] = "Bàn " . $b->so_ban . " (ID: " . $b->id . ") đang gọi";
         }
     }
@@ -118,10 +119,16 @@ Route::get('/test-debug', function () {
 
 
 // ==========================================================
-// ===== 3. AUTH ROUTES (ĐĂNG NHẬP / ĐĂNG XUẤT) =====
+// ===== 3. AUTH ROUTES (ĐĂNG NHẬP / ĐĂNG XUẤT/ĐĂNG KÍ) =====
 // ==========================================================
+
+
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('login', [LoginController::class, 'login']); 
+
+Route::post('login', [LoginController::class, 'login']);
+
+Route::post('/register-nhanvien', [LoginController::class, 'storeNhanVien'])->name('register.store');
+
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
 
@@ -137,7 +144,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
 
     // Quản lý menu và combo
     Route::resource('danh-muc', DanhMucController::class);
-    Route::resource('san-pham', SanPhamController::class); 
+    Route::resource('san-pham', SanPhamController::class);
     Route::resource('mon-trong-combo', MonTrongComboController::class);
     Route::resource('combo-buffet', ComboBuffetController::class);
 
@@ -146,6 +153,18 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
     Route::resource('order-mon', OrderMonController::class);
     Route::resource('hoa-don', HoaDonController::class);
     Route::resource('voucher', VoucherController::class)->except(['show']);
+
+    // Quản lý Đánh giá
+    Route::controller(DanhGiaController::class)->prefix('danh-gia')->name('danh-gia.')->group(function () {
+        // Danh sách đánh giá: admin.danh-gia.index
+        Route::get('/', 'index')->name('index');
+
+        // Duyệt/Ẩn đánh giá: admin.danh-gia.status
+        Route::get('/status/{id}/{status}', 'updateStatus')->name('status');
+
+        // Xóa đánh giá: admin.danh-gia.destroy
+        Route::delete('/{id}', 'destroy')->name('destroy');
+    });
 
     // Quản lý Nhân viên
     Route::prefix('nhan-vien')->name('nhan-vien.')->controller(NhanVienController::class)->group(function () {
@@ -203,7 +222,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
 
 // 4.2. NHÓM NHÂN VIÊN (Vai trò: phuc_vu, le_tan)
 Route::middleware(['auth', 'role:phuc_vu,le_tan'])->prefix('nhanVien')->name('nhanVien.')->group(function () {
-    
+
     // Quản lý bàn
     Route::prefix('ban-an')->name('ban-an.')->group(function () {
         Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
@@ -211,7 +230,7 @@ Route::middleware(['auth', 'role:phuc_vu,le_tan'])->prefix('nhanVien')->name('nh
         Route::get('/check-in-dattruoc/{id}', [NhanVienBanAnController::class, 'showCheckInForm'])->name('show-checkin-dattruoc');
         Route::post('/process-check-in', [NhanVienBanAnController::class, 'processCheckIn'])->name('process-checkin');
         Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
-        Route::get('check-notifications', [NhanVienBanAnController::class, 'checkNotifications'])->name('check_notif'); 
+        Route::get('check-notifications', [NhanVienBanAnController::class, 'checkNotifications'])->name('check_notif');
         Route::post('complete-support', [NhanVienBanAnController::class, 'completeSupport'])->name('complete_support');
     });
 

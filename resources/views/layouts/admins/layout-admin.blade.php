@@ -24,20 +24,21 @@
 <body onload="time()" class="app sidebar-mini rtl">
     <header class="app-header">
         <a class="app-sidebar__toggle" href="#" data-toggle="sidebar" aria-label="Hide Sidebar"></a>
-<ul class="app-nav">
-    {{-- Chỗ này có thể thêm thông báo hoặc icon khác --}}
+        <ul class="app-nav">
+            {{-- Chỗ này có thể thêm thông báo hoặc icon khác --}}
 
-    {{-- Thêm form Đăng Xuất --}}
-    <li>
-        <a class="app-nav__item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-            <i class='bx bx-log-out bx-rotate-180'></i> 
-        </a>
+            {{-- Thêm form Đăng Xuất --}}
+            <li>
+                <a class="app-nav__item" href="#"
+                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class='bx bx-log-out bx-rotate-180'></i>
+                </a>
 
-        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-            @csrf
-        </form>
-    </li>
-</ul>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
+            </li>
+        </ul>
     </header>
     <div class="app-sidebar__overlay" data-toggle="sidebar"></div>
     <aside class="app-sidebar">
@@ -127,6 +128,15 @@
                 </a>
             </li>
 
+            <li>
+                {{-- Thêm class active để sáng đèn khi đang ở trang này --}}
+                <a class="app-menu__item {{ request()->routeIs('admin.danh-gia.*') ? 'active' : '' }}"
+                    href="{{ route('admin.danh-gia.index') }}">
+                    {{-- Gợi ý: Đổi icon thành bx-star hoặc bx-message-square-detail cho hợp ngữ cảnh --}}
+                    <i class='app-menu__icon bx bx-star'></i>
+                    <span class="app-menu__label">Quản lý đánh giá</span>
+                </a>
+            </li>
             <li>
                 <a class="app-menu__item" href="{{ route('admin.ban-an.qr_tool') }}">
                     <i class='app-menu__icon bx bx-calendar-check'></i>
