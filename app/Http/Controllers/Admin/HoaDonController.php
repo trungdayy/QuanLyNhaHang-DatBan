@@ -14,8 +14,10 @@ class HoaDonController extends Controller
     {
         $query = HoaDon::with([
             'datBan.banAn',
-            'datBan.orderMon',
-            'voucher'
+            'datBan.chiTietDatBan.combo',
+            'datBan.orderMon.chiTietOrders.monAn',
+            'voucher',
+            'chiTietHoaDon'
         ])->latest();
 
         if ($request->filled('search')) {
@@ -118,10 +120,12 @@ class HoaDonController extends Controller
     public function show($id)
     {
         $hoaDon = HoaDon::with([
-            'datBan.banAn',
+            'datBan.banAn.khuVuc',
             'datBan.comboBuffet',
+            'datBan.chiTietDatBan.combo',
             'datBan.orderMon.chiTietOrders.monAn',
-            'voucher'
+            'voucher',
+            'chiTietHoaDon'
         ])->findOrFail($id);
 
         return view('admins.hoa-don.show', compact('hoaDon'));

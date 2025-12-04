@@ -14,6 +14,10 @@
 
                 @if(isset($chiTiet) && $chiTiet)
                     {{-- Hiển thị từ chi tiết hóa đơn --}}
+                    @php
+                        // Định nghĩa biến tổng cộng từ dữ liệu đã lưu
+                        $tongCong = $chiTiet->tong_tien_combo_mon ?? $hoaDon->tong_tien ?? 0;
+                    @endphp
                     <div class="row g-4">
                         {{-- Cột trái: Thông tin khách và bàn --}}
                         <div class="col-lg-4">
@@ -29,8 +33,8 @@
                                     <p class="mb-1"><strong>Số khách:</strong><br><span class="badge bg-info">{{ $chiTiet->so_khach ?? 'N/A' }} người</span></p>
                                     <p class="mb-0">
                                         <small class="text-muted">
-                                            - Người lớn: <strong>{{ $hoaDon->datBan->nguoi_lon ?? 0 }}</strong> người<br>
-                                            - Trẻ em: <strong>{{ $hoaDon->datBan->tre_em ?? 0 }}</strong> người
+                                            - Người lớn: <strong>{{ $chiTiet->nguoi_lon ?? $hoaDon->datBan->nguoi_lon ?? 0 }}</strong> người<br>
+                                            - Trẻ em: <strong>{{ $chiTiet->tre_em ?? $hoaDon->datBan->tre_em ?? 0 }}</strong> người
                                         </small>
                                     </p>
                                 </div>
@@ -168,7 +172,7 @@
                                         </h6>
                                         <p class="mb-1"><strong>Giá combo:</strong> {{ number_format($chiTiet->gia_combo_per_person) }} đ/người</p>
                                         <p class="mb-1"><strong>Số khách:</strong> {{ $chiTiet->so_khach }} người 
-                                            <small class="text-muted">(Người lớn: {{ $hoaDon->datBan->nguoi_lon ?? 0 }}, Trẻ em: {{ $hoaDon->datBan->tre_em ?? 0 }})</small>
+                                            <small class="text-muted">(Người lớn: {{ $chiTiet->nguoi_lon ?? $hoaDon->datBan->nguoi_lon ?? 0 }}, Trẻ em: {{ $chiTiet->tre_em ?? $hoaDon->datBan->tre_em ?? 0 }})</small>
                                         </p>
                                         <p class="mb-0 mt-2"><strong>Thành tiền combo:</strong> 
                                             <span class="text-danger fw-bold fs-5">{{ number_format($chiTiet->tong_tien_combo) }} đ</span>
@@ -515,41 +519,10 @@
                                                 
                                                 {{-- Tổng kết --}}
                                                 @php
-                                                    // Tính lại tổng tiền combo từ chiTietDatBan với logic giảm 50% cho trẻ em
-                                                    $tongTienComboTinhLai = 0;
-                                                    $soTreEm = $hoaDon->datBan->tre_em ?? 0;
-                                                    $soNguoiDaXuLy = 0; // Đếm số người đã xử lý
-                                                    if($hoaDon->datBan->chiTietDatBan && $hoaDon->datBan->chiTietDatBan->count() > 0) {
-                                                        foreach($hoaDon->datBan->chiTietDatBan as $chiTietCombo) {
-                                                            if($chiTietCombo->combo) {
-                                                                $giaComboGoc = $chiTietCombo->combo->gia_co_ban ?? 0;
-                                                                $soLuongCombo = $chiTietCombo->so_luong ?? 1;
-                                                                
-                                                                // Tính số người được giảm giá trong combo này
-                                                                $soNguoiDuocGiam = 0;
-                                                                if($soTreEm > 0 && $soNguoiDaXuLy < $soTreEm) {
-                                                                    // Số người được giảm = min(số trẻ em còn lại, số lượng combo này)
-                                                                    $soTreEmConLai = $soTreEm - $soNguoiDaXuLy;
-                                                                    $soNguoiDuocGiam = min($soTreEmConLai, $soLuongCombo);
-                                                                }
-                                                                
-                                                                // Tính thành tiền: người được giảm giá + người không giảm giá
-                                                                $soNguoiKhongGiam = $soLuongCombo - $soNguoiDuocGiam;
-                                                                $thanhTienCombo = ($giaComboGoc * 0.5 * $soNguoiDuocGiam) + ($giaComboGoc * $soNguoiKhongGiam);
-                                                                
-                                                                $tongTienComboTinhLai += $thanhTienCombo;
-                                                                $soNguoiDaXuLy += $soLuongCombo; // Tăng số người đã xử lý
-                                                            }
-                                                        }
-                                                    } else {
-                                                        // Fallback: dùng giá trị từ database nếu không có chiTietDatBan
-                                                        $tongTienComboTinhLai = $chiTiet->tong_tien_combo ?? 0;
-                                                    }
-                                                    
-                                                    // Sử dụng tổng tiền món gọi thêm đã tính lại
-                                                    $tongTienMonGoiThem = $tongTienMonGoiThemTinhLai;
-                                                    // Tổng cộng = combo chính (đã tính lại) + món gọi thêm
-                                                    $tongCong = $tongTienComboTinhLai + $tongTienMonGoiThem;
+                                                    // Sử dụng dữ liệu đã lưu từ chi_tiet_hoa_don
+                                                    $tongTienComboTinhLai = $chiTiet->tong_tien_combo ?? 0;
+                                                    $tongTienMonGoiThem = $tongTienMonGoiThemTinhLai; // Tính từ bảng để hiển thị chi tiết
+                                                    $tongCong = $chiTiet->tong_tien_combo_mon ?? $hoaDon->tong_tien ?? 0;
                                                 @endphp
                                                 @if($tongTienComboTinhLai > 0)
                                                 <tr class="table-warning fw-bold">
@@ -584,13 +557,13 @@
                                 <div class="card-body">
                                     <div class="p-4 bg-white rounded-3 border shadow-sm">
                                         @php
-                                            // Sử dụng tổng tiền đã tính lại từ phần bảng trên
-                                            // $tongTienMonGoiThem và $tongCong đã được tính lại trong phần tổng kết của bảng
-                                            $tongTienComboMon = $tongCong; // $tongCong đã bao gồm combo + món gọi thêm đã tính lại
+                                            // Sử dụng dữ liệu đã lưu từ chi_tiet_hoa_don
+                                            $tongTienComboMon = $chiTiet->tong_tien_combo_mon ?? $hoaDon->tong_tien ?? 0;
+                                            $tongTienSauVoucher = $chiTiet->tong_tien_sau_voucher ?? ($tongTienComboMon - ($chiTiet->tien_giam_voucher ?? 0));
+                                            if($tongTienSauVoucher < 0) $tongTienSauVoucher = 0;
                                             
-                                            // Tính lại phải thanh toán: Tổng tiền - Voucher - Tiền cọc (không cộng phụ thu nữa)
-                                            $tongTienSauVoucher = $tongTienComboMon - ($chiTiet->tien_giam_voucher ?? 0);
-                                            $phaiThanhToan = $tongTienSauVoucher - ($chiTiet->tien_coc ?? 0);
+                                            // Phải thanh toán từ chi_tiet_hoa_don
+                                            $phaiThanhToan = $chiTiet->phai_thanh_toan ?? ($tongTienSauVoucher - ($chiTiet->tien_coc ?? 0));
                                             if ($phaiThanhToan < 0) $phaiThanhToan = 0;
                                         @endphp
                                         <div class="d-flex justify-content-between mb-2">
