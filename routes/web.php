@@ -263,7 +263,7 @@ Route::prefix('nhanVien')->name('nhanVien.')->group(function () {
         Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
         // thanh toán vnpay
         Route::post('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
-        Route::get('/vnpay/callback/{banId}', 'vnpayCallback')->name('vnpay.callback');
+        Route::get('/vnpay/callback', 'vnpayCallback')->name('vnpay.callback');
     });
 });
 

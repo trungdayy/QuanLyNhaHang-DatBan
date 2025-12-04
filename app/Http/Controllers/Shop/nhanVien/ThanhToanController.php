@@ -875,18 +875,287 @@ class ThanhToanController extends Controller
         return redirect($vnp_Url);
     }
 
-    public function vnpayCallback(Request $request, $banId)
+    public function vnpayCallback(Request $request)
     {
-        $vnp_ResponseCode = $request->get('vnp_ResponseCode');
-        $ban = BanAn::findOrFail($banId);
-
-        if($vnp_ResponseCode == "00"){
-            $ban->trang_thai = 'da_thanh_toan';
-            $ban->save();
-            return redirect()->route('nhanVien.ban-an.index')->with('success','Thanh toán VNPay thành công!');
-        } else {
-            return redirect()->route('nhanVien.ban-an.index')->with('error','Thanh toán VNPay thất bại!');
+        // Lấy banId từ query string
+        $banId = $request->query('banId');
+        
+        if (!$banId) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Thiếu thông tin bàn (banId).');
         }
+
+        // Lấy cấu hình VNPay
+        $vnp_HashSecret = config('services.vnpay.hash_secret') ?: env('VNP_HASHSECRET');
+        
+        if (empty($vnp_HashSecret)) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Cấu hình VNPay chưa đầy đủ.');
+        }
+
+        // Lấy hash gửi từ VNPAY
+        $vnp_SecureHash = $request->vnp_SecureHash;
+
+        if (!$vnp_SecureHash) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Thiếu chữ ký từ VNPay.');
+        }
+
+        // Gom dữ liệu vnp_*
+        $inputData = [];
+        foreach ($request->all() as $key => $value) {
+            if (substr($key, 0, 4) == "vnp_") {
+                $inputData[$key] = $value;
+            }
+        }
+
+        unset($inputData['vnp_SecureHash']); // bỏ trước khi hash
+
+        // Sắp xếp theo alphabet
+        ksort($inputData);
+
+        $query = "";
+        foreach ($inputData as $key => $value) {
+            $query .= $key . "=" . $value . "&";
+        }
+        $query = rtrim($query, "&");
+
+        // Tạo hash để kiểm tra
+        $secureHash = hash_hmac('sha512', $query, $vnp_HashSecret);
+
+        // Sai chữ ký => reject ngay
+        if ($secureHash !== $vnp_SecureHash) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Chữ ký không hợp lệ (có thể bị sửa dữ liệu).');
+        }
+
+        // Kiểm tra response
+        $vnp_ResponseCode = $request->vnp_ResponseCode;
+        $vnp_TransactionStatus = $request->vnp_TransactionStatus;
+
+        try {
+            $ban = BanAn::findOrFail($banId);
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Không tìm thấy bàn với ID: ' . $banId);
+        }
+
+        // Tìm đặt bàn đang hoạt động
+        $datBan = DatBan::where('ban_id', $banId)
+            ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu', 'da_xac_nhan'])
+            ->with([
+                'chiTietDatBan.combo',
+                'orderMon.chiTietOrders.monAn',
+                'banAn.khuVuc',
+                'hoaDon'
+            ])
+            ->latest()
+            ->first();
+
+        if (!$datBan) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Không tìm thấy đặt bàn đang hoạt động cho bàn này.');
+        }
+
+        // Kiểm tra xem đã có hóa đơn chưa (tránh tạo trùng)
+        if ($datBan->hoaDon) {
+            return redirect()
+                ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $datBan->hoaDon->id)
+                ->with('info', 'Hóa đơn đã được tạo trước đó!');
+        }
+
+        if ($vnp_ResponseCode == "00" && $vnp_TransactionStatus == "00") {
+            // Thanh toán thành công - tạo hóa đơn tương tự như luuThanhToanTuBan
+            // Tính tổng tiền combo với giảm 50% cho trẻ em
+            $tienComboChinh = 0;
+            $soTreEm = $datBan->tre_em ?? 0;
+            $soNguoiDaXuLy = 0;
+            
+            foreach ($datBan->chiTietDatBan as $chiTiet) {
+                if ($chiTiet->combo) {
+                    $giaComboGoc = $chiTiet->combo->gia_co_ban ?? 0;
+                    $soLuongCombo = $chiTiet->so_luong ?? 1;
+                    
+                    $soNguoiDuocGiam = 0;
+                    if($soTreEm > 0 && $soNguoiDaXuLy < $soTreEm) {
+                        $soTreEmConLai = $soTreEm - $soNguoiDaXuLy;
+                        $soNguoiDuocGiam = min($soTreEmConLai, $soLuongCombo);
+                    }
+                    
+                    $soNguoiKhongGiam = $soLuongCombo - $soNguoiDuocGiam;
+                    $thanhTienCombo = ($giaComboGoc * 0.5 * $soNguoiDuocGiam) + ($giaComboGoc * $soNguoiKhongGiam);
+                    $tienComboChinh += $thanhTienCombo;
+                    $soNguoiDaXuLy += $soLuongCombo;
+                }
+            }
+            
+            $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
+            $tongTienOrder = $tienComboChinh + $tongTienMonGoiThem;
+            $tienCoc = (float) ($datBan->tien_coc ?? 0);
+            
+            $gioVao = Carbon::parse($datBan->gio_den);
+            $gioRa = now();
+            $thoiGianPhucVu = $gioVao->diffInMinutes($gioRa);
+            
+            $phuThuTuDong = 0;
+            $phuThuThucCong = 0;
+            $phuThu = 0;
+            $tienGiam = 0;
+            $voucher = null;
+            
+            // Tính tiền phải thanh toán
+            $daThanhToan = $tongTienOrder - $tienGiam + $phuThu - $tienCoc;
+            if ($daThanhToan < 0) $daThanhToan = 0;
+
+            $thoiGianQuyDinh = null;
+            $thoiGianVuot = 0;
+            $soLan10Phut = 0;
+            $phuThuThoiGian = 0;
+            
+            $comboDauTien = $datBan->chiTietDatBan->first();
+
+            // Chuẩn bị danh sách món
+            $monTrongComboIds = [];
+            foreach ($datBan->chiTietDatBan as $chiTiet) {
+                if ($chiTiet->combo) {
+                    $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)->get();
+                    foreach ($monTrongCombo as $mtc) {
+                        $monAnId = $mtc->mon_an_id;
+                        if (!in_array($monAnId, $monTrongComboIds)) {
+                            $monTrongComboIds[] = $monAnId;
+                        }
+                    }
+                }
+            }
+            
+            $tongSoLuongMon = [];
+            foreach ($datBan->orderMon as $order) {
+                foreach ($order->chiTietOrders as $ct) {
+                    if ($ct->trang_thai != 'huy_mon') {
+                        $monAnId = $ct->mon_an_id;
+                        if (!isset($tongSoLuongMon[$monAnId])) {
+                            $tongSoLuongMon[$monAnId] = 0;
+                        }
+                        $tongSoLuongMon[$monAnId] += $ct->so_luong;
+                    }
+                }
+            }
+            
+            $danhSachMon = [];
+            $stt = 1;
+            foreach ($tongSoLuongMon as $monAnId => $tongSoLuong) {
+                $monAn = \App\Models\MonAn::find($monAnId);
+                if (!$monAn) continue;
+                
+                $laMonCombo = in_array($monAnId, $monTrongComboIds);
+                
+                if ($laMonCombo) {
+                    $donGiaHienThi = 0;
+                    $tienMon = 0;
+                } else {
+                    $donGiaHienThi = $monAn->gia ?? 0;
+                    $tienMon = $donGiaHienThi * $tongSoLuong;
+                }
+                
+                $danhSachMon[] = [
+                    'stt' => $stt++,
+                    'ten_mon' => $monAn->ten_mon,
+                    'so_luong' => $tongSoLuong,
+                    'gioi_han' => null,
+                    'don_gia' => $donGiaHienThi,
+                    'phu_phi' => 0,
+                    'phu_phi_tong' => 0,
+                    'so_luong_vuot' => 0,
+                    'thanh_tien' => $tienMon,
+                    'la_mon_combo' => $laMonCombo,
+                    'vuot_gioi_han' => false,
+                ];
+            }
+
+            $tongTienSauVoucher = $tongTienOrder - $tienGiam;
+            if($tongTienSauVoucher < 0) $tongTienSauVoucher = 0;
+
+            // Tạo hóa đơn
+            $hoaDon = HoaDon::create([
+                'dat_ban_id' => $datBan->id,
+                'voucher_id' => null,
+                'ma_hoa_don' => 'HD' . date('YmdHis') . '-' . $datBan->id,
+                'tong_tien' => $tongTienOrder,
+                'tien_giam' => $tienGiam,
+                'phu_thu' => $phuThu,
+                'da_thanh_toan' => $daThanhToan,
+                'phuong_thuc_tt' => 'vnpay',
+            ]);
+
+            // Lưu chi tiết hóa đơn
+            ChiTietHoaDon::create([
+                'hoa_don_id' => $hoaDon->id,
+                'ten_khach' => $datBan->ten_khach,
+                'sdt_khach' => $datBan->sdt_khach,
+                'email_khach' => $datBan->email_khach,
+                'so_khach' => $datBan->so_khach ?? 1,
+                'nguoi_lon' => $datBan->nguoi_lon ?? 0,
+                'tre_em' => $datBan->tre_em ?? 0,
+                'ban_so' => $datBan->banAn->so_ban ?? null,
+                'khu_vuc' => $datBan->banAn->khuVuc->ten_khu_vuc ?? null,
+                'tang' => $datBan->banAn->khuVuc->tang ?? null,
+                'so_ghe' => $datBan->banAn->so_ghe ?? null,
+                'ma_dat_ban' => $datBan->ma_dat_ban,
+                'gio_vao' => $gioVao,
+                'gio_ra' => $gioRa,
+                'thoi_gian_phuc_vu_phut' => $thoiGianPhucVu,
+                'thoi_gian_quy_dinh_phut' => $thoiGianQuyDinh,
+                'thoi_gian_vuot_phut' => $thoiGianVuot,
+                'so_lan_10_phut' => $soLan10Phut,
+                'phu_thu_thoi_gian' => $phuThuThoiGian,
+                'ten_combo' => $comboDauTien && $comboDauTien->combo ? $comboDauTien->combo->ten_combo : null,
+                'gia_combo_per_person' => $comboDauTien && $comboDauTien->combo ? $comboDauTien->combo->gia_co_ban : 0,
+                'tong_tien_combo' => $tienComboChinh,
+                'tong_tien_mon_goi_them' => $tongTienMonGoiThem,
+                'danh_sach_mon' => $danhSachMon,
+                'tong_tien_combo_mon' => $tongTienOrder,
+                'tien_giam_voucher' => $tienGiam,
+                'tong_tien_sau_voucher' => $tongTienSauVoucher,
+                'tien_coc' => $tienCoc,
+                'phu_thu_tu_dong' => $phuThuTuDong,
+                'phu_thu_thu_cong' => $phuThuThucCong,
+                'tong_phu_thu' => $phuThu,
+                'phai_thanh_toan' => $daThanhToan,
+                'tien_khach_dua' => null,
+                'tien_tra_lai' => null,
+                'phuong_thuc_tt' => 'vnpay',
+                'ma_voucher' => null,
+            ]);
+
+            // Cập nhật trạng thái đặt bàn
+            $datBan->update(['trang_thai' => 'hoan_tat']);
+
+            // Cập nhật trạng thái bàn thành trống
+            if ($datBan->banAn) {
+                $datBan->banAn->update(['trang_thai' => 'trong']);
+            }
+
+            // Cập nhật trạng thái tất cả order
+            foreach ($datBan->orderMon as $order) {
+                $order->update(['trang_thai' => 'hoan_thanh']);
+            }
+
+            return redirect()
+                ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $hoaDon->id)
+                ->with('success', 'Thanh toán VNPay thành công!');
+        }
+
+        // Thanh toán thất bại
+        return redirect()
+            ->route('nhanVien.thanh-toan.ban', $banId)
+            ->with('error', 'Thanh toán VNPay thất bại! Mã lỗi: ' . ($vnp_ResponseCode ?? 'N/A'));
     }
+
 
 }
