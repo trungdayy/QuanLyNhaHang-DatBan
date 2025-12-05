@@ -142,7 +142,19 @@
                 <ul class="app-breadcrumb breadcrumb">
                     <li class="breadcrumb-item"><a href="#"><b>Bảng điều khiển</b></a></li>
                 </ul>
-                <div id="clock"></div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label for="date-range" style="margin: 0; font-weight: 600; color: #333;">Chọn khoảng thời gian:</label>
+                        <input type="text" id="date-range" class="form-control" style="width: 300px; cursor: pointer;" readonly placeholder="Chọn khoảng thời gian">
+                        <button type="button" id="btn-apply-date" class="btn btn-primary btn-sm">
+                            <i class="fa fa-filter"></i> Áp dụng
+                        </button>
+                        <button type="button" id="btn-reset-date" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-undo"></i> Reset
+                        </button>
+                    </div>
+                    <div id="clock"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -378,6 +390,55 @@
                     </div>
                 </div>
 
+                {{-- BẢNG 5: TOP MÓN ĂN --}}
+                <div class="col-md-12 mt-3">
+                    <div class="tile">
+                        <h3 class="tile-title">Top món ăn được gọi nhiều nhất</h3>
+                        <div style="overflow-x:auto;">
+                            <table class="table">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Tên món</th>
+                                        <th>Số lượt gọi</th>
+                                        <th>Số lượt hủy</th>
+                                        <th>Tỉ lệ hủy</th>
+                                        <th>Đơn giá</th>
+                                        <th>Tổng giá trị</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse ($topMonAn as $index => $mon)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td><strong>{{ $mon->ten_mon }}</strong></td>
+                                        <td>
+                                            <span class="badge bg-info">{{ number_format($mon->so_luot_goi) }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger">{{ number_format($mon->so_luot_huy) }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ $mon->ti_le_huy > 20 ? 'bg-danger' : ($mon->ti_le_huy > 10 ? 'bg-warning' : 'bg-success') }}">
+                                                {{ $mon->ti_le_huy }}%
+                                            </span>
+                                        </td>
+                                        <td>{{ number_format($mon->gia) }} đ</td>
+                                        <td>
+                                            <strong class="text-success">{{ number_format($mon->tong_gia_tri) }} đ</strong>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="text-center">Chưa có dữ liệu thống kê.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -440,11 +501,64 @@
 
 @section('script')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script>
     let lineChart, barChart, hourChart, weekChart;
+    let selectedDateRange = null;
+
+    // Khởi tạo date range picker
+    const dateRangePicker = flatpickr("#date-range", {
+        mode: "range",
+        dateFormat: "d/m/Y",
+        locale: {
+            firstDayOfWeek: 1
+        },
+        onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length === 2) {
+                selectedDateRange = {
+                    from: selectedDates[0].toISOString().split('T')[0],
+                    to: selectedDates[1].toISOString().split('T')[0]
+                };
+            }
+        }
+    });
+
+    // Hàm reload toàn bộ dashboard
+    function reloadDashboard() {
+        const params = new URLSearchParams();
+        if (selectedDateRange) {
+            params.append('date_from', selectedDateRange.from);
+            params.append('date_to', selectedDateRange.to);
+        }
+        
+        // Reload trang với params
+        window.location.href = '/admin/dashboard' + (params.toString() ? '?' + params.toString() : '');
+    }
+
+    // Nút áp dụng
+    document.getElementById('btn-apply-date').addEventListener('click', function() {
+        if (selectedDateRange) {
+            reloadDashboard();
+        } else {
+            alert('Vui lòng chọn khoảng thời gian!');
+        }
+    });
+
+    // Nút reset
+    document.getElementById('btn-reset-date').addEventListener('click', function() {
+        dateRangePicker.clear();
+        selectedDateRange = null;
+        window.location.href = '/admin/dashboard';
+    });
 
     function fetchData(filterTotal, filterCombo) {
-        fetch(`/admin/dashboard/data?filter=${filterTotal}`)
+        let url = `/admin/dashboard/data?filter=${filterTotal}`;
+        if (selectedDateRange) {
+            url += `&date_from=${selectedDateRange.from}&date_to=${selectedDateRange.to}`;
+        }
+        
+        fetch(url)
             .then(res => res.json())
             .then(res => {
 
@@ -502,6 +616,18 @@
                 });
 
             });
+    }
+
+    // Load date range từ URL nếu có
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('date_from') && urlParams.get('date_to')) {
+        selectedDateRange = {
+            from: urlParams.get('date_from'),
+            to: urlParams.get('date_to')
+        };
+        const fromDate = new Date(selectedDateRange.from);
+        const toDate = new Date(selectedDateRange.to);
+        dateRangePicker.setDate([fromDate, toDate]);
     }
 
     fetchData('month','month');

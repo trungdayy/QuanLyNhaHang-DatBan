@@ -16,11 +16,23 @@ use App\Models\DatBan;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        // Lấy date range từ request (nếu có)
+        $dateFrom = $request->date_from ? Carbon::parse($request->date_from)->startOfDay() : null;
+        $dateTo = $request->date_to ? Carbon::parse($request->date_to)->endOfDay() : null;
+        
         $thangHienTai = now()->month;
         $today = Carbon::today();
         $thisYear = now()->year; // Biến phụ trợ
+        
+        // Hàm helper để filter theo date range
+        $applyDateRange = function($query) use ($dateFrom, $dateTo) {
+            if ($dateFrom && $dateTo) {
+                return $query->whereBetween('created_at', [$dateFrom, $dateTo]);
+            }
+            return $query;
+        };
 
         // ------------------ 1. THỐNG KÊ KPIs (Cơ sở từ Controller 1) ------------------
 
@@ -30,31 +42,53 @@ class DashboardController extends Controller
         $nhanVienNghiHomNay = NhanVien::where('trang_thai', 0)->count();
         $nhanVienMoi = NhanVien::latest('created_at')->take(5)->get(); // Lấy từ Controller 2 (dùng cho widget khác)
 
-        // Tổng doanh thu hôm nay & Tổng doanh thu toàn hệ thống (Tổng DT toàn hệ thống lấy từ C2)
-        $doanhThuHomNay = HoaDon::whereDate('created_at', $today)->sum('tong_tien');
-        $tongDoanhThu = HoaDon::sum('tong_tien');
+        // Tổng doanh thu & Tổng doanh thu theo khoảng thời gian
+        $doanhThuQuery = HoaDon::query();
+        if ($dateFrom && $dateTo) {
+            $doanhThuHomNay = $applyDateRange($doanhThuQuery->clone())->sum('tong_tien');
+        } else {
+            $doanhThuHomNay = HoaDon::whereDate('created_at', $today)->sum('tong_tien');
+        }
+        $tongDoanhThu = $applyDateRange(HoaDon::query())->sum('tong_tien');
 
-        // Lượt đặt bàn hôm nay (Đã sửa từ BanAn sang DatBan)
-        $luotDatBanHomNay = DatBan::whereDate('created_at', $today)->count();
+        // Lượt đặt bàn theo khoảng thời gian
+        $datBanQuery = DatBan::query();
+        if ($dateFrom && $dateTo) {
+            $luotDatBanHomNay = $applyDateRange($datBanQuery->clone())->count();
+        } else {
+            $luotDatBanHomNay = DatBan::whereDate('created_at', $today)->count();
+        }
 
         // Tổng số món ăn & Sản phẩm hết hàng
         $tongMonAn = MonAn::count();
         $monHetHang = MonAn::where('trang_thai', 'het')->count(); // Dùng 'het' theo enum DB
 
         // Tổng số đơn hàng
-        $tongDonHang = HoaDon::count();
+        $tongDonHangQuery = HoaDon::query();
+        $tongDonHang = $applyDateRange($tongDonHangQuery)->count();
 
         // Đơn hàng mới nhất
-        $donHangMoi = HoaDon::with('datBan')->latest('created_at')->take(5)->get();
+        $donHangMoiQuery = HoaDon::with('datBan');
+        $donHangMoi = $applyDateRange($donHangMoiQuery)->latest('created_at')->take(5)->get();
 
-        // Món bán chạy nhất hôm nay (Đã sửa with('monAn') thành with('mon') theo gợi ý trước)
-        $monBanChay = ChiTietOrder::selectRaw('mon_an_id, SUM(so_luong) as tong')
-            ->whereDate('created_at', $today)
-            ->groupBy('mon_an_id')
-            ->orderByDesc('tong')
-            ->take(5)
-            ->with('monAn') 
-            ->get();
+        // Món bán chạy nhất theo khoảng thời gian
+        $monBanChayQuery = ChiTietOrder::selectRaw('mon_an_id, SUM(so_luong) as tong');
+        if ($dateFrom && $dateTo) {
+            $monBanChay = $applyDateRange($monBanChayQuery)
+                ->groupBy('mon_an_id')
+                ->orderByDesc('tong')
+                ->take(5)
+                ->with('monAn') 
+                ->get();
+        } else {
+            $monBanChay = ChiTietOrder::selectRaw('mon_an_id, SUM(so_luong) as tong')
+                ->whereDate('created_at', $today)
+                ->groupBy('mon_an_id')
+                ->orderByDesc('tong')
+                ->take(5)
+                ->with('monAn') 
+                ->get();
+        }
 
         // ------------------ 2. THỐNG KÊ BIỂU ĐỒ THEO THÁNG (Cơ sở từ Controller 1) ------------------
 
@@ -86,11 +120,18 @@ class DashboardController extends Controller
         // ------------------ 3. BỔ SUNG: COMBO & KHÁCH HÀNG (Từ Controller 2) ------------------
 
 // Combo bán chạy (ĐÃ SỬA: Dùng bảng dat_ban_combo)
-        $totalDatBan = DatBan::count();
+        $totalDatBanQuery = DatBan::query();
+        $totalDatBan = $applyDateRange($totalDatBanQuery)->count();
         
-        $comboBanChay = DB::table('dat_ban_combo') // Bắt đầu từ bảng chi tiết
+        $comboBanChayQuery = DB::table('dat_ban_combo') // Bắt đầu từ bảng chi tiết
             ->join('dat_ban', 'dat_ban.id', '=', 'dat_ban_combo.dat_ban_id')
-            ->join('combo_buffet', 'combo_buffet.id', '=', 'dat_ban_combo.combo_id')
+            ->join('combo_buffet', 'combo_buffet.id', '=', 'dat_ban_combo.combo_id');
+            
+        if ($dateFrom && $dateTo) {
+            $comboBanChayQuery->whereBetween('dat_ban.created_at', [$dateFrom, $dateTo]);
+        }
+        
+        $comboBanChay = $comboBanChayQuery
             ->select(
                 'combo_buffet.id',
                 'combo_buffet.ten_combo',
@@ -114,8 +155,14 @@ class DashboardController extends Controller
             });
 
         // Thống kê khách hàng tiềm năng + tỉ lệ quay lại
-        $topKhachHang = DB::table('dat_ban')
-            ->join('hoa_don', 'hoa_don.dat_ban_id', '=', 'dat_ban.id')
+        $topKhachHangQuery = DB::table('dat_ban')
+            ->join('hoa_don', 'hoa_don.dat_ban_id', '=', 'dat_ban.id');
+            
+        if ($dateFrom && $dateTo) {
+            $topKhachHangQuery->whereBetween('dat_ban.created_at', [$dateFrom, $dateTo]);
+        }
+        
+        $topKhachHang = $topKhachHangQuery
             ->select(
                 'ten_khach',
                 'sdt_khach',
@@ -127,13 +174,57 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $tongKhach = DB::table('dat_ban')->distinct('sdt_khach')->count('sdt_khach');
-        $khachQuayLai = DB::table('dat_ban')
+        $tongKhachQuery = DB::table('dat_ban');
+        if ($dateFrom && $dateTo) {
+            $tongKhachQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
+        }
+        $tongKhach = $tongKhachQuery->distinct('sdt_khach')->count('sdt_khach');
+        
+        $khachQuayLaiQuery = DB::table('dat_ban');
+        if ($dateFrom && $dateTo) {
+            $khachQuayLaiQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
+        }
+        $khachQuayLai = $khachQuayLaiQuery
             ->select('sdt_khach', DB::raw('COUNT(*) as so_lan'))
             ->groupBy('sdt_khach')
             ->having('so_lan', '>', 1)
             ->count();
         $tiLeQuayLai = $tongKhach > 0 ? round(($khachQuayLai / $tongKhach) * 100, 2) : 0;
+
+        // ------------------ 3.1. THỐNG KÊ TOP MÓN ĂN ------------------
+        $topMonAnQuery = DB::table('chi_tiet_order')
+            ->join('mon_an', 'mon_an.id', '=', 'chi_tiet_order.mon_an_id');
+            
+        if ($dateFrom && $dateTo) {
+            $topMonAnQuery->whereBetween('chi_tiet_order.created_at', [$dateFrom, $dateTo]);
+        }
+        
+        $topMonAn = $topMonAnQuery
+            ->select(
+                'mon_an.id',
+                'mon_an.ten_mon',
+                'mon_an.gia',
+                // Tổng số lượt gọi (tổng số lượng)
+                DB::raw('SUM(chi_tiet_order.so_luong) as so_luot_goi'),
+                // Số lượt hủy (số lượng các món có trang_thai = huy_mon)
+                DB::raw('SUM(CASE WHEN chi_tiet_order.trang_thai = "huy_mon" THEN chi_tiet_order.so_luong ELSE 0 END) as so_luot_huy'),
+                // Tổng số lượt không hủy (để tính doanh thu)
+                DB::raw('SUM(CASE WHEN chi_tiet_order.trang_thai != "huy_mon" THEN chi_tiet_order.so_luong ELSE 0 END) as so_luot_thanh_cong')
+            )
+            ->groupBy('mon_an.id', 'mon_an.ten_mon', 'mon_an.gia')
+            ->having('so_luot_goi', '>', 0) // Chỉ lấy món đã được gọi ít nhất 1 lần
+            ->orderByDesc('so_luot_goi')
+            ->take(10)
+            ->get()
+            ->map(function ($mon) {
+                // Tính tổng giá trị (số lượt thành công * giá)
+                $mon->tong_gia_tri = $mon->so_luot_thanh_cong * $mon->gia;
+                // Tính tỉ lệ hủy
+                $mon->ti_le_huy = $mon->so_luot_goi > 0 
+                    ? round(($mon->so_luot_huy / $mon->so_luot_goi) * 100, 2) 
+                    : 0;
+                return $mon;
+            });
 
         // ------------------ 4. TRẢ VỀ VIEW ------------------
 
@@ -158,6 +249,7 @@ class DashboardController extends Controller
             'tiLeQuayLai', // Mới
             'tongKhach', // Mới
             'tongDoanhThu', // Mới
+            'topMonAn', // Top món ăn được gọi nhiều nhất
         ));
     }
 
@@ -172,33 +264,79 @@ class DashboardController extends Controller
     public function getChartData(Request $request)
     {
         $filter = $request->filter ?? 'month';
+        $dateFrom = $request->date_from ? Carbon::parse($request->date_from)->startOfDay() : null;
+        $dateTo = $request->date_to ? Carbon::parse($request->date_to)->endOfDay() : null;
         $thisYear = now()->year;
 
         // ------------------ 1. BIỂU ĐỒ TỔNG DOANH THU ------------------
         if ($filter == 'day') {
             $labels = [];
             $dataTotal = [];
-            for ($i = 6; $i >= 0; $i--) {
-                $date = now()->subDays($i)->format('Y-m-d');
-                $labels[] = Carbon::parse($date)->format('d/m');
-                $dataTotal[] = HoaDon::whereDate('created_at', $date)->sum('tong_tien');
+            if ($dateFrom && $dateTo) {
+                // Nếu có date range, chia theo từng ngày trong khoảng
+                $start = Carbon::parse($dateFrom);
+                $end = Carbon::parse($dateTo);
+                $current = $start->copy();
+                while ($current->lte($end)) {
+                    $labels[] = $current->format('d/m');
+                    $dataTotal[] = HoaDon::whereDate('created_at', $current->format('Y-m-d'))->sum('tong_tien');
+                    $current->addDay();
+                }
+            } else {
+                // Mặc định: 7 ngày gần nhất
+                for ($i = 6; $i >= 0; $i--) {
+                    $date = now()->subDays($i)->format('Y-m-d');
+                    $labels[] = Carbon::parse($date)->format('d/m');
+                    $dataTotal[] = HoaDon::whereDate('created_at', $date)->sum('tong_tien');
+                }
             }
         } elseif ($filter == 'month') {
             $labels = [];
             $dataTotal = [];
-            for ($i = 1; $i <= 12; $i++) {
-                $labels[] = "Tháng $i";
-                $dataTotal[] = HoaDon::whereYear('created_at', $thisYear)
-                    ->whereMonth('created_at', $i)
-                    ->sum('tong_tien');
+            if ($dateFrom && $dateTo) {
+                // Chia theo tháng trong khoảng
+                $start = Carbon::parse($dateFrom);
+                $end = Carbon::parse($dateTo);
+                $current = $start->copy()->startOfMonth();
+                while ($current->lte($end)) {
+                    $labels[] = "Tháng " . $current->month . "/" . $current->year;
+                    $dataTotal[] = HoaDon::whereYear('created_at', $current->year)
+                        ->whereMonth('created_at', $current->month)
+                        ->sum('tong_tien');
+                    $current->addMonth();
+                }
+            } else {
+                // Mặc định: 12 tháng
+                for ($i = 1; $i <= 12; $i++) {
+                    $labels[] = "Tháng $i";
+                    $dataTotal[] = HoaDon::whereYear('created_at', $thisYear)
+                        ->whereMonth('created_at', $i)
+                        ->sum('tong_tien');
+                }
             }
         } else { // filter == 'year'
             $labels = [];
             $dataTotal = [];
-            $startYear = $thisYear - 5;
-            for ($y = $startYear; $y <= $thisYear; $y++) {
-                $labels[] = $y;
-                $dataTotal[] = HoaDon::whereYear('created_at', $y)->sum('tong_tien');
+            if ($dateFrom && $dateTo) {
+                $startYear = Carbon::parse($dateFrom)->year;
+                $endYear = Carbon::parse($dateTo)->year;
+                for ($y = $startYear; $y <= $endYear; $y++) {
+                    $labels[] = $y;
+                    $yearQuery = HoaDon::whereYear('created_at', $y);
+                    if ($y == $startYear) {
+                        $yearQuery->whereDate('created_at', '>=', Carbon::parse($dateFrom)->format('Y-m-d'));
+                    }
+                    if ($y == $endYear) {
+                        $yearQuery->whereDate('created_at', '<=', Carbon::parse($dateTo)->format('Y-m-d'));
+                    }
+                    $dataTotal[] = $yearQuery->sum('tong_tien');
+                }
+            } else {
+                $startYear = $thisYear - 5;
+                for ($y = $startYear; $y <= $thisYear; $y++) {
+                    $labels[] = $y;
+                    $dataTotal[] = HoaDon::whereYear('created_at', $y)->sum('tong_tien');
+                }
             }
         }
 
@@ -211,12 +349,16 @@ class DashboardController extends Controller
             ->whereNotNull('hd.id'); // Chỉ lấy các đơn đã có hóa đơn (đã thanh toán)
 
         // Áp dụng filter thời gian
-        if ($filter == 'day') {
-            $query->whereBetween('hd.created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()]);
-        } elseif ($filter == 'month') {
-            $query->whereYear('hd.created_at', $thisYear);
+        if ($dateFrom && $dateTo) {
+            $query->whereBetween('hd.created_at', [$dateFrom, $dateTo]);
         } else {
-            $query->whereYear('hd.created_at', '>=', $thisYear - 5);
+            if ($filter == 'day') {
+                $query->whereBetween('hd.created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()]);
+            } elseif ($filter == 'month') {
+                $query->whereYear('hd.created_at', $thisYear);
+            } else {
+                $query->whereYear('hd.created_at', '>=', $thisYear - 5);
+            }
         }
 
         // Tính doanh thu theo từng combo và lấy top 4
@@ -247,7 +389,12 @@ class DashboardController extends Controller
         }
 
         // ------------------ 3. BIỂU ĐỒ KHUNG GIỜ ĐẶT BÀN ------------------
-        $hourlyData = DB::table('dat_ban')
+        // ------------------ 3. BIỂU ĐỒ KHUNG GIỜ ĐẶT BÀN ------------------
+        $hourlyQuery = DB::table('dat_ban');
+        if ($dateFrom && $dateTo) {
+            $hourlyQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
+        }
+        $hourlyData = $hourlyQuery
             ->selectRaw('HOUR(gio_den) as hour, COUNT(*) as count')
             ->whereBetween(DB::raw('HOUR(gio_den)'), [10, 22])
             ->groupBy('hour')
@@ -255,7 +402,11 @@ class DashboardController extends Controller
             ->pluck('count', 'hour');
 
         // ------------------ 4. BIỂU ĐỒ NGÀY TRONG TUẦN ------------------
-        $weekdayRawData = DB::table('dat_ban')
+        $weekdayQuery = DB::table('dat_ban');
+        if ($dateFrom && $dateTo) {
+            $weekdayQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
+        }
+        $weekdayRawData = $weekdayQuery
             ->selectRaw('DAYOFWEEK(gio_den) as weekday, COUNT(*) as count')
             ->groupBy('weekday')
             ->pluck('count', 'weekday');

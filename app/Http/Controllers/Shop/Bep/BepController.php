@@ -77,6 +77,10 @@ class BepController extends Controller
         // 6. Sắp xếp món trong mỗi bàn theo logic ưu tiên: Nước -> Món lâu -> Món nhanh
         $theoBan = $theoBan->map(function ($dsMon) {
             return $dsMon->sortBy(function ($mon) {
+                // Đảm bảo relationship được load
+                if (!$mon->relationLoaded('monAn')) {
+                    $mon->load('monAn:id,ten_mon,hinh_anh,danh_muc_id,thoi_gian_che_bien');
+                }
                 $monAn = $mon->monAn;
                 $danhMucId = optional($monAn)->danh_muc_id;
                 // Lấy thời gian chế biến, mặc định 0 nếu null

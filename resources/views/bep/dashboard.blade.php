@@ -379,9 +379,24 @@
                         <div class="t-body" data-table="{{ $soBan }}">
                             @foreach ($danhSachMon as $mon)
                                 @php
+                                    // Đảm bảo load lại quan hệ nếu bị mất
+                                    if (!$mon->relationLoaded('monAn')) {
+                                        $mon->load('monAn:id,ten_mon,hinh_anh,danh_muc_id,thoi_gian_che_bien');
+                                    }
                                     $monAn = $mon->monAn;
                                     $tenMon = optional($monAn)->ten_mon ?? 'Món không tồn tại';
-                                    $imgUrl = optional($monAn)->hinh_anh ? asset(optional($monAn)->hinh_anh) : null;
+                                    // Xử lý đường dẫn ảnh: kiểm tra nếu đã có đường dẫn đầy đủ hoặc cần thêm asset()
+                                    $hinhAnhPath = optional($monAn)->hinh_anh;
+                                    if ($hinhAnhPath) {
+                                        // Nếu đường dẫn không bắt đầu bằng http hoặc /, thì dùng asset()
+                                        if (!preg_match('/^(https?:\/\/|\/)/', $hinhAnhPath)) {
+                                            $imgUrl = asset($hinhAnhPath);
+                                        } else {
+                                            $imgUrl = $hinhAnhPath;
+                                        }
+                                    } else {
+                                        $imgUrl = null;
+                                    }
                                     $firstChar = mb_substr($tenMon, 0, 1, 'UTF-8');
                                     $fallback = 'https://placehold.co/100x100/png?text=' . urlencode($firstChar);
                                     $isNuoc = optional($monAn)->danh_muc_id == 14;
