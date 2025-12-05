@@ -1368,10 +1368,23 @@
                     const timerHtml = showTimer ?
                         `<div class="timer-badge" data-target="${targetTime}" id="timer-${i.id}"><i class="fa-solid fa-hourglass-half"></i> <span>--:--</span></div>` :
                         '';
+                    
+                    // Format thời gian gọi món
+                    const orderTime = new Date(i.created_at);
+                    const orderTimeStr = orderTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                    
+                    // Tính giá tiền (nếu là món gọi thêm thì hiển thị giá, món combo thì 0)
+                    const donGia = i.mon_an.gia || 0;
+                    const thanhTien = i.loai_mon === 'goi_them' ? (donGia * i.so_luong) : 0;
+                    const giaHienThi = thanhTien > 0 ? thanhTien.toLocaleString('vi-VN') + ' đ' : '0 đ';
 
                     htmlContent += `
                     <div class="status-card ${s.cls}">
                         <div class="stt-header"><div class="stt-name">${i.mon_an.ten_mon} <span class="stt-qty">x${i.so_luong}</span></div><div class="badge-status"><i class="fa-solid fa-${s.ic}"></i> ${s.txt}</div></div>
+                        <div class="stt-meta" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 0.85rem; color: #64748b;">
+                            <span><i class="fa-regular fa-clock"></i> Gọi lúc ${orderTimeStr}</span>
+                            <span style="font-weight: 600; color: #059669;"><i class="fa-solid fa-tag"></i> ${giaHienThi}</span>
+                        </div>
                         ${i.ghi_chu ? `<div class="stt-note"><i class="fa-regular fa-comment-dots"></i> ${i.ghi_chu}</div>` : ''}
                         ${ (showTimer || canCancel) ? `<div class="stt-footer">${timerHtml}${btnCancelHtml}</div>` : '' }
                     </div>`;

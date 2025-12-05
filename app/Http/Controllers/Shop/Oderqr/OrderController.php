@@ -451,8 +451,8 @@ public function submitOrder(Request $request)
         $chiTietMonAn = ChiTietOrder::whereHas('orderMon', function ($query) use ($datBanId) {
             $query->where('dat_ban_id', $datBanId);
         })
-            // [QUAN TRỌNG] Thêm thoi_gian_che_bien vào đây
-            ->with('monAn:id,ten_mon,hinh_anh,thoi_gian_che_bien')
+            // [QUAN TRỌNG] Thêm thoi_gian_che_bien và gia vào đây
+            ->with('monAn:id,ten_mon,hinh_anh,thoi_gian_che_bien,gia')
             ->select('id', 'mon_an_id', 'so_luong', 'trang_thai', 'loai_mon', 'created_at', 'ghi_chu')
             ->orderBy('created_at', 'desc')
             ->get();

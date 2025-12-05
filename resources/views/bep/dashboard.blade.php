@@ -412,15 +412,21 @@
                                         <div style="flex:1;">
                                             <div class="d-name">{{ $tenMon }}</div>
                                             <div class="d-qty">SL: {{ $mon->so_luong }}</div>
-                                            {{-- Hiển thị thời gian chế biến dự kiến --}}
-                                            @if($monAn->thoi_gian_che_bien && !$isNuoc)
-                                                <small class="text-secondary ms-2" title="Thời gian dự kiến">
-                                                    <i class="fa-solid fa-hourglass-half"></i> {{ $monAn->thoi_gian_che_bien }} phút
+                                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; align-items: center;">
+                                                {{-- Hiển thị thời gian gọi món --}}
+                                                <small class="text-muted" title="Thời gian gọi món">
+                                                    <i class="fa-regular fa-clock"></i> Gọi lúc {{ $mon->created_at->format('H:i') }}
                                                 </small>
-                                            @endif
-                                            @if($isNuoc)
-                                                <small class="text-info ms-2" title="Đồ uống"><i class="fa-solid fa-glass-water"></i> Đồ Uống</small>
-                                            @endif
+                                                {{-- Hiển thị thời gian chế biến dự kiến --}}
+                                                @if($monAn->thoi_gian_che_bien && !$isNuoc)
+                                                    <small class="text-secondary" title="Thời gian dự kiến">
+                                                        <i class="fa-solid fa-hourglass-half"></i> {{ $monAn->thoi_gian_che_bien }} phút
+                                                    </small>
+                                                @endif
+                                                @if($isNuoc)
+                                                    <small class="text-info" title="Đồ uống"><i class="fa-solid fa-glass-water"></i> Đồ Uống</small>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
 
