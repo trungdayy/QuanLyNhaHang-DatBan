@@ -201,11 +201,18 @@
                                         // Tính tổng giới hạn cho từng món
                                         $tongGioiHanMon = [];
                                         $phuPhiMon = [];
+                                        $monTrongComboIds = []; // Danh sách ID món thuộc combo (bất kể có giới hạn hay không)
                                         foreach($hoaDon->datBan->chiTietDatBan as $chiTietCombo) {
                                             if($chiTietCombo->combo) {
                                                 $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $chiTietCombo->combo->id)->get();
                                                 foreach($monTrongCombo as $mtc) {
                                                     $monAnId = $mtc->mon_an_id;
+                                                    
+                                                    // Đánh dấu món này thuộc combo (bất kể có giới hạn hay không)
+                                                    if(!in_array($monAnId, $monTrongComboIds)) {
+                                                        $monTrongComboIds[] = $monAnId;
+                                                    }
+                                                    
                                                     $gioiHan = $mtc->gioi_han_so_luong ?? null;
                                                     if($gioiHan !== null && $gioiHan > 0) {
                                                         $soLuongCombo = $chiTietCombo->so_luong ?? 1;
@@ -214,6 +221,11 @@
                                                             $phuPhiMon[$monAnId] = $mtc->phu_phi_goi_them ?? 0;
                                                         }
                                                         $tongGioiHanMon[$monAnId] += $gioiHan * $soLuongCombo;
+                                                    } else {
+                                                        // Món trong combo nhưng không có giới hạn, vẫn cần lưu phụ phí
+                                                        if(!isset($phuPhiMon[$monAnId])) {
+                                                            $phuPhiMon[$monAnId] = $mtc->phu_phi_goi_them ?? 0;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -252,21 +264,45 @@
                                                     $tongTienMonGoiThemTinhLai = 0;
                                                     $stt = 1;
                                                 @endphp
-                                                @foreach($monAnGrouped as $monAnId => $monAnGroup)
+                                                @foreach($chiTiet->danh_sach_mon as $mon)
                                                 @php
-                                                    $ctFirst = $monAnGroup->first();
-                                                    $tongSoLuong = $monAnGroup->sum('so_luong');
+                                                    // Ưu tiên sử dụng dữ liệu từ danh_sach_mon đã lưu
+                                                    $tenMon = $mon['ten_mon'] ?? 'N/A';
+                                                    $soLuong = $mon['so_luong'] ?? 0;
+                                                    $coTrongCombo = $mon['la_mon_combo'] ?? false;
+                                                    $soLuongVuot = $mon['so_luong_vuot'] ?? 0;
+                                                    $tongGioiHan = $mon['gioi_han'] ?? null;
+                                                    $donGiaGoc = $mon['don_gia'] ?? 0;
+                                                    $thanhTien = $mon['thanh_tien'] ?? 0;
                                                     
-                                                    // Lấy thông tin từ danh_sach_mon nếu có (để lấy thông tin như gioi_han, la_mon_combo)
-                                                    $monInfo = null;
-                                                    foreach($chiTiet->danh_sach_mon as $mon) {
-                                                        if($ctFirst->monAn && $ctFirst->monAn->ten_mon == $mon['ten_mon']) {
-                                                            $monInfo = $mon;
+                                                    // Tìm trong monAnGrouped để lấy trạng thái (nếu món chưa bị xóa)
+                                                    $monAnGroup = null;
+                                                    $ctFirst = null;
+                                                    $monAnId = null;
+                                                    foreach($monAnGrouped as $id => $group) {
+                                                        $first = $group->first();
+                                                        if($first->monAn && $first->monAn->ten_mon == $tenMon) {
+                                                            $monAnGroup = $group;
+                                                            $ctFirst = $first;
+                                                            $monAnId = $id;
                                                             break;
                                                         }
                                                     }
                                                     
-                                                    // Tính trạng thái
+                                                    // Fallback: Nếu la_mon_combo không có hoặc false, kiểm tra lại từ quan hệ
+                                                    // (Trường hợp hóa đơn cũ được tạo trước khi sửa logic)
+                                                    if(!$coTrongCombo && $monAnId !== null) {
+                                                        // Kiểm tra xem món có trong danh sách món combo không
+                                                        if(in_array($monAnId, $monTrongComboIds)) {
+                                                            $coTrongCombo = true;
+                                                            // Nếu chưa có giới hạn trong danh_sach_mon, lấy từ tongGioiHanMon
+                                                            if($tongGioiHan === null && isset($tongGioiHanMon[$monAnId])) {
+                                                                $tongGioiHan = $tongGioiHanMon[$monAnId];
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    // Tính trạng thái từ quan hệ (nếu có)
                                                     $soLuongDaLen = 0;
                                                     $soLuongChoBep = 0;
                                                     $soLuongDangCheBien = 0;
@@ -275,16 +311,9 @@
                                                     $soLuongChuaNauXongTrongVuot = 0;
                                                     $soLuongDangCheBienTrongVuot = 0;
                                                     $soLuongChoBepTrongVuot = 0;
-                                                    $soLuongHuy = 0; // Đã hủy
+                                                    $soLuongHuy = 0;
                                                     
                                                     if($monAnGroup) {
-                                                        $tongSoLuong = $monAnGroup->sum('so_luong');
-                                                        $tongGioiHan = $tongGioiHanMon[$monAnId] ?? null;
-                                                        $soLuongVuot = 0;
-                                                        if($tongGioiHan !== null && $tongGioiHan > 0) {
-                                                            $soLuongVuot = max(0, $tongSoLuong - $tongGioiHan);
-                                                        }
-                                                        
                                                         foreach($monAnGroup as $ct) {
                                                             if($ct->trang_thai == 'da_len_mon') {
                                                                 $soLuongDaLen += $ct->so_luong;
@@ -299,66 +328,44 @@
                                                             }
                                                         }
                                                         
-                                                        if($soLuongVuot > 0) {
+                                                        if($soLuongVuot > 0 && $tongGioiHan !== null) {
                                                             $soLuongDaLenTrongVuot = max(0, $soLuongDaLen - $tongGioiHan);
                                                             $soLuongChuaNauXongTrongVuot = $soLuongVuot - $soLuongDaLenTrongVuot;
                                                             $soLuongConLaiTrongVuot = $soLuongChuaNauXongTrongVuot;
                                                             $soLuongDangCheBienTrongVuot = min($soLuongDangCheBien, $soLuongConLaiTrongVuot);
                                                             $soLuongChoBepTrongVuot = $soLuongConLaiTrongVuot - $soLuongDangCheBienTrongVuot;
                                                         }
-                                                    }
-                                                    
-                                                    $donGiaGoc = 0;
-                                                    if($monAnGroup && $monAnGroup->first()->monAn) {
-                                                        $donGiaGoc = $monAnGroup->first()->monAn->gia ?? 0;
-                                                    }
-                                                    $coMonChuaNauXong = $soLuongChuaNauXong > 0 || $soLuongChuaNauXongTrongVuot > 0;
-                                                    $coTrongCombo = $monInfo['la_mon_combo'] ?? false;
-                                                    $soLuongVuot = $monInfo['so_luong_vuot'] ?? 0;
-                                                    
-                                                    // Tính lại phụ phí dựa trên số lượng đã lên bàn (giống trang thanh toán)
-                                                    $tienPhuPhiTinhLai = 0;
-                                                    $phuPhiDonVi = $phuPhiMon[$monAnId] ?? 0;
-                                                    if($coTrongCombo && $soLuongVuot > 0 && $phuPhiDonVi > 0) {
-                                                        // Phụ phí chỉ tính cho số lượng đã lên bàn trong phần vượt
-                                                        $tienPhuPhiTinhLai = $phuPhiDonVi * $soLuongDaLenTrongVuot;
-                                                    }
-                                                    
-                                                    // Tính lại thành tiền: đã nấu xong + chờ bếp/đang nấu dở + phụ phí
-                                                    $thanhTienTinhLai = 0;
-                                                        if($coTrongCombo) {
-                                                        // Món thuộc combo
-                                                        if($soLuongVuot > 0) {
-                                                            // Tính tiền cho phần đã nấu xong trong vượt (100%)
-                                                            $tienMonDaLenTrongVuot = $donGiaGoc * $soLuongDaLenTrongVuot;
-                                                            // Tính tiền cho phần đang chế biến trong vượt (100% - đã xác nhận, đang nấu)
-                                                            $tienMonDangCheBienTrongVuot = $donGiaGoc * $soLuongDangCheBienTrongVuot;
-                                                            // Phần chờ bếp trong vượt: 0 đồng (chưa xác nhận, có thể hủy)
-                                                            $tienMonChoBepTrongVuot = 0;
-                                                            // Tổng tiền = tiền món đã nấu xong + tiền món đang chế biến + phụ phí
-                                                            $thanhTienTinhLai = $tienMonDaLenTrongVuot + $tienMonDangCheBienTrongVuot + $tienMonChoBepTrongVuot + $tienPhuPhiTinhLai;
-                                                        }
+                                                        
+                                                        // Tính tổng số lượng từ order (bao gồm cả món đã hủy)
+                                                        $tongSoLuongHienThi = $monAnGroup->sum('so_luong');
                                                     } else {
-                                                        // Món không thuộc combo: tính tiền theo trạng thái nấu
-                                                        // Phần đã nấu xong: 100% giá
-                                                        $tienMonDaLen = $donGiaGoc * $soLuongDaLen;
-                                                        // Phần đang chế biến: 100% giá (đã xác nhận, đang nấu)
-                                                        $tienMonDangCheBien = $donGiaGoc * $soLuongDangCheBien;
-                                                        // Phần chờ bếp: 0 đồng (chưa xác nhận, có thể hủy)
-                                                        $tienMonChoBep = 0;
-                                                        // Phần đã hủy: 0 đồng (không tính tiền)
-                                                        $tienMonHuy = 0;
-                                                        // Tổng tiền (không tính món hủy)
-                                                        $thanhTienTinhLai = $tienMonDaLen + $tienMonDangCheBien + $tienMonChoBep + $tienMonHuy;
+                                                        // Nếu không có monAnGroup (món đã bị xóa), sử dụng số lượng từ danh_sach_mon
+                                                        $tongSoLuongHienThi = $soLuong;
                                                     }
+                                                    
+                                                    // Chỉ hiển thị món nếu có đã lên hoặc đang nấu
+                                                    // Nếu chỉ có đã hủy thì không hiển thị
+                                                    if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) {
+                                                        continue;
+                                                    }
+                                                    
+                                                    $coMonChuaNauXong = $soLuongChuaNauXong > 0 || $soLuongChuaNauXongTrongVuot > 0;
+                                                    
+                                                    // Lấy phụ phí từ danh_sach_mon đã lưu
+                                                    $tienPhuPhiTinhLai = $mon['phu_phi_tong'] ?? 0;
+                                                    $phuPhiDonVi = $mon['phu_phi'] ?? 0;
+                                                    
+                                                    // Tính lại thành tiền từ trạng thái nếu cần hiển thị chi tiết
+                                                    // Nhưng ưu tiên sử dụng $thanhTien từ danh_sach_mon đã lưu
+                                                    $thanhTienTinhLai = $thanhTien; // Sử dụng giá trị đã lưu
                                                 @endphp
                                                 <tr>
-                                                    <td>{{ $stt++ }}</td>
+                                                    <td>{{ $mon['stt'] ?? $stt++ }}</td>
                                                     <td>
-                                                        {{ $ctFirst->monAn->ten_mon ?? 'N/A' }}
+                                                        {{ $tenMon }}
                                                         @if($coTrongCombo)
                                                             <span class="badge bg-warning">Món combo</span>
-                                                            @if($monInfo && ($monInfo['vuot_gioi_han'] ?? false))
+                                                            @if($mon['vuot_gioi_han'] ?? false)
                                                                 <span class="badge bg-danger">Vượt giới hạn</span>
                                                             @endif
                                                         @else
@@ -366,15 +373,14 @@
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
-                                                        {{ $tongSoLuong }}
-                                                        @if($monInfo && $monInfo['gioi_han'] !== null)
-                                                            <br><small class="text-muted">(Giới hạn: {{ $monInfo['gioi_han'] }})</small>
+                                                        {{ $tongSoLuongHienThi }}
+                                                        @if($tongGioiHan !== null && $tongGioiHan > 0)
+                                                            <br><small class="text-muted">(Giới hạn: {{ $tongGioiHan }})</small>
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
                                                         @if($monAnGroup)
                                                             @php
-                                                                $tongSoLuongHienThi = $monAnGroup->sum('so_luong');
                                                                 $tongSoLuongKhongHuy = $tongSoLuongHienThi - $soLuongHuy;
                                                             @endphp
                                                             @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuongHienThi)
@@ -420,7 +426,7 @@
                                                             @if($soLuongHuy > 0)
                                                                 <br><small class="text-danger">Đã hủy ({{ $soLuongHuy }}): 0 đ</small>
                                                             @endif
-                                                        @elseif($mon['don_gia'] > 0 || $coMonChuaNauXong || $soLuongVuot > 0)
+                                                        @elseif($donGiaGoc > 0 || $coMonChuaNauXong || $soLuongVuot > 0)
                                                             {{-- Món vượt giới hạn hoặc món gọi thêm: hiển thị chi tiết --}}
                                                             <div>
                                                                 <small class="text-muted">Giá gốc: {{ number_format($donGiaGoc) }} đ</small>
@@ -502,13 +508,13 @@
                                                         @endif
                                                     </td>
                                                     <td class="text-end fw-bold">
-                                                        @if($soLuongHuy > 0 && isset($tongSoLuongHienThi) && $soLuongHuy == $tongSoLuongHienThi)
+                                                        @if($monAnGroup && $soLuongHuy > 0 && isset($tongSoLuongHienThi) && $soLuongHuy == $tongSoLuongHienThi)
                                                             {{-- Tất cả món đã hủy --}}
                                                             <span class="text-danger">0 đ</span>
-                                                        @elseif($thanhTienTinhLai > 0)
-                                                            {{ number_format($thanhTienTinhLai) }} đ
+                                                        @elseif($thanhTien > 0)
+                                                            {{ number_format($thanhTien) }} đ
                                                             @php
-                                                                $tongTienMonGoiThemTinhLai += $thanhTienTinhLai;
+                                                                $tongTienMonGoiThemTinhLai += $thanhTien;
                                                             @endphp
                                                         @else
                                                             <span class="text-success">0 đ</span>
