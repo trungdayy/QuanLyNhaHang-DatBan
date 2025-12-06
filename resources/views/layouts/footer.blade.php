@@ -2,18 +2,18 @@
     <div class="container py-5">
         <div class="row g-5">
             <div class="col-lg-3 col-md-6">
-                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Company</h4>
-                <a class="btn btn-link" href="{{ route('about') }}">About Us</a>
-                <a class="btn btn-link" href="{{ route('contact') }}">Contact Us</a>
-                <a class="btn btn-link" href="{{ route('booking.index') }}">Reservation</a>
-                <a class="btn btn-link" href="">Privacy Policy</a>
-                <a class="btn btn-link" href="">Terms & Condition</a>
+                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Công ty</h4>
+                <a class="btn btn-link" href="{{ route('about') }}">Về chúng tôi</a>
+                <a class="btn btn-link" href="{{ route('contact') }}">Liên hệ</a>
+                <a class="btn btn-link" href="{{ route('booking.index') }}">Đặt bàn</a>
+                <a class="btn btn-link" href="">Chính sách bảo mật</a>
+                <a class="btn btn-link" href="">Điều khoản & Điều kiện</a>
             </div>
             <div class="col-lg-3 col-md-6">
-                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Contact</h4>
-                <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>123 Street, New York, USA</p>
+                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Liên hệ</h4>
+                <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>FPT Poly Hà Nội</p>
                 <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+012 345 67890</p>
-                <p class="mb-2"><i class="fa fa-envelope me-3"></i>info@example.com</p>
+                <p class="mb-2"><i class="fa fa-envelope me-3"></i>buffetocean@gmail.com</p>
                 <div class="d-flex pt-2">
                     <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-twitter"></i></a>
                     <a class="btn btn-outline-light btn-social" href=""><i class="fab fa-facebook-f"></i></a>
@@ -22,19 +22,17 @@
                 </div>
             </div>
             <div class="col-lg-3 col-md-6">
-                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Opening</h4>
-                <h5 class="text-light fw-normal">Monday - Saturday</h5>
-                <p>09AM - 09PM</p>
-                <h5 class="text-light fw-normal">Sunday</h5>
+                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Giờ mở cửa</h4>
+                <h5 class="text-light fw-normal">Thứ Hai - Thứ Bảy</h5>
+                <p>08AM - 10PM</p>
+                <h5 class="text-light fw-normal">Chủ Nhật</h5>
                 <p>10AM - 08PM</p>
             </div>
             <div class="col-lg-3 col-md-6">
-                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Newsletter</h4>
-                <p>Dolor amet sit justo amet elitr clita ipsum elitr est.</p>
-                <div class="position-relative mx-auto" style="max-width: 400px;">
-                    <input class="form-control border-primary w-100 py-3 ps-4 pe-5" type="text" placeholder="Your email">
-                    <button type="button" class="btn btn-primary py-2 position-absolute top-0 end-0 mt-2 me-2">SignUp</button>
-                </div>
+                <h4 class="section-title ff-secondary text-start text-primary fw-normal mb-4">Buffet Ocean</h4>
+                <p>Nhà hàng hải sản buffet hàng đầu, mang đến cho thực khách trải nghiệm ẩm thực tươi ngon và đa dạng.
+                    Chúng tôi cam kết chất lượng sản phẩm và dịch vụ tốt nhất.</p>
+
             </div>
         </div>
     </div>
@@ -42,15 +40,15 @@
         <div class="copyright">
             <div class="row">
                 <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                    &copy; <a class="border-bottom" href="#">BUFFET OCEAN</a>, All Right Reserved. 
-                    Designed By <a class="border-bottom" href="http://127.0.0.1:8000/">NHÓM WD - 02</a>
+                    &copy; <a class="border-bottom" href="#">BUFFET OCEAN</a>, Mọi quyền được bảo lưu.
+                    Thiết kế bởi <a class="border-bottom" href="http://127.0.0.1:8000/">NHÓM WD - 02</a>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
                     <div class="footer-menu">
-                        <a href="{{ route('home') }}">Home</a>
+                        <a href="{{ route('home') }}">Trang chủ</a>
                         <a href="">Cookies</a>
-                        <a href="">Help</a>
-                        <a href="">FQAs</a>
+                        <a href="">Trợ giúp</a>
+                        <a href="">FAQs</a>
                     </div>
                 </div>
             </div>

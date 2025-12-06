@@ -14,8 +14,12 @@ class HoaDonController extends Controller
     {
         $query = HoaDon::with([
             'datBan.banAn',
-            'datBan.orderMon',
-            'voucher'
+            // Đã sửa: 'datBan.chiTietDatBan.combo' -> Combo là quan hệ của ChiTietDatBan
+            // Giữ nguyên vì mối quan hệ này có thể tồn tại trong ChiTietDatBan Model
+            'datBan.chiTietDatBan.combo',
+            'datBan.orderMon.chiTietOrders.monAn',
+            'voucher',
+            'chiTietHoaDon'
         ])->latest();
 
         if ($request->filled('search')) {
@@ -45,7 +49,8 @@ class HoaDonController extends Controller
 
     public function create()
     {
-        $datBans = DatBan::with('banAn', 'comboBuffet', 'orderMon')
+        // Đã sửa: 'comboBuffet' -> 'combos'
+        $datBans = DatBan::with('banAn', 'combos', 'orderMon')
             ->where('trang_thai', 'hoan_tat')
             ->whereDoesntHave('hoaDon') // Sửa ở đây
             ->get();
@@ -117,11 +122,14 @@ class HoaDonController extends Controller
 
     public function show($id)
     {
+        // Đã sửa: 'datBan.comboBuffet' -> 'datBan.combos'
         $hoaDon = HoaDon::with([
-            'datBan.banAn',
-            'datBan.comboBuffet',
+            'datBan.banAn.khuVuc',
+            'datBan.combos',
+            'datBan.chiTietDatBan.combo',
             'datBan.orderMon.chiTietOrders.monAn',
-            'voucher'
+            'voucher',
+            'chiTietHoaDon'
         ])->findOrFail($id);
 
         return view('admins.hoa-don.show', compact('hoaDon'));
@@ -129,7 +137,8 @@ class HoaDonController extends Controller
 
     public function edit($id)
     {
-        $hoaDon = HoaDon::with('datBan.banAn', 'datBan.comboBuffet', 'voucher')->findOrFail($id);
+        // Đã sửa: 'datBan.comboBuffet' -> 'datBan.combos'
+        $hoaDon = HoaDon::with('datBan.banAn', 'datBan.combos', 'voucher')->findOrFail($id);
         
         $vouchers = Voucher::where('trang_thai', 'dang_ap_dung')
             ->where('ngay_ket_thuc', '>=', now())
@@ -154,7 +163,9 @@ class HoaDonController extends Controller
         
         $phuThu = (float) ($request->phu_thu ?? 0);
         $tongTienGoc = $hoaDon->tong_tien;
-        $tienCoc = (float) ($hoaDon->datBan->tien_coc ?? 0);
+        // Cần eager load datBan trong edit để tránh N+1, nhưng lấy ở đây để tính toán
+        $datBan = $hoaDon->datBan;
+        $tienCoc = (float) ($datBan->tien_coc ?? 0);
 
         $tienGiam = 0;
         if ($newVoucher) {

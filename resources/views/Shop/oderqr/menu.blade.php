@@ -1092,7 +1092,8 @@
 
         /* --- FIX Z-INDEX GHI CHÚ CAO HƠN ORDER --- */
         #note-modal {
-            z-index: 999999 !important; /* Đặt thật cao */
+            z-index: 999999 !important;
+            /* Đặt thật cao */
         }
 
         .form-control-note {
@@ -1271,7 +1272,7 @@
                             </div>
                             <div class="info-pill"><i class="fa-solid fa-child"></i> <span id="tre-em">0</span> Nhỏ</div>
                             <div class="info-pill"><i class="fa-solid fa-stopwatch"></i> <span
-                                    id="countdown-timer">...</span></div>
+                                        id="countdown-timer">...</span></div>
                             <div class="info-pill"
                                 style="border: 1px solid #3b82f6; color: #60a5fa; background: rgba(59, 130, 246, 0.15);"><i
                                     class="fa-solid fa-layer-group"></i> Combo: <span id="tien-combo-badge">0đ</span></div>
@@ -1457,6 +1458,19 @@
             style: 'currency',
             currency: 'VND'
         }).format(a);
+
+        // =========================================================
+        // === Sửa lỗi: Thêm định nghĩa hàm mở/đóng giỏ hàng tại đây ===
+        // =========================================================
+        function openCartModal() {
+            updateCartUI(); // Gọi hàm cập nhật UI trước khi mở
+            document.getElementById('cart-modal').classList.add('active');
+        }
+
+        function closeCartModal() {
+            document.getElementById('cart-modal').classList.remove('active');
+        }
+        // =========================================================
 
         // --- ẨN BANNER TỰ ĐỘNG ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -2058,7 +2072,7 @@
             }
         }
 
-function startCountdown() {
+        function startCountdown() {
             // 1. Kiểm tra xem đã có món ăn nào được gọi chưa
             // (Biến orderStartTime được tính trong hàm loadOrderStatus dựa trên món đầu tiên)
             if (!orderStartTime) {

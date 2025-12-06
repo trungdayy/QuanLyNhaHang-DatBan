@@ -258,13 +258,17 @@ Route::middleware(['auth', 'role:phuc_vu,le_tan'])->prefix('nhanVien')->name('nh
 
     // Thanh toán
     Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
+        // thanh toán từ danh sách bàn
         Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
         Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
+        // thanh toán từ bên order món
         Route::get('/order/{orderId}', 'thanhToan')->name('order');
         Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
+        // hóa đơn và in
         Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
         Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
-        Route::get('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
+        // thanh toán vnpay
+        Route::post('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
         Route::get('/vnpay/callback/{banId}', 'vnpayCallback')->name('vnpay.callback');
     });
 });
