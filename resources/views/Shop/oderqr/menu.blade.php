@@ -497,6 +497,30 @@
 
         .timer-badge { font-size: 0.75rem; font-weight: 700; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; border: 1px solid #cbd5e1; }
         .timer-badge.late { color: #b91c1c; background: #fef2f2; border-color: #fca5a5; animation: pulse 2s infinite; }
+
+        /* Tag loại món trong sidebar */
+        .stt-type-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stt-type-badge.combo {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .stt-type-badge.goi-them {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         .btn-cancel-item { background: #fff; border: 1px solid #ef4444; color: #ef4444; font-size: 0.7rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px; text-transform: uppercase; }
@@ -1377,10 +1401,19 @@
                     const donGia = i.mon_an.gia || 0;
                     const thanhTien = i.loai_mon === 'goi_them' ? (donGia * i.so_luong) : 0;
                     const giaHienThi = thanhTien > 0 ? thanhTien.toLocaleString('vi-VN') + ' đ' : '0 đ';
+                    
+                    // Xác định tag loại món
+                    const isCombo = i.loai_mon === 'combo';
+                    const typeBadgeClass = isCombo ? 'combo' : 'goi-them';
+                    const typeBadgeText = isCombo 
+                        ? '<i class="fa-solid fa-layer-group"></i> Món combo' 
+                        : '<i class="fa-solid fa-utensils"></i> Món gọi thêm';
+                    const typeBadgeHtml = `<div class="stt-type-badge ${typeBadgeClass}">${typeBadgeText}</div>`;
 
                     htmlContent += `
                     <div class="status-card ${s.cls}">
                         <div class="stt-header"><div class="stt-name">${i.mon_an.ten_mon} <span class="stt-qty">x${i.so_luong}</span></div><div class="badge-status"><i class="fa-solid fa-${s.ic}"></i> ${s.txt}</div></div>
+                        ${typeBadgeHtml}
                         <div class="stt-meta" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 0.85rem; color: #64748b;">
                             <span><i class="fa-regular fa-clock"></i> Gọi lúc ${orderTimeStr}</span>
                             <span style="font-weight: 600; color: #059669;"><i class="fa-solid fa-tag"></i> ${giaHienThi}</span>
