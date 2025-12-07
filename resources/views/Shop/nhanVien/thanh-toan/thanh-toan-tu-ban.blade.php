@@ -257,8 +257,12 @@
                                                 
                                                 // Món combo không có giới hạn nữa, chỉ cần kiểm tra xem món có trong combo không
                                                 // Tính tổng số lượng đã order cho từng món (cả combo và goi_them)
+                                                // Chỉ bỏ qua món đang chờ bếp (không bỏ qua món đã hủy để hiển thị số lượng đầy đủ)
                                                 $tongSoLuongMon = [];
-                                                foreach($monAnList as $ct) {
+                                                $monAnListFiltered = $monAnList->filter(function($ct) {
+                                                    return $ct->trang_thai != 'cho_bep';
+                                                });
+                                                foreach($monAnListFiltered as $ct) {
                                                     $monAnId = $ct->mon_an_id;
                                                     if(!isset($tongSoLuongMon[$monAnId])) {
                                                         $tongSoLuongMon[$monAnId] = 0;
@@ -266,40 +270,42 @@
                                                     $tongSoLuongMon[$monAnId] += $ct->so_luong;
                                                 }
                                             @endphp
-                                            {{-- Hiển thị TẤT CẢ các món đã gọi --}}
+                                            {{-- Hiển thị các món đã gọi (bỏ qua món chờ bếp, nhưng hiển thị món đã hủy) --}}
                                             @php
-                                                // Nhóm món theo mon_an_id để hiển thị gộp
-                                                $monAnGrouped = $monAnList->groupBy('mon_an_id');
+                                                // Nhóm món theo mon_an_id để hiển thị gộp (bao gồm cả món đã hủy, chỉ bỏ món chờ bếp)
+                                                $monAnGrouped = $monAnListFiltered->groupBy('mon_an_id');
                                             @endphp
                                             @foreach($monAnGrouped as $monAnId => $monAnGroup)
                                                 @php
                                                     $ctFirst = $monAnGroup->first();
+                                                    // Tính tổng số lượng từ tất cả món trong group (bao gồm cả món đã hủy)
                                                     $tongSoLuong = $monAnGroup->sum('so_luong');
                                                     
-                                                    // Tính số lượng món theo trạng thái
+                                                    // Tính số lượng món theo trạng thái (bao gồm cả món đã hủy, chỉ bỏ món chờ bếp)
                                                     $soLuongDaLen = 0; // Đã lên món (da_len_mon) - tính 100%
-                                                    $soLuongChoBep = 0; // Chờ bếp (cho_bep) - tính 0% (chưa xác nhận, có thể hủy)
                                                     $soLuongDangCheBien = 0; // Đang chế biến (dang_che_bien) - tính 100%
-                                                    $soLuongChuaNauXong = 0; // Tổng chưa nấu xong (cho_bep + dang_che_bien)
                                                     $soLuongHuy = 0; // Đã hủy (huy_mon) - tính 0%
                                                     
                                                     // Món combo không có giới hạn nữa
                                                     $tongGioiHan = null;
                                                     $soLuongVuot = 0;
                                                     
-                                                    // Tính số lượng đã lên và chưa nấu xong (tổng)
+                                                    // Tính số lượng theo trạng thái (bao gồm cả món đã hủy)
                                                     foreach($monAnGroup as $ct) {
                                                         if($ct->trang_thai == 'da_len_mon') {
                                                             $soLuongDaLen += $ct->so_luong;
-                                                        } elseif($ct->trang_thai == 'cho_bep') {
-                                                            $soLuongChoBep += $ct->so_luong;
-                                                            $soLuongChuaNauXong += $ct->so_luong;
                                                         } elseif($ct->trang_thai == 'dang_che_bien') {
                                                             $soLuongDangCheBien += $ct->so_luong;
-                                                            $soLuongChuaNauXong += $ct->so_luong;
                                                         } elseif($ct->trang_thai == 'huy_mon') {
                                                             $soLuongHuy += $ct->so_luong;
                                                         }
+                                                        // Bỏ qua trạng thái 'cho_bep' - không tính
+                                                    }
+                                                    
+                                                    // Chỉ hiển thị món nếu có đã lên hoặc đang nấu
+                                                    // Nếu chỉ có đã hủy thì không hiển thị
+                                                    if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) {
+                                                        continue;
                                                     }
                                                     
                                                 // Món combo không có giới hạn nữa, không cần tính phần vượt
@@ -330,7 +336,6 @@
                                                     $coPhuPhi = false;
                                                     $tienPhuPhi = 0; // Khởi tạo biến phụ phí
                                                     $donGiaGoc = $ctFirst->monAn->gia ?? 0;
-                                                    $coMonChuaNauXong = $soLuongChuaNauXong > 0 || $soLuongChuaNauXongTrongVuot > 0;
                                                     
                                                     if($coTrongCombo) {
                                                         // Món thuộc combo: luôn miễn phí (không có giới hạn, không có phụ phí)
@@ -390,22 +395,19 @@
                                                             <div class="d-flex flex-column align-items-center">
                                                                 <span class="badge bg-danger mb-1">Đã hủy: {{ $soLuongHuy }}/{{ $tongSoLuong }}</span>
                                                             </div>
-                                                        @elseif($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0 && $soLuongChoBep == 0)
+                                                        @elseif($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0)
                                                             {{-- Tất cả đã lên, không có trạng thái khác --}}
                                                             <div class="d-flex flex-column align-items-center">
                                                                 <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuong }}</span>
                                                             </div>
                                                         @else
-                                                            {{-- Có nhiều trạng thái - hiển thị chi tiết --}}
+                                                            {{-- Có nhiều trạng thái - hiển thị chi tiết (không hiển thị chờ bếp) --}}
                                                             <div class="d-flex flex-column align-items-center gap-1">
                                                                 @if($soLuongDaLen > 0)
                                                                     <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}</span>
                                                                 @endif
                                                                 @if($soLuongDangCheBien > 0)
                                                                     <span class="badge bg-warning text-dark">Đang nấu: {{ $soLuongDangCheBien }}</span>
-                                                                @endif
-                                                                @if($soLuongChoBep > 0)
-                                                                    <span class="badge bg-info text-white">Chờ bếp: {{ $soLuongChoBep }}</span>
                                                                 @endif
                                                                 @if($soLuongHuy > 0)
                                                                     <span class="badge bg-danger">Đã hủy: {{ $soLuongHuy }}</span>
@@ -437,9 +439,6 @@
                                                                 @endif
                                                                 @if($soLuongDangCheBien > 0)
                                                                     <br><small class="text-warning">Đang nấu dở ({{ $soLuongDangCheBien }}): 100% = {{ number_format($donGiaGocHienThi * $soLuongDangCheBien) }} đ</small>
-                                                                @endif
-                                                                @if($soLuongChoBep > 0)
-                                                                    <br><small class="text-secondary">Chờ bếp ({{ $soLuongChoBep }}): 0 đ</small>
                                                                 @endif
                                                             </div>
                                                         @endif

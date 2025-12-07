@@ -59,8 +59,7 @@
                     <th>Tổng tiền món</th>
                     <th>Voucher</th>
                     <th>Tiền giảm</th>
-                    <th>Phụ thu</th>
-                    <th>Đã thanh toán</th>
+                    <th>Trạng thái</th>
                     <th>Phương thức</th>
                     <th>Ngày tạo</th>
                     <th>Hành động</th>
@@ -68,6 +67,19 @@
             </thead>
             <tbody>
                 @foreach($hoadons as $hd)
+                @php
+                    // Sử dụng dữ liệu đã lưu trong database thay vì tính toán lại
+                    // Ưu tiên lấy từ chi_tiet_hoa_don, fallback về hoa_don
+                    $tongTienMonHienThi = $hd->chiTietHoaDon->tong_tien_combo_mon ?? $hd->tong_tien ?? 0;
+                    
+                    // Lấy phải thanh toán từ chi_tiet_hoa_don nếu có
+                    $phaiThanhToan = $hd->chiTietHoaDon->phai_thanh_toan ?? null;
+                    if($phaiThanhToan === null) {
+                        // Fallback: tính từ hoa_don
+                        $phaiThanhToan = $hd->tong_tien - ($hd->tien_giam ?? 0) + ($hd->phu_thu ?? 0) - ($hd->datBan->tien_coc ?? 0);
+                        if($phaiThanhToan < 0) $phaiThanhToan = 0;
+                    }
+                @endphp
                 <tr>
                     <td>{{ $hd->id }}</td>
                     <td><span class="badge bg-info">{{ $hd->ma_hoa_don }}</span></td>
@@ -76,7 +88,7 @@
                         <small>Khách: {{ $hd->datBan->ten_khach ?? 'N/A' }}</small>
                     </td>
                     
-                    <td class="text-end">{{ number_format($hd->tong_tien ?? 0) }}₫</td>
+                    <td class="text-end">{{ number_format($tongTienMonHienThi) }}₫</td>
 
                     <td>
                         @if($hd->voucher)
@@ -88,16 +100,17 @@
                     
                     <td class="text-end text-success">{{ number_format($hd->tien_giam ?? 0) }}₫</td>
                     
-                    <td class="text-end text-warning">{{ number_format($hd->phu_thu ?? 0) }}₫</td>
-                    
-                    <td class="text-end">
-                        @if($hd->da_thanh_toan >= $hd->tinhDaThanhToan())
+                    <td>
+                        @php
+                            // Sử dụng dữ liệu đã lưu để kiểm tra trạng thái
+                            $daThanhToan = $hd->da_thanh_toan ?? 0;
+                            $isDaThanhToan = $daThanhToan >= $phaiThanhToan;
+                        @endphp
+                        @if($isDaThanhToan)
                             <span class="badge bg-success">Đã thanh toán</span>
                         @else
                             <span class="badge bg-danger">Chưa đủ</span>
                         @endif
-                        <br>
-                        <small>{{ number_format($hd->tinhDaThanhToan()) }}₫</small>
                     </td>
 
                     <td>

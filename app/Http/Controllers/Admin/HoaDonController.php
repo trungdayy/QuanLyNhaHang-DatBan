@@ -14,8 +14,6 @@ class HoaDonController extends Controller
     {
         $query = HoaDon::with([
             'datBan.banAn',
-            // Đã sửa: 'datBan.chiTietDatBan.combo' -> Combo là quan hệ của ChiTietDatBan
-            // Giữ nguyên vì mối quan hệ này có thể tồn tại trong ChiTietDatBan Model
             'datBan.chiTietDatBan.combo',
             'datBan.orderMon.chiTietOrders.monAn',
             'voucher',
@@ -125,7 +123,7 @@ class HoaDonController extends Controller
         // Đã sửa: 'datBan.comboBuffet' -> 'datBan.combos'
         $hoaDon = HoaDon::with([
             'datBan.banAn.khuVuc',
-            'datBan.combos',
+            'datBan.comboBuffet',
             'datBan.chiTietDatBan.combo',
             'datBan.orderMon.chiTietOrders.monAn',
             'voucher',

@@ -11,6 +11,8 @@
             body {
                 margin: 0;
                 padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             .no-print {
                 display: none !important;
@@ -21,6 +23,18 @@
             @page {
                 size: A4;
                 margin: 1cm;
+            }
+            /* Loại bỏ tất cả màu sắc khi in */
+            * {
+                color: #000 !important;
+                background-color: #fff !important;
+                border-color: #000 !important;
+            }
+            .invoice-table th {
+                background-color: #f0f0f0 !important;
+            }
+            .invoice-table td {
+                background-color: #fff !important;
             }
         }
         
@@ -474,7 +488,7 @@
                         <td data-label="Tên món">
                             <strong>{{ $chiTiet->ten_combo ?? 'Combo chính' }}</strong> (Combo chính)
                             @if($chiTiet->tre_em > 0)
-                                <span style="background-color: #17a2b8; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">Trẻ em (Giảm 50%)</span>
+                                <span style="padding: 2px 6px; border: 1px solid #000; font-size: 10px; margin-left: 5px;">Trẻ em (Giảm 50%)</span>
                             @endif
                         </td>
                         <td class="text-center" data-label="Số lượng">{{ $chiTiet->so_khach }} khách 
@@ -549,6 +563,11 @@
                             }
                         }
                         
+                        // Chỉ hiển thị món đã lên hoặc đang nấu dở (bỏ qua món đã hủy và chờ bếp)
+                        if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) {
+                            continue;
+                        }
+                        
                         $donGiaGoc = 0;
                         if($monAnGroup && $monAnGroup->first()->monAn) {
                             $donGiaGoc = $monAnGroup->first()->monAn->gia ?? 0;
@@ -599,12 +618,12 @@
                         <td data-label="Tên món">
                             {{ $ctFirst->monAn->ten_mon ?? 'N/A' }}
                             @if($coTrongCombo)
-                                <span style="font-size: 11px; color: #856404;">(Món combo)</span>
+                                <span style="font-size: 11px;">(Món combo)</span>
                                 @if($monInfo && ($monInfo['vuot_gioi_han'] ?? false))
-                                    <span style="font-size: 11px; color: #dc3545;">(Vượt giới hạn)</span>
+                                    <span style="font-size: 11px;">(Vượt giới hạn)</span>
                                 @endif
                             @else
-                                <span style="font-size: 11px; color: #0c5460;">(Gọi thêm)</span>
+                                <span style="font-size: 11px;">(Gọi thêm)</span>
                             @endif
                         </td>
                         <td class="text-center" data-label="Số lượng">
@@ -621,55 +640,55 @@
                                 @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuongHienThi)
                                     {{-- Tất cả đã hủy --}}
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                        <span style="font-size: 11px; color: #dc3545; font-weight: bold; padding: 2px 6px; background-color: #f8d7da; border-radius: 3px;">Đã hủy: {{ $soLuongHuy }}/{{ $tongSoLuongHienThi }}</span>
+                                        <span style="font-size: 11px; font-weight: bold;">Đã hủy: {{ $soLuongHuy }}/{{ $tongSoLuongHienThi }}</span>
                                     </div>
                                 @elseif($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0 && $soLuongChoBep == 0)
                                     {{-- Tất cả đã lên, không có trạng thái khác --}}
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                        <span style="font-size: 11px; color: #28a745; font-weight: bold; padding: 2px 6px; background-color: #d4edda; border-radius: 3px;">Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuongHienThi }}</span>
+                                        <span style="font-size: 11px; font-weight: bold;">Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuongHienThi }}</span>
                                     </div>
                                 @else
                                     {{-- Có nhiều trạng thái - hiển thị chi tiết --}}
                                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
                                         @if($soLuongDaLen > 0)
-                                            <span style="font-size: 11px; color: #28a745; font-weight: bold; padding: 2px 6px; background-color: #d4edda; border-radius: 3px;">Đã lên: {{ $soLuongDaLen }}</span>
+                                            <span style="font-size: 11px; font-weight: bold;">Đã lên: {{ $soLuongDaLen }}</span>
                                         @endif
                                         @if($soLuongDangCheBien > 0)
-                                            <span style="font-size: 11px; color: #856404; font-weight: bold; padding: 2px 6px; background-color: #fff3cd; border-radius: 3px;">Đang nấu: {{ $soLuongDangCheBien }}</span>
+                                            <span style="font-size: 11px; font-weight: bold;">Đang nấu: {{ $soLuongDangCheBien }}</span>
                                         @endif
                                         @if($soLuongChoBep > 0)
-                                            <span style="font-size: 11px; color: #0c5460; font-weight: bold; padding: 2px 6px; background-color: #d1ecf1; border-radius: 3px;">Chờ bếp: {{ $soLuongChoBep }}</span>
+                                            <span style="font-size: 11px; font-weight: bold;">Chờ bếp: {{ $soLuongChoBep }}</span>
                                         @endif
                                         @if($soLuongHuy > 0)
-                                            <span style="font-size: 11px; color: #dc3545; font-weight: bold; padding: 2px 6px; background-color: #f8d7da; border-radius: 3px;">Đã hủy: {{ $soLuongHuy }}</span>
+                                            <span style="font-size: 11px; font-weight: bold;">Đã hủy: {{ $soLuongHuy }}</span>
                                         @endif
                                     </div>
                                 @endif
                             @else
-                                <span style="font-size: 11px; color: #6c757d;">N/A</span>
+                                <span style="font-size: 11px;">N/A</span>
                             @endif
                         </td>
                         <td class="text-end" data-label="Đơn giá">
                             @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuongHienThi)
                                 {{-- Tất cả món đã hủy --}}
-                                <span style="color: #dc3545;">0 đ</span>
-                                <br><small style="font-size: 11px; color: #6c757d;">(Đã hủy)</small>
+                                <span>0 đ</span>
+                                <br><small style="font-size: 11px;">(Đã hủy)</small>
                             @elseif($coTrongCombo && $soLuongVuot == 0)
                                 {{-- Món combo chưa vượt giới hạn: hiển thị 0 đ --}}
-                                <span style="color: #28a745;">0 đ</span>
-                                <br><small style="font-size: 11px; color: #6c757d;">(Đã bao gồm trong combo)</small>
+                                <span>0 đ</span>
+                                <br><small style="font-size: 11px;">(Đã bao gồm trong combo)</small>
                                 @if($soLuongHuy > 0)
-                                    <br><small style="font-size: 10px; color: #dc3545;">Đã hủy ({{ $soLuongHuy }}): 0 đ</small>
+                                    <br><small style="font-size: 10px;">Đã hủy ({{ $soLuongHuy }}): 0 đ</small>
                                 @endif
                             @elseif($mon['don_gia'] > 0 || $coMonChuaNauXong || $soLuongVuot > 0)
                                 {{-- Món vượt giới hạn hoặc món gọi thêm: hiển thị chi tiết --}}
                                 <div style="font-size: 11px; line-height: 1.4;">
-                                    <div><small style="color: #6c757d;">Giá gốc: {{ number_format($donGiaGoc) }} đ</small></div>
+                                    <div><small>Giá gốc: {{ number_format($donGiaGoc) }} đ</small></div>
                                     @if($soLuongHuy > 0)
-                                        <div><small style="color: #dc3545;">Đã hủy ({{ $soLuongHuy }}): 0 đ</small></div>
+                                        <div><small>Đã hủy ({{ $soLuongHuy }}): 0 đ</small></div>
                                     @endif
                                     @if($coMonChuaNauXong)
-                                        <div style="color: #856404; margin-top: 4px;">
+                                        <div style="margin-top: 4px;">
                                             @if($coTrongCombo && $soLuongVuot > 0)
                                                 @if($soLuongDaLenTrongVuot > 0)
                                                     Đã nấu xong ({{ $soLuongDaLenTrongVuot }}): 100% = {{ number_format($donGiaGoc * $soLuongDaLenTrongVuot) }} đ
@@ -726,7 +745,7 @@
                                         </div>
                                     @endif
                                     @if($tienPhuPhiTinhLai > 0)
-                                        <div style="color: #dc3545; margin-top: 4px;">
+                                        <div style="margin-top: 4px;">
                                             + {{ number_format($tienPhuPhiTinhLai) }} đ (phụ phí)
                                             @if($soLuongDaLenTrongVuot > 1 && $phuPhiDonVi > 0)
                                                 <br><small style="font-size: 10px;">({{ number_format($phuPhiDonVi) }} đ × {{ $soLuongDaLenTrongVuot }})</small>
@@ -736,30 +755,30 @@
                                 </div>
                             @else
                                 @if($tienPhuPhiTinhLai > 0)
-                                    <span style="color: #28a745;">0 đ</span>
-                                    <br><small style="color: #dc3545; font-size: 11px;">
+                                    <span>0 đ</span>
+                                    <br><small style="font-size: 11px;">
                                         + {{ number_format($tienPhuPhiTinhLai) }} đ (phụ phí)
                                         @if($soLuongDaLenTrongVuot > 1 && $phuPhiDonVi > 0)
                                             <br><small style="font-size: 10px;">({{ number_format($phuPhiDonVi) }} đ × {{ $soLuongDaLenTrongVuot }})</small>
                                         @endif
                                     </small>
                                 @else
-                                    <span style="color: #28a745;">0 đ</span>
-                                    <br><small style="font-size: 11px; color: #6c757d;">(Đã bao gồm trong combo)</small>
+                                    <span>0 đ</span>
+                                    <br><small style="font-size: 11px;">(Đã bao gồm trong combo)</small>
                                 @endif
                             @endif
                         </td>
                         <td class="text-end" data-label="Thành tiền">
                             @if($soLuongHuy > 0 && isset($tongSoLuongHienThi) && $soLuongHuy == $tongSoLuongHienThi)
                                 {{-- Tất cả món đã hủy --}}
-                                <span style="color: #dc3545; font-weight: bold;">0 đ</span>
+                                <span style="font-weight: bold;">0 đ</span>
                             @elseif($thanhTienTinhLai > 0)
                                 <strong>{{ number_format($thanhTienTinhLai) }} đ</strong>
                                 @php
                                     $tongTienMonGoiThemTinhLai += $thanhTienTinhLai;
                                 @endphp
                             @else
-                                <span style="color: #28a745;">0 đ</span>
+                                <span>0 đ</span>
                             @endif
                         </td>
                     </tr>
@@ -864,7 +883,7 @@
                     <td>(-) Tiền giảm (Voucher {{ $chiTiet ? $chiTiet->ma_voucher : ($hoaDon->voucher->ma_voucher ?? '') }}):</td>
                     <td>- {{ number_format($chiTiet ? $chiTiet->tien_giam_voucher : ($hoaDon->tien_giam ?? 0)) }} đ</td>
                 </tr>
-                <tr style="background-color: #fffacd;">
+                <tr style="background-color: #f0f0f0;">
                     <td style="font-weight: bold;">Tổng tiền sau voucher:</td>
                     <td style="font-weight: bold;">{{ number_format($tongTienSauVoucher) }} đ</td>
                 </tr>
@@ -881,7 +900,7 @@
                 </tr>
                 <tr>
                     <td>Đã thanh toán:</td>
-                    <td style="color: #28a745; font-size: 16px;">{{ number_format($phaiThanhToan) }} đ</td>
+                    <td style="font-size: 16px;">{{ number_format($phaiThanhToan) }} đ</td>
                 </tr>
                 @php
                     // Lấy tiền khách đưa và tiền trả lại từ chi_tiet_hoa_don
@@ -897,13 +916,13 @@
                 </tr>
                 @if($tienTraLai > 0)
                 <tr>
-                    <td style="color: #28a745; font-weight: bold;">Tiền trả lại:</td>
-                    <td style="color: #28a745; font-weight: bold;">{{ number_format($tienTraLai) }} đ</td>
+                    <td style="font-weight: bold;">Tiền trả lại:</td>
+                    <td style="font-weight: bold;">{{ number_format($tienTraLai) }} đ</td>
                 </tr>
                 @elseif($tienKhachDua < $phaiThanhToan)
                 <tr>
-                    <td style="color: #dc3545; font-weight: bold;">Thiếu:</td>
-                    <td style="color: #dc3545; font-weight: bold;">{{ number_format($phaiThanhToan - $tienKhachDua) }} đ</td>
+                    <td style="font-weight: bold;">Thiếu:</td>
+                    <td style="font-weight: bold;">{{ number_format($phaiThanhToan - $tienKhachDua) }} đ</td>
                 </tr>
                 @endif
                 @endif
