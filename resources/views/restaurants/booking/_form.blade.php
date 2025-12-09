@@ -1,5 +1,5 @@
 {{-- ============================================================= --}}
-{{-- 1. CSS TÙY CHỈNH CHO FORM (Đẹp, hiện đại, Style Restoran) --}}
+{{-- 1. CSS TÙY CHỈNH CHO FORM (Style Restoran) --}}
 {{-- ============================================================= --}}
 <style>
     /* Input đẹp hơn */
@@ -12,12 +12,11 @@
 
     .form-floating .form-control:focus {
         border-color: #FEA116;
-        /* Màu cam chủ đạo */
         box-shadow: 0 0 0 0.25rem rgba(254, 161, 22, 0.15);
         background: #fff;
     }
 
-    /* Card món ăn từng dòng */
+    /* Card món ăn */
     .cart-item-card {
         transition: all 0.2s;
         border: 1px solid #f0f0f0;
@@ -29,7 +28,7 @@
         border-color: #ffe0b2;
     }
 
-    /* Checkbox to hơn chút cho dễ bấm */
+    /* Checkbox */
     .cart-checkbox {
         width: 22px;
         height: 22px;
@@ -62,7 +61,7 @@
 </style>
 
 {{-- ============================================================= --}}
-{{-- 2. HTML FORM (Cấu trúc giữ nguyên, Class đẹp hơn) --}}
+{{-- 2. HTML FORM --}}
 {{-- ============================================================= --}}
 <form action="{{ $action }}" method="POST" id="bookingForm" class="booking-form-container p-2">
     @csrf
@@ -98,13 +97,26 @@
             </div>
         </div>
 
-        <div class="col-md-12">
+        {{-- [MỚI] TÁCH NGÀY VÀ GIỜ RA RIÊNG BIỆT --}}
+        
+        {{-- Chọn Ngày --}}
+        <div class="col-md-6">
             <div class="form-floating">
-                <input type="datetime-local" name="gio_den" class="form-control fw-bold text-dark" id="floatTime"
-                    value="{{ old('gio_den', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i')) }}"
+                <input type="date" name="booking_date" class="form-control fw-bold text-dark" id="bookingDate"
+                    value="{{ old('booking_date', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('Y-m-d') : now()->format('Y-m-d')) }}"
+                    min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}" 
                     required>
-                <label for="floatTime" class="text-muted"><i class="fa fa-clock text-primary me-2"></i>Thời gian
-                    đến</label>
+                <label for="bookingDate" class="text-muted"><i class="fa fa-calendar text-primary me-2"></i>Ngày đến</label>
+            </div>
+        </div>
+
+        {{-- Chọn Giờ --}}
+        <div class="col-md-6">
+            <div class="form-floating">
+                <input type="time" name="booking_time" class="form-control fw-bold text-dark" id="bookingTime"
+                    value="{{ old('booking_time', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('H:i') : \Carbon\Carbon::now()->addMinutes(30)->format('H:i')) }}"
+                    required>
+                <label for="bookingTime" class="text-muted"><i class="fa fa-clock text-primary me-2"></i>Giờ đến</label>
             </div>
         </div>
 
@@ -135,7 +147,7 @@
             </div>
         </div>
 
-        {{-- 3. DANH SÁCH MÓN ĂN (Giao diện đẹp hơn) --}}
+        {{-- 3. DANH SÁCH MÓN ĂN --}}
         <div class="col-12 mt-4">
             <div class="d-flex justify-content-between align-items-end mb-3 px-1">
                 <div>
@@ -209,14 +221,54 @@
 </form>
 
 {{-- ============================================================= --}}
-{{-- 3. JAVASCRIPT LOGIC (Giữ nguyên logic cũ như bạn yêu cầu) --}}
+{{-- 3. JAVASCRIPT LOGIC HOÀN CHỈNH --}}
 {{-- ============================================================= --}}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         // --- CẤU HÌNH ---
         const CART_KEY = "oceanCart";
+        
+        // --- PHẦN 1: LOGIC NGÀY & GIỜ (MỚI) ---
+        const dateInput = document.getElementById('bookingDate');
+        const timeInput = document.getElementById('bookingTime');
 
-        // --- ELEMENTS ---
+        function updateTimeConstraints() {
+            const now = new Date();
+            const selectedDate = new Date(dateInput.value);
+            
+            // Reset giờ về 0h để so sánh ngày
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate.getTime() === today.getTime()) {
+                // Nếu là hôm nay:
+                // Lấy giờ hiện tại + phút hiện tại
+                // Để format thành HH:mm cho thuộc tính min
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                timeInput.min = `${hours}:${minutes}`;
+                
+                // UX: Nếu giờ đang chọn < giờ hiện tại thì reset input
+                if(timeInput.value && timeInput.value < `${hours}:${minutes}`) {
+                     timeInput.value = `${hours}:${minutes}`;
+                }
+            } else {
+                // Nếu là tương lai: Thoải mái
+                timeInput.removeAttribute('min');
+            }
+        }
+
+        // Kích hoạt sự kiện khi đổi ngày
+        if(dateInput && timeInput) {
+            dateInput.addEventListener('change', updateTimeConstraints);
+            // Chạy ngay khi load trang
+            updateTimeConstraints();
+        }
+
+
+        // --- PHẦN 2: LOGIC GIỎ HÀNG (GIỮ NGUYÊN) ---
+
         const container = document.getElementById('bookingCartContainer');
         const totalSection = document.getElementById('bookingCartTotalSection');
         const cartHeader = document.getElementById('cartHeader');
@@ -226,11 +278,10 @@
         const countDeleteSpan = document.getElementById('countDelete');
         const selectAllCheckbox = document.getElementById('selectAllCart');
 
-        // Định dạng tiền tệ
         const formatMoney = (amount) => parseInt(amount).toLocaleString('vi-VN') + ' đ';
 
-        // --- 0. KHỞI TẠO DỮ LIỆU TỪ DB (KHI SỬA ĐƠN) ---
-        @if (isset($datBan) && $datBan->chiTietDatBan)
+        // 0. KHỞI TẠO DỮ LIỆU TỪ DB (KHI SỬA ĐƠN)
+        @if (isset($datBan) && $datBan->chiTietDatBan && $datBan->chiTietDatBan->count() > 0)
             try {
                 const dbItems = [
                     @foreach ($datBan->chiTietDatBan as $ct)
@@ -243,14 +294,13 @@
                         },
                     @endforeach
                 ];
-                // Chỉ ghi đè nếu muốn ưu tiên dữ liệu DB khi vào trang sửa
                 localStorage.setItem(CART_KEY, JSON.stringify(dbItems));
             } catch (e) {
                 console.error("Lỗi parse DB cart", e);
             }
         @endif
 
-        // --- 1. RENDER GIỎ HÀNG ---
+        // 1. RENDER GIỎ HÀNG
         window.renderBookingCart = function() {
             let cart = [];
             try {
@@ -259,10 +309,8 @@
                 cart = [];
             }
 
-            // Cập nhật input hidden cho form submit
             if (formInput) formInput.value = JSON.stringify(cart);
 
-            // Xử lý giỏ hàng trống
             if (cart.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-5">
@@ -280,7 +328,6 @@
                 return;
             }
 
-            // Hiển thị danh sách
             if (totalSection) totalSection.classList.remove('d-none');
             if (cartHeader) cartHeader.style.setProperty('display', 'flex', 'important');
 
@@ -291,21 +338,14 @@
                 grandTotal += item.price * item.quantity;
                 html += `
                     <div class="d-flex align-items-center p-3 border-bottom bg-white cart-item-card position-relative mx-3 my-2 rounded-3">
-                        {{-- Checkbox chọn món --}}
                         <div class="form-check me-3">
                             <input class="form-check-input cart-checkbox" type="checkbox" value="${index}">
                         </div>
-
-                        {{-- Ảnh --}}
                         ${item.img ? `<img src="${item.img}" class="rounded-3 shadow-sm me-3 border" style="width: 70px; height: 70px; object-fit: cover;">` : ''}
-                        
-                        {{-- Thông tin --}}
                         <div class="flex-grow-1">
                             <div class="fw-bold text-dark text-truncate" style="max-width: 220px;">${item.name}</div>
                             <div class="text-primary fw-bold small mt-1">${formatMoney(item.price)}</div>
                         </div>
-
-                        {{-- Tăng giảm --}}
                         <div class="d-flex align-items-center bg-light rounded-pill border px-2 py-1 shadow-sm">
                             <button type="button" class="btn btn-sm border-0 text-secondary px-2 fw-bold" onclick="updateQty(${index}, -1)">
                                 <i class="fa fa-minus small"></i>
@@ -321,41 +361,28 @@
 
             container.innerHTML = html;
             totalDisplay.innerText = formatMoney(grandTotal);
-
-            // QUAN TRỌNG: Gắn lại sự kiện cho các checkbox mới sinh ra
             attachCheckboxEvents();
-
-            // Reset trạng thái nút xóa về ẩn mỗi khi vẽ lại
             toggleDeleteButton(0);
             if (selectAllCheckbox) selectAllCheckbox.checked = false;
         };
 
-        // --- 2. XỬ LÝ CHECKBOX & ĐỒNG BỘ "CHỌN TẤT CẢ" ---
+        // 2. CHECKBOX LOGIC
         function attachCheckboxEvents() {
             const checkboxes = document.querySelectorAll('.cart-checkbox');
             checkboxes.forEach(cb => {
                 cb.addEventListener('change', function() {
-                    // 1. Đếm số lượng đang check
-                    const checkedCount = document.querySelectorAll('.cart-checkbox:checked')
-                        .length;
-
-                    // 2. Cập nhật nút Xóa
+                    const checkedCount = document.querySelectorAll('.cart-checkbox:checked').length;
                     toggleDeleteButton(checkedCount);
-
-                    // 3. Đồng bộ với nút "Chọn tất cả"
-                    // Nếu số lượng check == tổng số checkbox thì tick vào "Chọn tất cả", ngược lại thì bỏ tick
                     if (selectAllCheckbox) {
-                        selectAllCheckbox.checked = (checkedCount === checkboxes.length &&
-                            checkedCount > 0);
+                        selectAllCheckbox.checked = (checkedCount === checkboxes.length && checkedCount > 0);
                     }
                 });
             });
         }
 
-        // --- 3. HÀM ẨN/HIỆN NÚT XÓA ---
+        // 3. DELETE BUTTON VISIBILITY
         function toggleDeleteButton(count) {
             if (!btnBulkDelete) return;
-
             if (count > 0) {
                 btnBulkDelete.classList.remove('d-none');
                 btnBulkDelete.classList.add('animate__fadeIn');
@@ -365,32 +392,24 @@
             }
         }
 
-        // --- 4. SỰ KIỆN NÚT "CHỌN TẤT CẢ" ---
+        // 4. SELECT ALL
         if (selectAllCheckbox) {
             selectAllCheckbox.addEventListener('change', function() {
                 const checkboxes = document.querySelectorAll('.cart-checkbox');
                 checkboxes.forEach(cb => cb.checked = this.checked);
-
-                // Cập nhật nút xóa ngay lập tức
                 const count = this.checked ? checkboxes.length : 0;
                 toggleDeleteButton(count);
             });
         }
 
-        // --- 5. SỰ KIỆN NÚT "XÓA" (CORE LOGIC) ---
+        // 5. BULK DELETE
         if (btnBulkDelete) {
-            // Dùng onclick để tránh bị gắn sự kiện nhiều lần nếu script chạy lại
             btnBulkDelete.onclick = function() {
                 const checkedBoxes = document.querySelectorAll('.cart-checkbox:checked');
-
                 if (checkedBoxes.length === 0) return;
 
-                // Hàm thực thi xóa
                 const performDelete = () => {
                     let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
-
-                    // Lấy danh sách index cần xóa
-                    // QUAN TRỌNG: Sắp xếp GIẢM DẦN (b - a) để khi xóa index lớn không làm sai lệch index nhỏ
                     const indexesToDelete = Array.from(checkedBoxes)
                         .map(cb => parseInt(cb.value))
                         .sort((a, b) => b - a);
@@ -399,14 +418,10 @@
                         if (cart[idx]) cart.splice(idx, 1);
                     });
 
-                    // Lưu và vẽ lại
                     localStorage.setItem(CART_KEY, JSON.stringify(cart));
                     renderBookingCart();
-
-                    // Đồng bộ Mini Cart (nếu có)
                     if (typeof window.renderCartUI === "function") window.renderCartUI();
 
-                    // Thông báo xóa thành công
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             icon: 'success',
@@ -417,7 +432,6 @@
                     }
                 };
 
-                // Hiển thị hộp thoại xác nhận
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         title: 'Xóa món đã chọn?',
@@ -431,13 +445,12 @@
                         if (result.isConfirmed) performDelete();
                     });
                 } else {
-                    // Fallback nếu không có SweetAlert
                     if (confirm(`Bạn muốn xóa ${checkedBoxes.length} món này?`)) performDelete();
                 }
             };
         }
 
-        // --- 6. HÀM TĂNG GIẢM SỐ LƯỢNG (Giữ nguyên) ---
+        // 6. UPDATE QUANTITY
         window.updateQty = function(index, change) {
             let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
             if (cart[index]) {
@@ -447,19 +460,16 @@
                     localStorage.setItem(CART_KEY, JSON.stringify(cart));
                     renderBookingCart();
                 } else {
-                    // Nếu giảm về 0 -> Bắt buộc dùng checkbox để xóa (theo yêu cầu của bạn)
                     if (typeof Swal !== 'undefined') {
-                        Swal.fire('Số lượng tối thiểu là 1',
-                            'Để xóa món, vui lòng tích vào ô chọn và bấm nút Xóa.', 'info');
+                        Swal.fire('Số lượng tối thiểu là 1', 'Dùng checkbox để xóa món.', 'info');
                     } else {
-                        alert(
-                            'Số lượng tối thiểu là 1. Để xóa món, vui lòng tích vào ô chọn và bấm nút Xóa.');
+                        alert('Số lượng tối thiểu là 1.');
                     }
                 }
             }
         };
 
-        // --- 7. THÔNG BÁO SAU KHI ĐẶT THÀNH CÔNG ---
+        // 7. FLASH MESSAGES
         @if (session('success'))
             localStorage.removeItem(CART_KEY);
             if (typeof Swal !== 'undefined') {
@@ -486,7 +496,7 @@
             }
         @endif
 
-        // Render lần đầu khi trang tải xong
+        // INIT
         renderBookingCart();
     });
 </script>

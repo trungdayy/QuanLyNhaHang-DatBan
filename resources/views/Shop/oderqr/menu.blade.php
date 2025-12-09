@@ -343,21 +343,63 @@
             text-transform: uppercase;
         }
 
+        /* ------------------------------------------- */
+        /* --- [NEW CSS] BADGE PHÂN LOẠI MÓN --- */
+        .stt-tag {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            text-transform: uppercase;
+            vertical-align: middle;
+            line-height: 1;
+        }
+
+        .stt-tag.tag-combo {
+            background-color: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
+        }
+
+        .stt-tag.tag-extra {
+            background-color: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+        /* ------------------------------------------- */
+
         /* --- MOBILE CUSTOMIZATION (FIX BANNER & HEADER) --- */
         @media (max-width: 1024px) {
 
             /* Ẩn Header, Footer, Banner mặc định của layout cha */
-            header, footer, nav,
-            .header, .footer,
-            .app-header, .app-footer,
-            .navbar, .navbar-light, .navbar-dark,
-            .page-header, .hero-header,
-            .container-xxl.bg-dark, .container-fluid.p-0,
-            .banner, .main-banner, .hero-section, .hero,
-            .top-bar, .breadcrumbs, .breadcrumb-area,
+            header,
+            footer,
+            nav,
+            .header,
+            .footer,
+            .app-header,
+            .app-footer,
+            .navbar,
+            .navbar-light,
+            .navbar-dark,
+            .page-header,
+            .hero-header,
+            .container-xxl.bg-dark,
+            .container-fluid.p-0,
+            .banner,
+            .main-banner,
+            .hero-section,
+            .hero,
+            .top-bar,
+            .breadcrumbs,
+            .breadcrumb-area,
             .sticky-top,
-            div[class*="banner"], section[class*="banner"],
-            div[class*="hero-header"], div[class*="page-header"] {
+            div[class*="banner"],
+            section[class*="banner"],
+            div[class*="hero-header"],
+            div[class*="page-header"] {
                 display: none !important;
             }
 
@@ -1272,7 +1314,7 @@
                             </div>
                             <div class="info-pill"><i class="fa-solid fa-child"></i> <span id="tre-em">0</span> Nhỏ</div>
                             <div class="info-pill"><i class="fa-solid fa-stopwatch"></i> <span
-                                        id="countdown-timer">...</span></div>
+                                    id="countdown-timer">...</span></div>
                             <div class="info-pill"
                                 style="border: 1px solid #3b82f6; color: #60a5fa; background: rgba(59, 130, 246, 0.15);"><i
                                     class="fa-solid fa-layer-group"></i> Combo: <span id="tien-combo-badge">0đ</span></div>
@@ -2015,8 +2057,28 @@
                     const timerHtml = showTimer ?
                         `<div class="timer-badge" data-target="${targetTime}"><i class="fa-solid fa-hourglass-half"></i> <span>--:--</span></div>` :
                         '';
+
+                    // --- [SỬA ĐỔI] HIỂN THỊ BADGE COMBO/GỌI THÊM ---
+                    let typeBadge = '';
+                    if (i.loai_mon === 'combo') {
+                        typeBadge = `<span class="stt-tag tag-combo">Combo</span>`;
+                    } else {
+                        typeBadge = `<span class="stt-tag tag-extra">Thêm</span>`;
+                    }
+                    // ------------------------------------------------
+
                     htmlContent +=
-                        `<div class="status-card ${s.cls}"><div class="stt-header"><div class="stt-name">${i.mon_an.ten_mon} <span class="stt-qty">x${i.so_luong}</span></div><div class="badge-status"><i class="fa-solid fa-${s.ic}"></i> ${s.txt}</div></div>${i.ghi_chu ? `<div class="stt-note"><i class="fa-regular fa-comment-dots"></i> ${i.ghi_chu}</div>` : ''}${ (showTimer || canCancel) ? `<div class="stt-footer">${timerHtml}${canCancel ? `<div class="btn-cancel-item" onclick="cancelOrderItem(${i.id})"><i class="fa-regular fa-trash-can"></i> Hủy</div>` : ''}</div>` : '' }</div>`;
+                        `<div class="status-card ${s.cls}">
+                            <div class="stt-header">
+                                <div class="stt-name">
+                                    ${typeBadge} ${i.mon_an.ten_mon} 
+                                    <span class="stt-qty">x${i.so_luong}</span>
+                                </div>
+                                <div class="badge-status"><i class="fa-solid fa-${s.ic}"></i> ${s.txt}</div>
+                            </div>
+                            ${i.ghi_chu ? `<div class="stt-note"><i class="fa-regular fa-comment-dots"></i> ${i.ghi_chu}</div>` : ''}
+                            ${ (showTimer || canCancel) ? `<div class="stt-footer">${timerHtml}${canCancel ? `<div class="btn-cancel-item" onclick="cancelOrderItem(${i.id})"><i class="fa-regular fa-trash-can"></i> Hủy</div>` : ''}</div>` : '' }
+                        </div>`;
                 });
                 c.innerHTML = htmlContent;
                 updateTimers();
@@ -2098,11 +2160,11 @@
 
                 const h = Math.floor(distance / 3600000);
                 const m = Math.floor((distance % 3600000) / 60000);
-                
+
                 // Format hiển thị: 1h 30p hoặc 45p
                 const hStr = h > 0 ? `${h}h ` : '';
                 const mStr = m < 10 ? '0' + m : m;
-                
+
                 const el = document.getElementById('countdown-timer');
                 if (el) {
                     el.innerText = `${hStr}${mStr}p`;
@@ -2113,7 +2175,7 @@
 
             // Chạy ngay lập tức 1 lần để không bị delay hiển thị
             runTimer();
-            
+
             // Cập nhật mỗi giây
             window.usageTimerInterval = setInterval(runTimer, 1000);
         }
