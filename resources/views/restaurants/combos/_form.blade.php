@@ -284,6 +284,9 @@
 {{-- =========================================================== --}}
 {{-- PHẦN 4: JAVASCRIPT (ĐÃ SỬA LOGIC CART & SEARCH) --}}
 {{-- =========================================================== --}}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {

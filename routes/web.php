@@ -43,6 +43,7 @@ Route::prefix('/')->group(function () {
         Route::get('/dich-vu', 'service')->name('service');
         Route::get('/thuc-don', 'menu')->name('menu');
         Route::get('/lien-he', 'contact')->name('contact');
+        Route::post('/lien-he', 'sendContact')->name('contact.send'); // Route GỬI form
         Route::get('/doi-ngu', 'team')->name('team');
         Route::get('/danh-gia', 'testimonial')->name('testimonial');
     });

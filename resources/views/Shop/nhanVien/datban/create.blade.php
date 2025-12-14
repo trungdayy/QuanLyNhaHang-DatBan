@@ -19,7 +19,7 @@
         --radius: 8px;
         --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
         --anim-fast: 0.2s ease;
-        --danger: #dc3545;
+        --danger: #2d0005;
     }
 
     /* --- Global Reset & Typefaces --- */
@@ -244,7 +244,7 @@
             @if(session('error') || $errors->any())
             <div class="p-3 bg-danger bg-opacity-10 border-bottom border-danger border-opacity-25">
                 @if(session('error'))
-                <div class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> {{ session('error') }}</div>
+                <div style="color: #ffffff"><i class="fa-solid fa-triangle-exclamation me-2"></i> {{ session('error') }}</div>
                 @endif
                 @if($errors->any())
                 <ul class="mb-0 text-danger small ps-4 mt-1">
@@ -254,7 +254,8 @@
             </div>
             @endif
 
-            <form action="{{ route('nhanVien.datban.store') }}" method="post">
+            {{-- Đã thêm ID cho form để JS dễ xử lý --}}
+            <form id="formDatBan" action="{{ route('nhanVien.datban.store') }}" method="post">
                 @csrf
                 <div class="row g-0">
 
@@ -279,7 +280,7 @@
                                 </div>
                             </div>
 
-                            {{-- CHIA NGƯỜI LỚN & TRẺ EM (Đã sửa từ so_khach) --}}
+                            {{-- CHIA NGƯỜI LỚN & TRẺ EM --}}
                             <div class="row">
                                 <div class="col-6 mb-3">
                                     <label class="form-label-custom">Số lượng người lớn <span class="required-star">*</span></label>
@@ -315,7 +316,7 @@
                                 </select>
                             </div>
 
-                            {{-- COMBO DYNAMIC SELECT (Đã sửa từ select đơn) --}}
+                            {{-- COMBO DYNAMIC SELECT --}}
                             <div class="mb-3">
                                 <div class="mb-3">
                                     <label class="form-label-custom">Chọn giá Combo trước</label>
@@ -377,7 +378,8 @@
 
                 {{-- FOOTER ACTIONS --}}
                 <div class="p-4 bg-light border-top text-center">
-                    <button type="submit" class="btn-submit" onclick="prepareFormData(event)">
+                    {{-- Đã xóa onclick, thay bằng submit form --}}
+                    <button type="submit" class="btn-submit">
                         <i class="fa-solid fa-paper-plane"></i> LƯU & NHẬN BÀN
                     </button>
                     <a href="{{ route('nhanVien.datban.index') }}" class="btn-cancel ms-2">Hủy bỏ</a>
@@ -387,7 +389,7 @@
     </div>
 </div>
 
-{{-- SCRIPT XỬ LÝ LOGIC --}}
+{{-- SCRIPT XỬ LÝ LOGIC (ĐÃ ĐƯỢC FIX) --}}
 <script>
     var CHECK_URL = "{{ url('/nhanVien/dat-ban/check-ban-trong') }}";
     var OLD_BAN_ID = "{{ old('ban_id') }}";
@@ -423,7 +425,6 @@
         selBan.disabled = true;
         selBan.innerHTML = '<option value="">⏳ Đang tìm bàn phù hợp...</option>';
 
-        // ĐÚNG ĐƯỜNG DẪN
         var url = CHECK_URL + "?time=" + timeVal + "&so_khach=" + soKhachVal;
 
         fetch(url)
@@ -445,7 +446,6 @@
                 data.forEach(ban => {
                     var opt = document.createElement('option');
                     opt.value = ban.id;
-                    // Cần sửa API ajaxCheckBanTrong để trả về tên khu vực nếu muốn hiển thị
                     opt.text = `Bàn ${ban.so_ban} (${ban.so_ghe} ghế)`;
                     if (OLD_BAN_ID == ban.id) opt.selected = true;
                     selBan.appendChild(opt);
@@ -458,53 +458,42 @@
             });
     }
 
-    // Chuẩn bị dữ liệu combo trước khi submit (đưa về dạng mảng)
-    function prepareFormData(event) {
-        var comboInputs = document.querySelectorAll('.combo-input');
-        var form = document.querySelector('form');
+    // --- SỰ KIỆN CHỌN GIÁ COMBO ---
+    var selGia = document.getElementById('selGiaCombo');
+    if (selGia) {
+        selGia.addEventListener('change', function() {
+            let selectedPrice = this.value;
+            let container = document.getElementById('combo-picker-container');
+            let list = document.querySelectorAll('#combo-picker-container .combo-item');
 
-        // Xóa các input hidden cũ nếu có (trong trường hợp submit lại)
-        document.querySelectorAll('input[name^="combos["]').forEach(el => el.remove());
-
-        var hasCombo = false;
-        comboInputs.forEach(input => {
-            var quantity = parseInt(input.value) || 0;
-            var comboId = input.getAttribute('data-combo-id');
-
-            if (quantity > 0) {
-                hasCombo = true;
-                // Tạo input hidden cho ID combo (combos[ID_COMBO][id])
-                var idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = `combos[${comboId}][id]`;
-                idInput.value = comboId;
-
-                // Tạo input hidden cho số lượng (combos[ID_COMBO][so_luong])
-                var qtyInput = document.createElement('input');
-                qtyInput.type = 'hidden';
-                qtyInput.name = `combos[${comboId}][so_luong]`;
-                qtyInput.value = quantity;
-
-                // Thêm vào form trước khi submit
-                form.appendChild(idInput);
-                form.appendChild(qtyInput);
+            if (!selectedPrice) {
+                container.classList.add('d-none');
+                list.forEach(item => {
+                    item.style.display = "none";
+                    let input = item.querySelector('.combo-input');
+                    if (input) input.value = 0;
+                });
+                return;
             }
+
+            // Có giá → hiện container
+            container.classList.remove('d-none');
+
+            list.forEach(item => {
+                let price = item.getAttribute('data-combo-price');
+
+                if (Number(selectedPrice) == Number(price)) {
+                    item.style.display = "flex";
+                } else {
+                    item.style.display = "none";
+                    let input = item.querySelector('.combo-input');
+                    if (input) input.value = 0;
+                }
+            });
         });
-
-        // Nếu không có combo nào được chọn, Controller sẽ nhận mảng combos rỗng (nullable)
-        // Khách có thể không chọn combo nếu họ định gọi món lẻ
-
-        return true;
     }
 
-    // Validate số lượng combo
-    function validateComboQuantity(input) {
-        if (parseInt(input.value) < 0) {
-            input.value = 0;
-        }
-    }
-
-
+    // --- XỬ LÝ KHỞI TẠO & SUBMIT FORM ---
     document.addEventListener('DOMContentLoaded', function() {
         var inpTime = document.getElementById('inpGioDen');
         var inpNguoiLon = document.getElementById('inpNguoiLon');
@@ -514,7 +503,6 @@
         if (inpTime) {
             var now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            // Kiểm tra nếu old('gio_den') không có (đơn mới) thì set giờ hiện tại
             if (!inpTime.value) {
                 inpTime.value = now.toISOString().slice(0, 16);
             }
@@ -532,37 +520,47 @@
 
         // 3. Init search
         if (inpTime && inpTime.value) setTimeout(timBanTrong, 200);
-    });
-document.getElementById('selGiaCombo').addEventListener('change', function () {
-    let selectedPrice = this.value;
-    let container = document.getElementById('combo-picker-container');
-    let list = document.querySelectorAll('#combo-picker-container .combo-item');
 
-    if (!selectedPrice) {
-        container.classList.add('d-none');
-        list.forEach(item => {
-            item.style.display = "none";
-            let input = item.querySelector('.combo-input');
-            if (input) input.value = 0;
-        });
-        return;
-    }
+        // 4. [QUAN TRỌNG] Xử lý form submit để gửi dữ liệu Combo
+        var form = document.getElementById('formDatBan');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Xóa các input hidden cũ (nếu có) để tránh trùng lặp khi submit nhiều lần
+                var oldInputs = document.querySelectorAll('input.hidden-combo-data');
+                oldInputs.forEach(el => el.remove());
 
-    // Có giá → hiện container
-    container.classList.remove('d-none');
+                // Duyệt qua các ô input số lượng combo
+                var comboInputs = document.querySelectorAll('.combo-input');
+                var hasCombo = false;
 
-    list.forEach(item => {
-        let price = item.getAttribute('data-combo-price');
+                comboInputs.forEach((input) => {
+                    var quantity = parseInt(input.value) || 0;
+                    var comboId = input.getAttribute('data-combo-id');
 
-        if (selectedPrice === price) {
-            item.style.display = "flex";
-        } else {
-            item.style.display = "none";
-            let input = item.querySelector('.combo-input');
-            if (input) input.value = 0;
+                    if (quantity > 0) {
+                        hasCombo = true;
+
+                        // Tạo input hidden ID: name="combos[ID_COMBO][id]"
+                        var idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.className = 'hidden-combo-data';
+                        idInput.name = 'combos[' + comboId + '][id]';
+                        idInput.value = comboId;
+                        form.appendChild(idInput);
+
+                        // Tạo input hidden Số lượng: name="combos[ID_COMBO][so_luong]"
+                        var qtyInput = document.createElement('input');
+                        qtyInput.type = 'hidden';
+                        qtyInput.className = 'hidden-combo-data';
+                        qtyInput.name = 'combos[' + comboId + '][so_luong]';
+                        qtyInput.value = quantity;
+                        form.appendChild(qtyInput);
+                    }
+                });
+                
+                // Form sẽ tự động gửi đi tiếp sau khi code này chạy
+            });
         }
     });
-});
-
 </script>
 @endsection

@@ -464,62 +464,114 @@
 
         <div class="row">
             <div class="col-md-8 mb-4">
-                <div class="filter-menu mb-4">
-                    {{-- Row 1: Danh mục  --}}
-                    <div class="filter-row" id="filter-category">
-                        <button class="filter-btn" data-type="category" data-value="6">Khai Vị (Appetizers)</button>
-                        <button class="filter-btn" data-type="category" data-value="7">Hải Sản Tươi Sống (Fresh Seafood)</button>
-                        <button class="filter-btn" data-type="category" data-value="8">Thịt (Meats)</button>
-                        <button class="filter-btn" data-type="category" data-value="9">Món Nóng / Quầy Line (Hot Dishes)</button>
-                        <button class="filter-btn" data-type="category" data-value="10">Rau & Nấm (Vegetables & Mushrooms)</button>
-                        <button class="filter-btn" data-type="category" data-value="11">Viên Thả Lẩu (Hotpot Balls)</button>
-                        <button class="filter-btn" data-type="category" data-value="12">Sashimi & Sushi</button>
-                        <button class="filter-btn" data-type="category" data-value="13">Tráng Miệng (Desserts)</button>
-                        <button class="filter-btn" data-type="category" data-value="14">Đồ Uống (Beverages)</button>
-                        <button class="filter-btn" data-type="category" data-value="15">Sốt Chấm & Gia Vị (Sauces)</button>
+
+                {{-- Tabs --}}
+                <ul class="nav nav-tabs mb-3" id="dishTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="combo-tab" data-bs-toggle="tab" data-bs-target="#combo-dishes" type="button" role="tab">Món trong Combo</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-dishes" type="button" role="tab">Tất cả món ăn</button>
+                    </li>
+                </ul>{{-- Search + Filter --}}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    {{-- Search Input --}}
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="search-dish" class="form-control" placeholder="Tìm theo món ăn...">
                     </div>
 
-                    {{-- Row 2: Loại món  --}}
-                    <div class="filter-row" id="filter-type">
-                        <button class="filter-btn" data-type="loai" data-value="Chín">Chín</button>
-                        <button class="filter-btn" data-type="loai" data-value="Sống">Sống</button>
-                        <button class="filter-btn" data-type="loai" data-value="Nướng">Nướng</button>
-                        <button class="filter-btn" data-type="loai" data-value="Xào/Luộc">Xào/Luộc</button>
-                        <button class="filter-btn" data-type="loai" data-value="Nước có ga">Nước có ga</button>
-                        <button class="filter-btn" data-type="loai" data-value="Nước không ga">Nước không ga</button>
-                        <button class="filter-btn" data-type="loai" data-value="Trà/Cà phê">Trà/Cà phê</button>
-                        <button class="filter-btn" data-type="loai" data-value="Trái cây">Trái cây</button>
-                        <button class="filter-btn" data-type="loai" data-value="Bánh ngọt">Bánh ngọt</button>
-                    </div>
+                    {{-- Filter toggle --}}
+                    <button id="toggle-filter" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-filter"></i> Lọc món
+                    </button>
                 </div>
-                <div class="row g-3">
-                    @foreach($monAns as $mon)
-                    <div class="col-lg-6">
-                        <div class="dish-card mon-card"
-                            data-id="{{ $mon->id }}"
-                            data-ten="{{ $mon->ten_mon }}"
-                            data-gia="{{ $mon->gia }}"
-                            data-loai="{{ $mon->loai_mon }}"
-                            data-category="{{ $mon->danh_muc_id }}">
 
-                            {{-- Image --}}
-                            <img src="{{ asset($mon->hinh_anh ?? 'https://placehold.co/70x70?text=IMG') }}"
-                                class="dish-thumb" alt="{{ $mon->ten_mon }}">
-
-                            {{-- Info --}}
-                            <div class="dish-info">
-                                <div class="dish-name">{{ $mon->ten_mon }}</div>
-                                <div class="dish-meta">{{ $mon->loai_mon }}</div>
-                                <div class="dish-price">{{ number_format($mon->gia,0,',','.') }} <small>đ</small></div>
-                            </div>
-
-                            {{-- Button Add --}}
-                            <div class="btn-add-quick add-to-cart">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                        </div>
-                    </div>
+                {{-- Filter Row (ẩn mặc định) --}}
+                <div id="filter-row" class="filter-row mb-3" style="display:none;">
+                    @php
+                    $loaiMons = $monAns->pluck('loai_mon')->unique();
+                    @endphp
+                    @foreach($loaiMons as $loai)
+                    <button class="filter-btn" data-type="loai" data-value="{{ $loai }}">
+                        <i class="fa-solid fa-utensils"></i> {{ $loai }}
+                    </button>
                     @endforeach
+                </div>
+
+
+                <div class="tab-content" id="dishTabsContent">
+
+                    {{-- 1. Món trong Combo --}}
+                    <div class="tab-pane fade show active" id="combo-dishes" role="tabpanel">
+                        @php
+                        $comboMons = [];
+                        foreach($order->datBan->combos as $combo){
+                        foreach($combo->monTrongCombo as $item){
+                        $mon = $item->monAn;
+                        $comboMons[$mon->danh_muc_id][] = $mon;
+                        }
+                        }
+                        @endphp
+
+                        @foreach($comboMons as $danhMucId => $mons)
+                        <h5 class="mb-2 mt-3">{{ $mons[0]->danhMuc->ten_danh_muc ?? 'Danh mục không xác định' }}</h5>
+                        <div class="row g-3">
+                            @foreach($mons as $mon)
+                            @php $soLuong = $soLuongMonTrongCombo[$mon->id] ?? 1; @endphp
+                            <div class="col-lg-6">
+                                <div class="dish-card mon-card combo-item"
+                                    data-is-combo="1"
+                                    data-id="{{ $mon->id }}"
+                                    data-ten="{{ $mon->ten_mon }}"
+                                    data-gia="0"
+                                    data-loai="{{ $mon->loai_mon }}"
+                                    data-category="{{ $mon->danh_muc_id }}">
+                                    <img src="{{ asset($mon->hinh_anh ?? 'https://placehold.co/70x70?text=IMG') }}" class="dish-thumb" alt="{{ $mon->ten_mon }}">
+                                    <div class="dish-info">
+                                        <div class="dish-name">{{ $mon->ten_mon }}</div>
+                                        <div class="dish-meta">{{ $mon->loai_mon }}</div>
+                                        <div class="dish-price">0 <small>đ</small></div>
+                                    </div>
+                                    <div class="btn-add-quick add-to-cart"><i class="fa-solid fa-plus"></i></div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endforeach
+                    </div>
+
+                    {{-- 2. Tất cả món ăn --}}
+                    <div class="tab-pane fade" id="all-dishes" role="tabpanel">
+                        @php
+                        $allMonsByCategory = $monAns->groupBy('danh_muc_id'); // collection groupBy
+                        @endphp
+
+                        @foreach($allMonsByCategory as $danhMucId => $mons)
+                        <h5 class="mb-2 mt-3">{{ $mons[0]->danhMuc->ten_danh_muc ?? 'Danh mục không xác định' }}</h5>
+                        <div class="row g-3">
+                            @foreach($mons as $mon)
+                            <div class="col-lg-6">
+                                <div class="dish-card mon-card"
+                                    data-is-combo="0"
+                                    data-id="{{ $mon->id }}"
+                                    data-ten="{{ $mon->ten_mon }}"
+                                    data-gia="{{ $mon->gia }}"
+                                    data-loai="{{ $mon->loai_mon }}"
+                                    data-category="{{ $mon->danh_muc_id }}">
+                                    <img src="{{ asset($mon->hinh_anh ?? 'https://placehold.co/70x70?text=IMG') }}" class="dish-thumb" alt="{{ $mon->ten_mon }}">
+                                    <div class="dish-info">
+                                        <div class="dish-name">{{ $mon->ten_mon }}</div>
+                                        <div class="dish-meta">{{ $mon->loai_mon }}</div>
+                                        <div class="dish-price">{{ number_format($mon->gia,0,',','.') }} <small>đ</small></div>
+                                    </div>
+                                    <div class="btn-add-quick add-to-cart"><i class="fa-solid fa-plus"></i></div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
 
@@ -570,7 +622,11 @@
                 li.className = "cart-item";
                 li.innerHTML = `
                     <div style="flex: 1;">
-                        <div class="item-name">${item.ten_mon} <span class="item-qty">x${item.so_luong}</span></div>
+                        <div class="item-name">
+                            ${item.ten_mon}
+                            <span class="item-qty">x${item.so_luong}</span>
+                            ${item.is_combo == 1 ? '<small style="color: #22c55e;">(Combo)</small>' : '<small style="color:#f97316;">(Gọi thêm)</small>'}
+                            </div>
                         ${item.ghi_chu ? `<span class="item-note"><i class="fa-regular fa-comment"></i> ${item.ghi_chu}</span>` : ''}
                     </div>
                     <div style="flex-shrink: 0; display: flex;">
@@ -583,7 +639,7 @@
         }
 
         // Logic Add Cart
-        function addToCart(monId, tenMon, gia, loaiMon) {
+        function addToCart(monId, tenMon, gia, loaiMon, isCombo) {
             const existing = cart.find(i => i.mon_an_id == monId);
             if (existing) {
                 existing.so_luong++;
@@ -593,7 +649,8 @@
                     ten_mon: tenMon,
                     so_luong: 1,
                     ghi_chu: null,
-                    loai_mon: loaiMon
+                    loai_mon: loaiMon,
+                    is_combo: isCombo
                 });
             }
             renderCart();
@@ -630,7 +687,8 @@
                     card.dataset.id,
                     card.dataset.ten,
                     card.dataset.gia,
-                    card.dataset.loai
+                    card.dataset.loai,
+                    card.dataset.isCombo
                 );
             });
         });
@@ -676,26 +734,6 @@
             }
         });
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const type = btn.dataset.type;
-                const value = btn.dataset.value;
-
-                // Toggle active
-                btn.classList.toggle('active');
-
-                const activeCategories = Array.from(document.querySelectorAll('#filter-category .filter-btn.active')).map(b => b.dataset.value);
-                const activeTypes = Array.from(document.querySelectorAll('#filter-type .filter-btn.active')).map(b => b.dataset.value);
-
-                document.querySelectorAll('.mon-card').forEach(card => {
-                    const matchCategory = activeCategories.length === 0 || activeCategories.includes(card.dataset.category);
-                    const matchType = activeTypes.length === 0 || activeTypes.includes(card.dataset.loai);
-
-                    card.parentElement.style.display = (matchCategory && matchType) ? 'block' : 'none';
-                });
-            });
-        });
-
         // Gán data-category cho card từ controller nếu chưa có
         document.querySelectorAll('.mon-card').forEach(card => {
             if (!card.dataset.category) {
@@ -707,6 +745,58 @@
             row.addEventListener('wheel', function(e) {
                 e.preventDefault(); // ngăn cuộn dọc mặc định
                 row.scrollLeft += e.deltaY; // cuộn ngang thay vì dọc
+            });
+        });
+        const searchInput = document.getElementById('search-dish');
+
+        searchInput.addEventListener('input', () => {
+            const keyword = searchInput.value.toLowerCase();
+
+            document.querySelectorAll('.mon-card').forEach(card => {
+                const matchesType = Array.from(document.querySelectorAll('#filter-type .filter-btn.active'))
+                    .map(b => b.dataset.value)
+                    .includes(card.dataset.loai) ||
+                    document.querySelectorAll('#filter-type .filter-btn.active').length === 0;
+
+                const matchesName = card.dataset.ten.toLowerCase().includes(keyword);
+
+                card.parentElement.style.display = (matchesType && matchesName) ? 'block' : 'none';
+            });
+        });
+        document.getElementById('toggle-filter').addEventListener('click', () => {
+            const row = document.getElementById('filter-row');
+            row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        // Filter theo loại món
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                applyFilters();
+            });
+        });
+
+        // Search theo tên món
+        document.getElementById('search-dish').addEventListener('input', applyFilters);
+
+        // Hàm áp dụng cả filter và search
+        function applyFilters() {
+            const keyword = document.getElementById('search-dish').value.toLowerCase();
+            const activeTypes = Array.from(document.querySelectorAll('.filter-btn.active')).map(b => b.dataset.value);
+
+            document.querySelectorAll('.mon-card').forEach(card => {
+                const matchesName = card.dataset.ten.toLowerCase().includes(keyword);
+                const matchesType = activeTypes.length === 0 || activeTypes.includes(card.dataset.loai);
+
+                card.parentElement.style.display = (matchesName && matchesType) ? 'block' : 'none';
+            });
+        }
+
+        // Scroll ngang filter row
+        document.querySelectorAll('.filter-row').forEach(row => {
+            row.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                row.scrollLeft += e.deltaY;
             });
         });
     </script>

@@ -2059,49 +2059,49 @@
         }
 
 function startCountdown() {
-            // 1. Nếu chưa có đơn gọi món (chưa có orderStartTime)
+            // 1. Kiểm tra xem đã có món ăn nào được gọi chưa
+            // (Biến orderStartTime được tính trong hàm loadOrderStatus dựa trên món đầu tiên)
             if (!orderStartTime) {
-                if (window.countdownInterval) clearInterval(window.countdownInterval);
-                // Hiển thị "--" thay vì số phút
-                document.getElementById('countdown-timer').innerText = "--"; 
+                if (window.usageTimerInterval) clearInterval(window.usageTimerInterval);
+                document.getElementById('countdown-timer').innerText = "Chưa gọi món";
+                document.getElementById('countdown-timer').style.color = "#94a3b8"; // Màu xám
                 return;
             }
 
-            // 2. Nếu đã có gọi món, bắt đầu tính giờ từ lúc gọi món đó
+            // 2. Lấy mốc thời gian bắt đầu gọi món
             const startMilli = orderStartTime;
 
-            // Nếu không giới hạn thời gian (bookingDuration = 0)
-            if (bookingDuration <= 0) return document.getElementById('countdown-timer').innerText = "∞";
+            // Xóa interval cũ để tránh chạy chồng chéo
+            if (window.usageTimerInterval) clearInterval(window.usageTimerInterval);
 
-            const endMilli = startMilli + bookingDuration * 60000;
+            // 3. Hàm chạy đồng hồ đếm xuôi (Usage Timer)
+            const runTimer = () => {
+                const now = new Date().getTime();
+                let distance = now - startMilli;
 
-            if (window.countdownInterval) clearInterval(window.countdownInterval);
-            
-            window.countdownInterval = setInterval(() => {
-                const d = endMilli - new Date().getTime();
+                // Nếu thời gian âm (do lệch đồng hồ thiết bị), set về 0
+                if (distance < 0) distance = 0;
+
+                const h = Math.floor(distance / 3600000);
+                const m = Math.floor((distance % 3600000) / 60000);
                 
-                if (d < 0) {
-                    document.getElementById('countdown-timer').innerText = "Hết giờ";
-                    document.getElementById('countdown-timer').style.color = "#ff4d4f";
-                    clearInterval(window.countdownInterval);
-                    return;
-                }
-
-                const h = Math.floor(d / 3600000);
-                const m = Math.floor((d % 3600000) / 60000);
-                
+                // Format hiển thị: 1h 30p hoặc 45p
+                const hStr = h > 0 ? `${h}h ` : '';
                 const mStr = m < 10 ? '0' + m : m;
-                document.getElementById('countdown-timer').innerText = h > 0 ? `${h}h ${mStr}p` : `${mStr}p`;
-            }, 1000);
-        }
+                
+                const el = document.getElementById('countdown-timer');
+                if (el) {
+                    el.innerText = `${hStr}${mStr}p`;
+                    el.style.color = "#20d489"; // Màu xanh lá (đang ăn)
+                    el.style.fontWeight = "800";
+                }
+            };
 
-        function openCartModal() {
-            updateCartUI();
-            document.getElementById('cart-modal').classList.add('active');
-        }
-
-        function closeCartModal() {
-            document.getElementById('cart-modal').classList.remove('active');
+            // Chạy ngay lập tức 1 lần để không bị delay hiển thị
+            runTimer();
+            
+            // Cập nhật mỗi giây
+            window.usageTimerInterval = setInterval(runTimer, 1000);
         }
     </script>
 @endsection

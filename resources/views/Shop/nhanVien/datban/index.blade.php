@@ -544,38 +544,43 @@
                             @empty
                             <span class="text-muted small fst-italic">Chưa chọn Combo</span>
                             @endforelse
-                            <div class="small text-muted mt-1">TTL: {{ $d->thoi_luong_phut ?? 120 }}p</div>
+                            {{-- <div class="small text-muted mt-1">TTL: {{ $d->thoi_luong_phut ?? 120 }}p</div> --}}
                         </td>
 
                         {{-- COUNTDOWN --}}
-                        <td class="text-center small">
-                            @if ($d->trang_thai == 'khach_da_den')
-                            @php
-                            // Thời lượng đã được lưu trong dat_ban (là max thời lượng combo)
-                            $thoiLuong = $d->thoi_luong_phut ?? 120;
+<td class="text-center small">
+    @if ($d->trang_thai == 'khach_da_den')
+        @php
+            // Lấy đơn order đầu tiên của bàn này để xác định thời điểm bắt đầu ăn
+            $orderDau = $d->orderMon->sortBy('created_at')->first();
+        @endphp
 
-                            // Lấy phiếu order đầu tiên (thời điểm gọi món bắt đầu)
-                            // Cần đảm bảo mối quan hệ orderMon được eager load trong Controller
-                            $orderDau = $d->orderMon->sortBy('created_at')->first();
+        @if ($orderDau)
+            @php
+                // Lấy timestamp (miliseconds) của lúc bắt đầu gọi món
+                $startTime = \Carbon\Carbon::parse($orderDau->created_at)->timestamp * 1000;
+            @endphp
 
-                            $endTime = null;
-                            if ($orderDau) {
-                            $startTime = \Carbon\Carbon::parse($orderDau->created_at);
-                            // Thời gian kết thúc = Thời điểm gọi món đầu tiên + Thời lượng tối đa
-                            $endTime = $startTime->addMinutes($thoiLuong)->timestamp * 1000;
-                            }
-                            @endphp
-                            @if ($endTime)
-                            <span class="countdown-timer text-primary" data-endtime="{{ $endTime }}">...</span>
-                            @else
-                            <span class="text-muted">Chờ gọi món</span>
-                            @endif
-                            @elseif(in_array($d->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']))
-                            <span class="text-muted">Chưa check-in</span>
-                            @else
-                            -
-                            @endif
-                        </td>
+            {{-- Thẻ hiển thị đồng hồ đếm xuôi --}}
+            <div class="d-flex flex-column align-items-center">
+                <span class="usage-timer fw-bold text-success" data-starttime="{{ $startTime }}" style="font-size: 1.1em;">
+                    00:00:00
+                </span>
+                <span class="text-muted" style="font-size: 0.75rem;">
+                    Bắt đầu: {{ \Carbon\Carbon::parse($orderDau->created_at)->format('H:i') }}
+                </span>
+            </div>
+        @else
+            {{-- Khách đã đến nhưng chưa gọi món nào --}}
+            <span class="badge bg-warning text-dark">Chờ gọi món</span>
+        @endif
+
+    @elseif(in_array($d->trang_thai, ['cho_xac_nhan', 'da_xac_nhan']))
+        <span class="badge bg-light text-secondary border">Chưa Check-in</span>
+    @else
+        -
+    @endif
+</td>
 
                         {{-- STATUS --}}
                         <td class="text-center">
@@ -668,6 +673,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
 
+        // --- 1. ĐỒNG HỒ ĐẾM NGƯỢC (COUNTDOWN TIMER) ---
+        // Dùng cho trường hợp còn thời hạn ăn (nếu có tính năng giới hạn giờ)
         function updateCountdowns() {
             const timers = document.querySelectorAll('.countdown-timer');
             const now = new Date().getTime();
@@ -701,10 +708,43 @@
             });
         }
 
-        setInterval(updateCountdowns, 1000);
-        updateCountdowns();
+        // --- 2. [MỚI] ĐỒNG HỒ ĐẾM XUÔI (USAGE TIMER) ---
+        // Dùng để hiển thị thời gian khách đã ngồi ăn
+        function updateUsageTimers() {
+            const usageTimers = document.querySelectorAll('.usage-timer');
+            const now = new Date().getTime();
 
-        // AUTO REFRESH TABLE
+            usageTimers.forEach(timer => {
+                const startTime = parseInt(timer.getAttribute('data-starttime'));
+                if (isNaN(startTime)) return;
+
+                // Tính thời gian đã trôi qua
+                let distance = now - startTime;
+                if (distance < 0) distance = 0;
+
+                const totalSeconds = Math.floor(distance / 1000);
+                const h = Math.floor(totalSeconds / 3600);
+                const m = Math.floor((totalSeconds % 3600) / 60);
+                const s = totalSeconds % 60;
+
+                // Format hiển thị HH:MM:SS
+                const timeString = `${h < 10 ? "0"+h : h}:${m < 10 ? "0"+m : m}:${s < 10 ? "0"+s : s}`;
+                timer.innerHTML = timeString;
+            });
+        }
+
+        // Chạy timer mỗi giây
+        setInterval(() => {
+            updateCountdowns();
+            updateUsageTimers(); // Gọi thêm hàm này
+        }, 1000);
+        
+        // Gọi ngay lần đầu
+        updateCountdowns();
+        updateUsageTimers();
+
+
+        // --- 3. AUTO REFRESH TABLE ---
         setInterval(() => {
             const url = new URL(window.location.href);
             url.searchParams.set('ajax', '1');
@@ -719,35 +759,44 @@
                     if (!newTbody || !oldTbody) return;
 
                     oldTbody.innerHTML = newTbody.innerHTML;
+                    
+                    // Sau khi refresh HTML, cần chạy lại hàm update để timer mới hiện ngay lập tức
                     updateCountdowns();
+                    updateUsageTimers();
                 })
                 .catch(err => console.error('Auto refresh error:', err));
         }, 5000);
 
-        // THÔNG BÁO BOOKING MỚI (TOAST) với localStorage
+
+        // --- 4. THÔNG BÁO BOOKING MỚI (TOAST) ---
         const overlay = document.getElementById('booking-toast-overlay');
         const messageEl = document.getElementById('booking-toast-message');
         const okBtn = document.getElementById('booking-toast-ok');
 
-        okBtn.addEventListener('click', () => {
-            overlay.classList.remove('show');
-        });
+        if (okBtn) {
+            okBtn.addEventListener('click', () => {
+                overlay.classList.remove('show');
+            });
+        }
 
         function showBookingToast(ten, sdt, id) {
             const shownBookings = JSON.parse(localStorage.getItem('shownBookings') || '[]');
-            if (shownBookings.includes(id)) return; // đã thông báo → không lặp
+            if (shownBookings.includes(id)) return; // Đã thông báo rồi thì thôi
 
-            messageEl.innerHTML = `
-    <i class="fa-solid fa-bell me-1" style="color:#fea116;"></i>
-    <span style="font-weight:700; color:#0f172b;">Nhà Hàng Đơn Đặt bàn mới:</span>
-    <br>
-    <span style="font-weight:600; color:#d97706;">Tên Khách Hàng: ${ten}</span> <br>
-    <span style="font-weight:500; color:#16a34a;">Số Điện Thoại:${sdt}</span>
-`;
-            overlay.classList.add('show');
-
-            shownBookings.push(id);
-            localStorage.setItem('shownBookings', JSON.stringify(shownBookings));
+            if (messageEl && overlay) {
+                messageEl.innerHTML = `
+                    <i class="fa-solid fa-bell me-1" style="color:#fea116;"></i>
+                    <span style="font-weight:700; color:#0f172b;">Nhà Hàng có đơn đặt bàn mới:</span>
+                    <br>
+                    <span style="font-weight:600; color:#d97706;">Khách: ${ten}</span> <br>
+                    <span style="font-weight:500; color:#16a34a;">SĐT: ${sdt}</span>
+                `;
+                overlay.classList.add('show');
+                
+                // Lưu vào localStorage để không hiện lại
+                shownBookings.push(id);
+                localStorage.setItem('shownBookings', JSON.stringify(shownBookings));
+            }
         }
 
         setInterval(() => {
@@ -756,7 +805,8 @@
                 const id = row.getAttribute('data-id');
                 const ten = row.getAttribute('data-ten');
                 const sdt = row.getAttribute('data-sdt');
-
+                // Chỉ hiện thông báo cho các đơn ở trạng thái 'cho_xac_nhan'
+                // Bạn có thể thêm điều kiện check status nếu cần
                 showBookingToast(ten, sdt, id);
             });
         }, 3000);

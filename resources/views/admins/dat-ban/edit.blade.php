@@ -291,40 +291,40 @@
                                 {{-- DANH SÁCH CHỌN (AJAX hoặc PRE-FILL) --}}
                                 <div class="collapse show" id="combo-selection-collapse">
                                     <div id="combo-selection-container" class="row g-3 mt-1">
-                                        @if(count($combosOfCurrentType) > 0)
-                                            {{-- Render sẵn danh sách combo nếu đã có loại combo được chọn --}}
-                                            @php
-                                                // Map số lượng đã chọn
-                                                $selectedCombosMap = $datBan->chiTietDatBan->pluck('so_luong', 'combo_id')->toArray();
-                                            @endphp
-
-                                            @foreach ($combosOfCurrentType as $index => $combo)
+                                            @if(count($combosOfCurrentType) > 0)
+                                                {{-- Render sẵn danh sách combo nếu đã có loại combo được chọn --}}
                                                 @php
-                                                    $defaultQty = old('combos.'.$index.'.so_luong', $selectedCombosMap[$combo->id] ?? 0);
-                                                    $isInitiallyActive = $defaultQty > 0;
-                                                    $price = number_format($combo->gia_co_ban);
+                                                    // Map số lượng đã chọn
+                                                    $selectedCombosMap = $datBan->chiTietDatBan->pluck('so_luong', 'combo_id')->toArray();
                                                 @endphp
-                                                <div class="col-md-3">
-                                                    <div class="combo-admin-card @if($isInitiallyActive) active @endif" id="card-{{ $combo->id }}">
-                                                        <div class="combo-name-price">
-                                                            <label class="mb-0 text-primary combo-name-label">{{ $combo->ten_combo }}</label>
-                                                            <small>{{ $price }} đ / suất</small>
-                                                        </div>
-                                                        <div class="combo-qty-control">
-                                                            <button type="button" class="qty-btn minus-btn" data-id="{{ $combo->id }}"><i class="fas fa-minus"></i></button>
-                                                            <div class="qty-input-display" id="display-{{ $combo->id }}">{{ $defaultQty }}</div>
-                                                            
-                                                            <input type="hidden" class="combo-qty-input" id="qty-{{ $combo->id }}" name="combos[{{ $index }}][so_luong]" value="{{ $defaultQty }}" @if(!$isInitiallyActive) disabled @endif>
-                                                            <input type="hidden" name="combos[{{ $index }}][id]" value="{{ $combo->id }}" class="combo-id-input" @if(!$isInitiallyActive) disabled @endif>
 
-                                                            <button type="button" class="qty-btn plus-btn" data-id="{{ $combo->id }}"><i class="fas fa-plus"></i></button>
+                                                @foreach ($combosOfCurrentType as $index => $combo)
+                                                    @php
+                                                        $defaultQty = old('combos.'.$index.'.so_luong', $selectedCombosMap[$combo->id] ?? 0);
+                                                        $isInitiallyActive = $defaultQty > 0;
+                                                        $price = number_format($combo->gia_co_ban);
+                                                    @endphp
+                                                    <div class="col-md-3">
+                                                        <div class="combo-admin-card @if($isInitiallyActive) active @endif" id="card-{{ $combo->id }}">
+                                                            <div class="combo-name-price">
+                                                                <label class="mb-0 text-primary combo-name-label">{{ $combo->ten_combo }}</label>
+                                                                <small>{{ $price }} đ / suất</small>
+                                                            </div>
+                                                            <div class="combo-qty-control">
+                                                                <button type="button" class="qty-btn minus-btn" data-id="{{ $combo->id }}"><i class="fas fa-minus"></i></button>
+                                                                <div class="qty-input-display" id="display-{{ $combo->id }}">{{ $defaultQty }}</div>
+                                                                
+                                                                <input type="hidden" class="combo-qty-input" id="qty-{{ $combo->id }}" name="combos[{{ $index }}][so_luong]" value="{{ $defaultQty }}" @if(!$isInitiallyActive) disabled @endif>
+                                                                <input type="hidden" name="combos[{{ $index }}][id]" value="{{ $combo->id }}" class="combo-id-input" @if(!$isInitiallyActive) disabled @endif>
+
+                                                                <button type="button" class="qty-btn plus-btn" data-id="{{ $combo->id }}"><i class="fas fa-plus"></i></button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            @endforeach
-                                        @else
-                                            <div class="col-12 text-center py-3 text-muted"><i>Hãy chọn mức giá combo ở trên</i></div>
-                                        @endif
+                                                @endforeach
+                                            @else
+                                                <div class="col-12 text-center py-3 text-muted"><i>Hãy chọn mức giá combo ở trên</i></div>
+                                            @endif
                                     </div>
                                 </div>
                             </div>
@@ -385,7 +385,7 @@
         // Biến lưu trạng thái ban đầu
         const currentBookingId = "{{ $datBan->id }}";
         const currentBanId = "{{ $datBan->ban_id }}";
-        let originalGioDen = timeInput.value;
+        const originalGioDen = timeInput.value; // Lưu giá trị ban đầu để so sánh
 
         // --- 1. MODAL LOGIC ---
         function showModal(totalPeople, totalCombos) {
@@ -544,36 +544,41 @@
                     tableSelect.appendChild(defaultOption);
 
                     let isCurrentBanAvailable = false;
+                    
                     if (data.length > 0) {
                         data.forEach(ban => {
                             const option = document.createElement('option');
                             option.value = ban.id;
                             option.textContent = `Bàn ${ban.so_ban} (${ban.so_ghe} ghế)`;
+                            
+                            // Nếu bàn này là bàn hiện tại của đơn, đánh dấu là có sẵn
                             if (ban.id == currentBanId) {
-                                option.selected = true;
                                 isCurrentBanAvailable = true;
+                                option.selected = true; // Auto select lại bàn cũ
                             }
                             tableSelect.appendChild(option);
                         });
                     }
 
-                    // Xử lý logic nếu bàn hiện tại bị trùng khi đổi giờ
-                    if (currentBanId && !isCurrentBanAvailable && originalGioDen != selectedTime) {
-                         // Lấy thông tin bàn hiện tại từ Controller truyền xuống
+                    // Logic đặc biệt cho trang Edit:
+                    // Nếu bàn hiện tại (currentBanId) KHÔNG có trong danh sách trả về (nghĩa là đã bị trùng giờ khác)
+                    // Ta phải thêm nó vào list nhưng disable và hiện cảnh báo đỏ
+                    if (currentBanId && !isCurrentBanAvailable && selectedTime !== originalGioDen) {
                          const currentBanData = @json($datBan->banAn);
                          if (currentBanData) {
                             const warningOption = document.createElement('option');
-                            warningOption.textContent = `⚠️ Bàn ${currentBanData.so_ban} (Hiện tại) - Đã có lịch khác giờ này`;
+                            warningOption.textContent = `⚠️ Bàn ${currentBanData.so_ban} (Bàn cũ) - Đã bị trùng giờ!`;
                             warningOption.value = currentBanId;
-                            warningOption.selected = true;
+                            warningOption.selected = true; // Vẫn select để user biết đang chọn bàn nào
                             warningOption.style.color = 'red';
+                            warningOption.style.fontWeight = 'bold';
+                            // Thêm vào vị trí thứ 2 (sau option default)
                             tableSelect.insertBefore(warningOption, tableSelect.children[1]);
                          }
-                    } else if (currentBanId && originalGioDen == selectedTime) {
-                        // Nếu không đổi giờ, đảm bảo chọn bàn cũ
-                        if (tableSelect.querySelector(`option[value="${currentBanId}"]`)) {
-                            tableSelect.value = currentBanId;
-                        }
+                    } else if (currentBanId && selectedTime === originalGioDen) {
+                        // Nếu giờ không đổi, và bàn hiện tại có trong list (hoặc không bị lọc), đảm bảo nó được select
+                        const existingOption = tableSelect.querySelector(`option[value="${currentBanId}"]`);
+                        if(existingOption) existingOption.selected = true;
                     }
                 })
                 .catch(() => {
@@ -596,7 +601,8 @@
                 if (!input.disabled) tongCombo += parseInt(input.value) || 0;
             });
 
-            if (tongCombo < tongNguoi) {
+            // Logic mới: Chỉ chặn nếu ĐÃ CHỌN combo mà KHÔNG ĐỦ
+            if (tongCombo > 0 && tongCombo < tongNguoi) {
                 e.preventDefault();
                 showModal(tongNguoi, tongCombo);
                 const comboArea = document.getElementById('combo-selection-container');
@@ -605,7 +611,7 @@
         });
 
         // --- 7. CHẠY LẦN ĐẦU ---
-        updateSummary(); // Cập nhật text tóm tắt dựa trên dữ liệu pre-fill
+        updateSummary(); // Cập nhật text tóm tắt
     });
 </script>
 @endsection
