@@ -688,12 +688,12 @@
                                             <form method="post"
                                                 action="{{ route('nhanVien.datban.thaydoitrangthai', $d->id) }}">
                                                 @csrf
-                                                <input type="hidden" name="trang_thai" value="khach_da_den">
+                                                {{-- <input type="hidden" name="trang_thai" value="khach_da_den">
                                                 <button class="action-btn btn-arrived"
                                                     onclick="return confirm('Khách đã đến?')">
                                                     <i class="fa-solid fa-person-walking"></i>
                                                     Check-in
-                                                </button>
+                                                </button> --}}
                                             </form>
 
                                             {{-- 3. ĐANG PHỤC VỤ — Kết thúc --}}

@@ -108,13 +108,21 @@
                 });
             @endif
 
-            // 2. Thông báo Lỗi Logic (Hết bàn, Sai quy tắc...)
+            // 2. [ĐÃ SỬA] Thông báo Lỗi Logic & Gợi ý (Hết bàn...)
             @if(session('error'))
+                let msgContent = `{!! session('error') !!}`;
+                // Kiểm tra xem đây là lỗi thường hay thông báo gợi ý (có chứa từ khóa)
+                let isSuggestion = msgContent.includes("Gợi ý") || msgContent.includes("Hotline");
+
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Rất tiếc...',
-                    text: "{!! session('error') !!}",
-                    confirmButtonColor: '#d33'
+                    // Nếu là gợi ý thì dùng icon 'info' (xanh/lam) thay vì 'error' (đỏ)
+                    icon: isSuggestion ? 'info' : 'error', 
+                    title: isSuggestion ? 'Thông báo từ nhà hàng' : 'Rất tiếc...',
+                    // Dùng html để render thẻ <br> xuống dòng
+                    html: msgContent, 
+                    confirmButtonColor: isSuggestion ? '#FEA116' : '#d33', // Đổi màu nút nếu là gợi ý
+                    confirmButtonText: isSuggestion ? 'Đã hiểu' : 'Thử lại',
+                    width: isSuggestion ? '600px' : '32em' // Popup rộng hơn để hiển thị gợi ý rõ ràng
                 });
             @endif
 
@@ -269,7 +277,7 @@
 @endif
 
 {{-- =========================================================== --}}
-{{-- 4. JAVASCRIPT LOGIC (ĐÃ FIX: XÓA GIỎ HÀNG) --}}
+{{-- 4. JAVASCRIPT LOGIC --}}
 {{-- =========================================================== --}}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -465,8 +473,7 @@
                 });
             }
         @else
-            // Nếu KHÔNG có Modal Vé (tức là load trang bình thường hoặc update)
-            // Thì mới chạy logic khôi phục giỏ hàng từ DB (nếu đang Edit)
+            // Nếu KHÔNG có Modal Vé thì mới chạy logic khôi phục giỏ hàng từ DB (nếu đang Edit)
             @if(isset($datBan) && $datBan->chiTietDatBan && $datBan->chiTietDatBan->count() > 0)
                 try {
                     const dbItems = [

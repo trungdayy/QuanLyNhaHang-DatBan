@@ -29,6 +29,8 @@ use App\Http\Controllers\Shop\NhanVien\ThanhToanController;
 use App\Http\Controllers\Shop\Oderqr\OrderController;
 use App\Http\Controllers\Shop\Booking\BookingController;
 use App\Http\Controllers\Admin\DanhGiaController;
+use App\Http\Controllers\Shop\NhanVien\WaiterController; 
+
 
 
 // ==========================================================
@@ -224,16 +226,30 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
 // 4.2. NHÓM NHÂN VIÊN (Vai trò: phuc_vu, le_tan)
 Route::middleware(['auth', 'role:phuc_vu,le_tan'])->prefix('nhanVien')->name('nhanVien.')->group(function () {
 
-    // Quản lý bàn
-    Route::prefix('ban-an')->name('ban-an.')->group(function () {
-        Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
-        Route::post('/check-in-walkin', [NhanVienBanAnController::class, 'checkInWalkIn'])->name('check-in-walkin');
-        Route::get('/check-in-dattruoc/{id}', [NhanVienBanAnController::class, 'showCheckInForm'])->name('show-checkin-dattruoc');
-        Route::post('/process-check-in', [NhanVienBanAnController::class, 'processCheckIn'])->name('process-checkin');
-        Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
-        Route::get('check-notifications', [NhanVienBanAnController::class, 'checkNotifications'])->name('check_notif');
-        Route::post('complete-support', [NhanVienBanAnController::class, 'completeSupport'])->name('complete_support');
-    });
+// Quản lý bàn
+Route::prefix('ban-an')->name('ban-an.')->group(function () {
+    Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
+    Route::post('/check-in-walkin', [NhanVienBanAnController::class, 'checkInWalkIn'])->name('check-in-walkin');
+    Route::get('/check-in-dattruoc/{id}', [NhanVienBanAnController::class, 'showCheckInForm'])->name('show-checkin-dattruoc');
+    Route::post('/process-check-in', [NhanVienBanAnController::class, 'processCheckIn'])->name('process-checkin');
+    Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
+    Route::get('check-notifications', [NhanVienBanAnController::class, 'checkNotifications'])->name('check_notif');
+    Route::post('complete-support', [NhanVienBanAnController::class, 'completeSupport'])->name('complete_support');
+
+    // [QUAN TRỌNG] Route cho tính năng cập nhật trạng thái hàng loạt mới thêm
+    Route::post('/update-batch', [NhanVienBanAnController::class, 'updateBatchStatus'])->name('update_batch');
+});
+
+    // --- BỔ SUNG: HÀNG CHỜ PHỤC VỤ (Waiter Logic) ---
+    // Controller: App\Http\Controllers\Shop\NhanVien\WaiterController
+    Route::prefix('phuc-vu')->name('phuc-vu.')->controller(WaiterController::class)->group(function () {
+        // Trang hiển thị danh sách món ăn đã xong (Bếp đã làm xong)
+        Route::get('/dashboard', 'dashboard')->name('dashboard');
+        
+        // API để nhân viên xác nhận đã bưng món (chuyển trạng thái sang 'da_len_mon')
+        Route::post('/confirm-served/{id}', 'xacNhanDaBung')->name('confirm_served');
+Route::get('/dashboard-api', 'getFoodQueueJson')->name('dashboard_api');    });
+    // --------------------------------------------------
 
     // Đặt bàn cho nhân viên (Tạo booking tại quầy)
     Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
