@@ -596,16 +596,24 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="p-4 bg-white rounded-3 border shadow-sm">
-                                        @php
-                                            // Sử dụng tổng tiền đã tính lại từ phần bảng trên
-                                            // $tongTienMonGoiThem và $tongCong đã được tính lại trong phần tổng kết của bảng
-                                            $tongTienComboMon = $tongCong; // $tongCong đã bao gồm combo + món gọi thêm đã tính lại
-                                            
-                                            // Tính lại phải thanh toán: Tổng tiền - Voucher - Tiền cọc + Phụ thu
-                                            $tongTienSauVoucher = $tongTienComboMon - ($chiTiet->tien_giam_voucher ?? 0);
-                                            $phaiThanhToan = $tongTienSauVoucher - ($chiTiet->tien_coc ?? 0) + ($chiTiet->tong_phu_thu ?? 0);
-                                            if ($phaiThanhToan < 0) $phaiThanhToan = 0;
-                                        @endphp
+                                       @php
+                                    // Sử dụng tổng tiền đã tính lại từ phần bảng trên
+                                    // Dùng ?? 0 để tránh lỗi nếu biến chưa được khởi tạo
+                                    $tongCongCheck = $tongCong ?? 0;
+                                    $tongTienMonGoiThemCheck = $tongTienMonGoiThem ?? 0;
+                                    
+                                    // Nếu tổng cộng = 0 (do không tính toán được), thử lấy từ dữ liệu gốc trong DB
+                                    if($tongCongCheck == 0 && isset($chiTiet->tong_tien_hang)) {
+                                    $tongCongCheck = $chiTiet->tong_tien_hang;
+                                    }
+                                    
+                                    $tongTienComboMon = $tongCongCheck;
+                                    
+                                    // Tính lại phải thanh toán
+                                    $tongTienSauVoucher = $tongTienComboMon - ($chiTiet->tien_giam_voucher ?? 0);
+                                    $phaiThanhToan = $tongTienSauVoucher - ($chiTiet->tien_coc ?? 0) + ($chiTiet->tong_phu_thu ?? 0);
+                                    
+                                    if ($phaiThanhToan < 0) $phaiThanhToan=0; @endphp
                                         <div class="d-flex justify-content-between mb-2">
                                             <span class="text-dark">Tổng tiền (Combo + Món):</span>
                                             <strong class="text-primary fs-5">{{ number_format($tongTienComboMon) }} đ</strong>

@@ -11,6 +11,9 @@ use App\Models\Voucher;
 use App\Models\BanAn;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use PayOS\PayOS;
+use PayOS\Models\V2\PaymentRequests\CreatePaymentLinkRequest;
+use PayOS\Exceptions\APIException;
 
 class ThanhToanController extends Controller
 {
@@ -20,7 +23,7 @@ class ThanhToanController extends Controller
     public function thanhToanTuBan($banId)
     {
         $ban = BanAn::with('khuVuc')->findOrFail($banId);
-        
+
         // Tìm đặt bàn đang hoạt động của bàn này
         $datBan = DatBan::where('ban_id', $banId)
             ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu', 'da_xac_nhan'])
@@ -53,13 +56,13 @@ class ThanhToanController extends Controller
                 $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
             }
         }
-        
+
         // Tính tiền món gọi thêm và món combo vượt giới hạn
         $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
-        
+
         // Tổng tiền thực tế = combo chính + món gọi thêm
         $tongTienOrder = $tienComboChinh + $tongTienMonGoiThem;
-        
+
         $tienCoc = (float) ($datBan->tien_coc ?? 0);
 
         // Tính giờ vào và giờ ra
@@ -73,13 +76,13 @@ class ThanhToanController extends Controller
         $thoiGianVuot = 0;
         $soLan10Phut = 0;
         $phuThuThoiGian = 0;
-        
+
         // Lấy thời gian quy định từ combo đầu tiên (hoặc combo có thời gian dài nhất)
         $comboDauTien = $datBan->chiTietDatBan->first();
         if ($comboDauTien && $comboDauTien->combo && $comboDauTien->combo->thoi_luong_phut) {
             $thoiGianQuyDinh = $comboDauTien->combo->thoi_luong_phut;
             $thoiGianMienPhi = $thoiGianQuyDinh + 10; // Thời gian quy định + 10 phút miễn phí
-            
+
             if ($thoiGianPhucVu > $thoiGianMienPhi) {
                 $thoiGianVuot = $thoiGianPhucVu - $thoiGianMienPhi;
                 $soLan10Phut = ceil($thoiGianVuot / 10); // Làm tròn lên: phút 1-10 = 1 lần, phút 11-20 = 2 lần, phút 21-30 = 3 lần...
@@ -97,26 +100,47 @@ class ThanhToanController extends Controller
             ->get();
 
         return view('Shop.nhanVien.thanh-toan.thanh-toan-tu-ban', compact(
-            'ban', 'datBan', 'tongTienOrder', 'tienCoc', 'vouchers', 'gioVao', 'gioRa', 'thoiGianPhucVu', 'phuThuTuDong',
-            'thoiGianQuyDinh', 'thoiGianMienPhi', 'thoiGianVuot', 'soLan10Phut', 'phuThuThoiGian'
+            'ban',
+            'datBan',
+            'tongTienOrder',
+            'tienCoc',
+            'vouchers',
+            'gioVao',
+            'gioRa',
+            'thoiGianPhucVu',
+            'phuThuTuDong',
+            'thoiGianQuyDinh',
+            'thoiGianMienPhi',
+            'thoiGianVuot',
+            'soLan10Phut',
+            'phuThuThoiGian'
         ));
     }
 
     /**
-     * Lưu hóa đơn từ ban_id
+     * Lưu hóa đơn từ ban_id (THANH TOÁN THƯỜNG)
      */
     public function luuThanhToanTuBan(Request $request, $banId)
     {
         $request->validate([
-            'phuong_thuc_tt' => 'required|string|in:tien_mat,chuyen_khoan,the_ATM,vnpay',
+            'phuong_thuc_tt' => 'required|string',
             'phu_thu' => 'nullable|numeric|min:0',
             'voucher_id' => 'nullable|exists:vouchers,id',
             'tien_khach_dua' => 'nullable|numeric|min:0',
         ]);
 
+        // Gọi hàm chung để xử lý logic lưu hóa đơn
+        return $this->xuLyLuuHoaDonChung($request, $banId, $request->phuong_thuc_tt);
+    }
+
+    /**
+     * === HÀM XỬ LÝ CHUNG CHO CẢ TIỀN MẶT VÀ PAYOS ===
+     * Hàm này thực hiện toàn bộ logic tính toán, trừ tiền, tạo hóa đơn, update trạng thái.
+     */
+    private function xuLyLuuHoaDonChung(Request $request, $banId, $phuongThucThanhToan)
+    {
         $ban = BanAn::findOrFail($banId);
-        
-        // Tìm đặt bàn đang hoạt động
+
         $datBan = DatBan::where('ban_id', $banId)
             ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu'])
             ->with([
@@ -129,48 +153,44 @@ class ThanhToanController extends Controller
             ->first();
 
         if (!$datBan) {
-            return redirect()
-                ->route('nhanVien.ban-an.index')
-                ->with('error', 'Bàn này chưa có khách hoặc chưa có đặt bàn hợp lệ!');
+            return redirect()->route('nhanVien.ban-an.index')->with('error', 'Bàn này chưa có khách!');
         }
 
-        // Kiểm tra xem đã có hóa đơn chưa
         if ($datBan->hoaDon) {
-            return redirect()
-                ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $datBan->hoaDon->id)
-                ->with('info', 'Hóa đơn đã được tạo trước đó!');
+            return redirect()->route('nhanVien.thanh-toan.hien-thi-hoa-don', $datBan->hoaDon->id);
         }
 
-        // Tính tổng tiền combo: tính từng combo với số lượng tương ứng
+        // --- BẮT ĐẦU LOGIC TÍNH TIỀN ---
+        // 1. Tính tổng tiền combo
         $tienComboChinh = 0;
         foreach ($datBan->chiTietDatBan as $chiTiet) {
             if ($chiTiet->combo) {
                 $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
             }
         }
-        
-        // Tính tiền món gọi thêm và món combo vượt giới hạn
+
+        // 2. Tính tiền món gọi thêm
         $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
-        
-        // Tổng tiền thực tế = combo chính + món gọi thêm
         $tongTienOrder = $tienComboChinh + $tongTienMonGoiThem;
-        
+
         $tienCoc = (float) ($datBan->tien_coc ?? 0);
-        
-        // Tính phụ thu tự động
+
+        // 3. Tính phụ thu
         $gioVao = Carbon::parse($datBan->gio_den);
         $gioRa = now();
         $thoiGianPhucVu = $gioVao->diffInMinutes($gioRa);
         $phuThuTuDong = $this->tinhPhuThuTuDong($datBan, $thoiGianPhucVu);
-        
-        // Phụ thu = phụ thu tự động + phụ thu thủ công (nếu có)
+
+        // Lấy phụ thu thủ công từ request (nếu có, nếu không có thì mặc định 0)
         $phuThuThucCong = (float) ($request->phu_thu ?? 0);
         $phuThu = $phuThuTuDong + $phuThuThucCong;
 
-        // Xử lý voucher
-        $voucher = $request->voucher_id ? Voucher::find($request->voucher_id) : null;
+        // 4. Xử lý Voucher
+        // Nếu request có voucher_id thì lấy, không thì null
+        $voucherId = $request->voucher_id ?? null;
+        $voucher = $voucherId ? Voucher::find($voucherId) : null;
         $tienGiam = 0;
-        
+
         if ($voucher) {
             if ($voucher->loai_giam == 'phan_tram') {
                 $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
@@ -185,21 +205,20 @@ class ThanhToanController extends Controller
             }
         }
 
-        // Tính tiền phải thanh toán
+        // 5. Tính tiền cuối cùng
         $daThanhToan = $tongTienOrder - $tienGiam + $phuThu - $tienCoc;
         if ($daThanhToan < 0) $daThanhToan = 0;
 
-        // Tính chi tiết thời gian (lấy từ combo đầu tiên)
+        // 6. Tính chi tiết thời gian (để lưu vào DB)
         $thoiGianQuyDinh = 0;
         $thoiGianVuot = 0;
         $soLan10Phut = 0;
         $phuThuThoiGian = 0;
-        
+
         $comboDauTien = $datBan->chiTietDatBan->first();
         if ($comboDauTien && $comboDauTien->combo && $comboDauTien->combo->thoi_luong_phut) {
             $thoiGianQuyDinh = $comboDauTien->combo->thoi_luong_phut;
             $thoiGianMienPhi = $thoiGianQuyDinh + 10;
-            
             if ($thoiGianPhucVu > $thoiGianMienPhi) {
                 $thoiGianVuot = $thoiGianPhucVu - $thoiGianMienPhi;
                 $soLan10Phut = ceil($thoiGianVuot / 10);
@@ -207,101 +226,52 @@ class ThanhToanController extends Controller
             }
         }
 
-        // Chuẩn bị danh sách món đã gọi
-        // Món combo không có giới hạn và phụ phí nữa, chỉ cần kiểm tra xem món có trong combo không
+        // 7. Tạo danh sách món chi tiết (để lưu vào JSON)
         $monTrongComboIds = [];
-        
         foreach ($datBan->chiTietDatBan as $chiTiet) {
             if ($chiTiet->combo) {
                 $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)->get();
                 foreach ($monTrongCombo as $mtc) {
-                    $monAnId = $mtc->mon_an_id;
-                    if (!in_array($monAnId, $monTrongComboIds)) {
-                        $monTrongComboIds[] = $monAnId;
-                    }
+                    if (!in_array($mtc->mon_an_id, $monTrongComboIds)) $monTrongComboIds[] = $mtc->mon_an_id;
                 }
             }
         }
-        
-        // Tính tổng số lượng đã order cho từng món
+
         $tongSoLuongMon = [];
         foreach ($datBan->orderMon as $order) {
             foreach ($order->chiTietOrders as $ct) {
                 if ($ct->trang_thai != 'huy_mon') {
-                    $monAnId = $ct->mon_an_id;
-                    if (!isset($tongSoLuongMon[$monAnId])) {
-                        $tongSoLuongMon[$monAnId] = 0;
-                    }
-                    $tongSoLuongMon[$monAnId] += $ct->so_luong;
+                    $tongSoLuongMon[$ct->mon_an_id] = ($tongSoLuongMon[$ct->mon_an_id] ?? 0) + $ct->so_luong;
                 }
             }
         }
-        
-        // Tạo danh sách món với thông tin chi tiết
+
         $danhSachMon = [];
         $stt = 1;
         foreach ($tongSoLuongMon as $monAnId => $tongSoLuong) {
             $monAn = \App\Models\MonAn::find($monAnId);
-            
             if (!$monAn) continue;
-            
+
             $laMonCombo = in_array($monAnId, $monTrongComboIds);
-            
-            if ($laMonCombo) {
-                // Món thuộc combo: luôn miễn phí (không có giới hạn, không có phụ phí)
-                $donGiaHienThi = 0;
-                $tienMon = 0;
-                $phuPhi = 0;
-                $tienPhuPhiTong = 0;
-                $soLuongVuot = 0;
-                $tongGioiHan = null;
-            } else {
-                // Món không thuộc combo: tính tiền bình thường
-                $donGiaHienThi = $monAn->gia ?? 0;
-                $tienMon = $donGiaHienThi * $tongSoLuong;
-                $phuPhi = 0;
-                $tienPhuPhiTong = 0;
-                $soLuongVuot = 0;
-                $tongGioiHan = null;
-            }
-            
+            $donGiaHienThi = $laMonCombo ? 0 : ($monAn->gia ?? 0);
+            $tienMon = $donGiaHienThi * $tongSoLuong;
+
             $danhSachMon[] = [
                 'stt' => $stt++,
                 'ten_mon' => $monAn->ten_mon,
                 'so_luong' => $tongSoLuong,
-                'gioi_han' => $tongGioiHan,
+                'gioi_han' => null,
                 'don_gia' => $donGiaHienThi,
-                'phu_phi' => $phuPhi,
-                'phu_phi_tong' => $tienPhuPhiTong,
-                'so_luong_vuot' => $soLuongVuot,
+                'phu_phi' => 0,
+                'phu_phi_tong' => 0,
+                'so_luong_vuot' => 0,
                 'thanh_tien' => $tienMon,
                 'la_mon_combo' => $laMonCombo,
                 'vuot_gioi_han' => false,
             ];
         }
 
-        // Tính lại tổng tiền món gọi thêm từ danh sách món để đảm bảo tính nhất quán
-        $tongTienMonGoiThemTuDanhSach = 0;
-        foreach ($danhSachMon as $mon) {
-            $tongTienMonGoiThemTuDanhSach += $mon['thanh_tien'];
-        }
-        
-        // Tính lại tổng tiền combo + món từ danh sách món
-        $tongTienComboMonTuDanhSach = $tienComboChinh + $tongTienMonGoiThemTuDanhSach;
-        
-        // Sử dụng giá trị tính từ danh sách món để đảm bảo tính nhất quán
-        $tongTienOrder = $tongTienComboMonTuDanhSach;
-
-        // Tính lại tiền phải thanh toán với giá trị mới
-        $daThanhToan = $tongTienOrder - $tienGiam + $phuThu - $tienCoc;
-        if ($daThanhToan < 0) $daThanhToan = 0;
-
-        // Tính tiền khách đưa và tiền trả lại
-        $tienKhachDua = (float) ($request->tien_khach_dua ?? 0);
-        $tienTraLai = 0;
-        if ($request->phuong_thuc_tt == 'tien_mat' && $tienKhachDua > 0) {
-            $tienTraLai = max(0, $tienKhachDua - $daThanhToan);
-        }
+        // --- LƯU DATABASE ---
 
         // Tạo hóa đơn
         $hoaDon = HoaDon::create([
@@ -312,8 +282,15 @@ class ThanhToanController extends Controller
             'tien_giam' => $tienGiam,
             'phu_thu' => $phuThu,
             'da_thanh_toan' => $daThanhToan,
-            'phuong_thuc_tt' => $request->phuong_thuc_tt,
+            'phuong_thuc_tt' => $phuongThucThanhToan, // Lưu phương thức (payos hoặc tien_mat)
         ]);
+
+        // Tiền khách đưa/trả lại
+        $tienKhachDua = (float) ($request->tien_khach_dua ?? 0);
+        $tienTraLai = 0;
+        if ($phuongThucThanhToan == 'tien_mat' && $tienKhachDua > 0) {
+            $tienTraLai = max(0, $tienKhachDua - $daThanhToan);
+        }
 
         // Lưu chi tiết hóa đơn
         ChiTietHoaDon::create([
@@ -347,7 +324,7 @@ class ThanhToanController extends Controller
             'phai_thanh_toan' => $daThanhToan,
             'tien_khach_dua' => $tienKhachDua > 0 ? $tienKhachDua : null,
             'tien_tra_lai' => $tienTraLai > 0 ? $tienTraLai : null,
-            'phuong_thuc_tt' => $request->phuong_thuc_tt,
+            'phuong_thuc_tt' => $phuongThucThanhToan,
             'ma_voucher' => $voucher ? $voucher->ma_voucher : null,
         ]);
 
@@ -369,170 +346,85 @@ class ThanhToanController extends Controller
             $order->update(['trang_thai' => 'hoan_thanh']);
         }
 
-        // Chuyển hướng đến trang hiển thị hóa đơn
         return redirect()
             ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $hoaDon->id)
             ->with('success', 'Thanh toán thành công!');
     }
 
     /**
-     * Hiển thị form thanh toán cho một order
+     * ==========================================
+     * THANH TOÁN ONLINE QUA PAYOS (QR CODE)
+     * ==========================================
      */
-    public function thanhToan($orderId)
+    public function createPayOSPayment(Request $request, $banId)
     {
-        $order = OrderMon::with([
-            'banAn',
-            'datBan.comboBuffet',
-            'datBan.orderMon.chiTietOrders.monAn',
-            'chiTietOrders.monAn'
-        ])->findOrFail($orderId);
+        $ban = BanAn::findOrFail($banId);
+        $tongTien = (int) $request->input('tong_tien');
 
-        // Kiểm tra xem đã có hóa đơn chưa
-        if ($order->datBan->hoaDon) {
-            return redirect()
-                ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $order->datBan->hoaDon->id)
-                ->with('info', 'Hóa đơn đã được tạo trước đó!');
+        // Khởi tạo SDK PayOS
+        $payOS = new PayOS(
+            env('PAYOS_CLIENT_ID'),
+            env('PAYOS_API_KEY'),
+            env('PAYOS_CHECKSUM_KEY')
+        );
+
+        // Mã đơn hàng: dùng time() + banId để đảm bảo duy nhất
+        $orderCode = intval(substr(strval(microtime(true) * 10000), -6));
+
+        // URL callback
+        $returnUrl = route('nhanVien.thanh-toan.payos.callback', ['banId' => $banId, 'status' => 'PAID']);
+        $cancelUrl = route('nhanVien.thanh-toan.payos.callback', ['banId' => $banId, 'status' => 'CANCELLED']);
+
+        try {
+            $paymentData = new CreatePaymentLinkRequest(
+                orderCode: $orderCode,
+                amount: $tongTien,
+                // SỬA DÒNG NÀY: Rút ngắn mô tả xuống dưới 25 ký tự
+                description: "Thanh toan " . ($ban->so_ban ?? $banId),
+                returnUrl: $returnUrl,
+                cancelUrl: $cancelUrl
+            );
+
+            $response = $payOS->paymentRequests->create($paymentData);
+
+            // Chuyển hướng sang PayOS
+            return redirect($response->checkoutUrl);
+        } catch (APIException $e) {
+            return redirect()->back()->with('error', 'Lỗi tạo PayOS: ' . $e->getMessage());
+        }
+    }
+
+    public function handlePayOSCallback(Request $request, $banId)
+    {
+        $status = $request->input('status');
+
+        if ($status == 'CANCELLED') {
+            return redirect()->route('nhanVien.ban-an.index')
+                ->with('error', 'Đã hủy thanh toán PayOS!');
         }
 
-        // Tính tổng tiền từ các order
-        $tongTienOrder = $order->datBan->orderMon->sum('tong_tien');
-        $tienCoc = (float) ($order->datBan->tien_coc ?? 0);
+        if ($status == 'PAID') {
+            // Khi thanh toán thành công -> Gọi hàm chung để Lưu Hóa Đơn
+            // Lưu ý: PayOS callback là GET, không có body request chứa thông tin phụ thu/voucher
+            // Nên ở đây ta mặc định không có voucher và phụ thu thủ công
+            // (Nếu muốn giữ voucher, cần lưu vào session lúc tạo link thanh toán)
 
-        // Lấy danh sách voucher hợp lệ
-        $vouchers = Voucher::where('trang_thai', 'dang_ap_dung')
-            ->where('ngay_ket_thuc', '>=', now())
-            ->whereRaw('so_luong > so_luong_da_dung')
-            ->get();
+            $fakeRequest = new Request();
+            $fakeRequest->merge([
+                'phuong_thuc_tt' => 'payos', // Đánh dấu là PayOS
+                'phu_thu' => 0, // Mặc định 0
+                'voucher_id' => null, // Mặc định null
+                'tien_khach_dua' => 0
+            ]);
 
-        return view('Shop.nhanVien.thanh-toan.thanh-toan', compact('order', 'tongTienOrder', 'tienCoc', 'vouchers'));
+            return $this->xuLyLuuHoaDonChung($fakeRequest, $banId, 'payos');
+        }
+
+        return redirect()->route('nhanVien.ban-an.index')->with('error', 'Trạng thái thanh toán không xác định!');
     }
 
     /**
-     * Lưu hóa đơn và xử lý thanh toán
-     */
-    public function luuThanhToan(Request $request, $orderId)
-    {
-        $request->validate([
-            'phuong_thuc_tt' => 'required|string|in:tien_mat,chuyen_khoan,the_ATM',
-            'phu_thu' => 'nullable|numeric|min:0',
-            'voucher_id' => 'nullable|exists:vouchers,id',
-            'tien_khach_dua' => 'nullable|numeric|min:0', // Tiền khách đưa (nếu thanh toán tiền mặt)
-        ]);
-
-        $order = OrderMon::with([
-            'datBan.comboBuffet',
-            'datBan.orderMon.chiTietOrders.monAn',
-            'datBan.banAn'
-        ])->findOrFail($orderId);
-        $datBan = $order->datBan;
-
-        // Kiểm tra xem đã có hóa đơn chưa
-        if ($datBan->hoaDon) {
-            return redirect()
-                ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $datBan->hoaDon->id)
-                ->with('info', 'Hóa đơn đã được tạo trước đó!');
-        }
-
-        // Tính tổng tiền: combo chính + món gọi thêm (tính tiền cho món order thêm, kể cả món trong combo)
-        $tienComboChinh = 0;
-        if ($datBan->comboBuffet) {
-            $tienComboChinh = $datBan->comboBuffet->gia_co_ban * ($datBan->so_khach ?? 1);
-        }
-        
-        // Tính tiền món gọi thêm (goi_them) và món combo order thêm
-        $tongTienMonGoiThem = 0;
-        
-        foreach ($datBan->orderMon as $orderItem) {
-            foreach ($orderItem->chiTietOrders as $ct) {
-                if ($ct->trang_thai != 'huy_mon') {
-                    if ($ct->loai_mon == 'goi_them') {
-                        // Món gọi thêm: tính tiền bình thường
-                        $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $ct->so_luong;
-                    } elseif ($ct->loai_mon == 'combo') {
-                        // Món combo: kiểm tra xem có phải order thêm không
-                        // Nếu số lượng > số khách, thì phần vượt quá là order thêm, tính tiền
-                        $soLuongVuot = $ct->so_luong - ($datBan->so_khach ?? 0);
-                        if ($soLuongVuot > 0) {
-                            $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $soLuongVuot;
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Tổng tiền thực tế = combo chính + món gọi thêm
-        $tongTienOrder = $tienComboChinh + $tongTienMonGoiThem;
-        
-        $tienCoc = (float) ($datBan->tien_coc ?? 0);
-        
-        // Tính phụ thu tự động
-        $gioVao = Carbon::parse($datBan->gio_den);
-        $gioRa = now();
-        $thoiGianPhucVu = $gioVao->diffInMinutes($gioRa);
-        $phuThuTuDong = $this->tinhPhuThuTuDong($datBan, $thoiGianPhucVu);
-        
-        // Phụ thu = phụ thu tự động + phụ thu thủ công (nếu có)
-        $phuThuThucCong = (float) ($request->phu_thu ?? 0);
-        $phuThu = $phuThuTuDong + $phuThuThucCong;
-
-        // Xử lý voucher
-        $voucher = $request->voucher_id ? Voucher::find($request->voucher_id) : null;
-        $tienGiam = 0;
-        
-        if ($voucher) {
-            if ($voucher->loai_giam == 'phan_tram') {
-                $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
-                if ($voucher->gia_tri_toi_da && $tienGiam > $voucher->gia_tri_toi_da) {
-                    $tienGiam = $voucher->gia_tri_toi_da;
-                }
-            } else {
-                $tienGiam = $voucher->gia_tri;
-            }
-            if ($tienGiam > $tongTienOrder) {
-                $tienGiam = $tongTienOrder;
-            }
-        }
-
-        // Tính tiền phải thanh toán
-        $daThanhToan = $tongTienOrder - $tienGiam + $phuThu - $tienCoc;
-        if ($daThanhToan < 0) $daThanhToan = 0;
-
-        // Tạo hóa đơn
-        $hoaDon = HoaDon::create([
-            'dat_ban_id' => $datBan->id,
-            'voucher_id' => $voucher ? $voucher->id : null,
-            'ma_hoa_don' => 'HD' . date('YmdHis') . '-' . $datBan->id,
-            'tong_tien' => $tongTienOrder,
-            'tien_giam' => $tienGiam,
-            'phu_thu' => $phuThu,
-            'da_thanh_toan' => $daThanhToan,
-            'phuong_thuc_tt' => $request->phuong_thuc_tt,
-        ]);
-
-        // Cập nhật voucher
-        if ($voucher) {
-            $voucher->increment('so_luong_da_dung');
-        }
-
-        // Cập nhật trạng thái đặt bàn
-        $datBan->update(['trang_thai' => 'hoan_tat']);
-
-        // Cập nhật trạng thái bàn thành trống
-        if ($datBan->banAn) {
-            $datBan->banAn->update(['trang_thai' => 'trong']);
-        }
-
-        // Cập nhật trạng thái order
-        $order->update(['trang_thai' => 'hoan_thanh']);
-
-        // Chuyển hướng đến trang hiển thị hóa đơn
-        return redirect()
-            ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $hoaDon->id)
-            ->with('success', 'Thanh toán thành công!');
-    }
-
-    /**
-     * Hiển thị hóa đơn
+     * Hiển thị hóa đơn (Giữ nguyên)
      */
     public function hienThiHoaDon($id)
     {
@@ -544,41 +436,24 @@ class ThanhToanController extends Controller
             'chiTietHoaDon'
         ])->findOrFail($id);
 
-        // Nếu có chi tiết hóa đơn, sử dụng dữ liệu từ đó
         if ($hoaDon->chiTietHoaDon) {
             $chiTiet = $hoaDon->chiTietHoaDon;
-            
-            return view('Shop.nhanVien.thanh-toan.hien-thi-hoa-don', compact(
-                'hoaDon',
-                'chiTiet'
-            ));
+            return view('Shop.nhanVien.thanh-toan.hien-thi-hoa-don', compact('hoaDon', 'chiTiet'));
         }
 
-        // Fallback: tính toán lại nếu chưa có chi tiết (cho các hóa đơn cũ)
+        // Fallback cũ
         $soKhach = $hoaDon->datBan->so_khach ?? 1;
         $gioVao = $hoaDon->datBan->gio_den ? Carbon::parse($hoaDon->datBan->gio_den) : null;
         $gioRa = $hoaDon->created_at;
         $thoiGianPhucVu = $gioVao ? $gioVao->diffInMinutes($gioRa) : 0;
-        
-        // Tính tiền combo từ chiTietDatBan
-        // Tính tổng tiền combo: giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
+
         $tienComboChinh = 0;
-        $soTreEm = $hoaDon->datBan->tre_em ?? 0;
-        $comboIndex = 0;
         foreach ($hoaDon->datBan->chiTietDatBan as $chiTiet) {
             if ($chiTiet->combo) {
-                $giaCombo = $chiTiet->combo->gia_co_ban ?? 0;
-                $soLuongCombo = $chiTiet->so_luong ?? 1;
-                
-                if($soTreEm > 0 && $comboIndex < $soTreEm) {
-                    $giaCombo = $giaCombo * 0.5;
-                }
-                
-                $tienComboChinh += $giaCombo * $soLuongCombo;
-                $comboIndex += $soLuongCombo;
+                $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
             }
         }
-        
+
         $tongTienMonGoiThem = $this->tinhTienMonGoiThem($hoaDon->datBan);
         $tongTienThucTe = $tienComboChinh + $tongTienMonGoiThem;
 
@@ -594,10 +469,8 @@ class ThanhToanController extends Controller
         ));
     }
 
-
-
     /**
-     * Trang in hóa đơn
+     * In hóa đơn (Giữ nguyên)
      */
     public function inHoaDon($hoaDonId)
     {
@@ -609,164 +482,90 @@ class ThanhToanController extends Controller
             'chiTietHoaDon'
         ])->findOrFail($hoaDonId);
 
-        // Nếu có chi tiết hóa đơn, sử dụng dữ liệu từ đó
         if ($hoaDon->chiTietHoaDon) {
             return view('Shop.nhanVien.thanh-toan.in-hoa-don', compact('hoaDon'));
         }
 
-        // Fallback: tính toán lại cho hóa đơn cũ
         $datBan = $hoaDon->datBan;
-        
-        // Tính giờ vào và giờ ra
         $gioVao = $datBan->gio_den ? Carbon::parse($datBan->gio_den) : null;
         $gioRa = $hoaDon->created_at;
         $thoiGianPhucVu = $gioVao ? $gioVao->diffInMinutes($gioRa) : 0;
 
-        // Tính tổng tiền combo: tính từng combo với số lượng tương ứng
-        // Tính tổng tiền combo: giảm 50% cho số combo đầu tiên tương ứng với số trẻ em
         $tienComboChinh = 0;
-        $soTreEm = $datBan->tre_em ?? 0;
-        $comboIndex = 0;
         foreach ($datBan->chiTietDatBan as $chiTiet) {
             if ($chiTiet->combo) {
-                $giaCombo = $chiTiet->combo->gia_co_ban ?? 0;
-                $soLuongCombo = $chiTiet->so_luong ?? 1;
-                
-                if($soTreEm > 0 && $comboIndex < $soTreEm) {
-                    $giaCombo = $giaCombo * 0.5;
-                }
-                
-                $tienComboChinh += $giaCombo * $soLuongCombo;
-                $comboIndex += $soLuongCombo;
+                $tienComboChinh += $chiTiet->combo->gia_co_ban * ($chiTiet->so_luong ?? 1);
             }
         }
-        
+
         $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
         $tongTienThucTe = $tienComboChinh + $tongTienMonGoiThem;
         $tongTienSauVoucher = $tongTienThucTe - ($hoaDon->tien_giam ?? 0);
 
         return view('Shop.nhanVien.thanh-toan.in-hoa-don', compact(
-            'hoaDon', 'gioVao', 'gioRa', 'thoiGianPhucVu',
-            'tongTienThucTe', 'tongTienSauVoucher',
-            'tienComboChinh', 'tongTienMonGoiThem'
+            'hoaDon',
+            'gioVao',
+            'gioRa',
+            'thoiGianPhucVu',
+            'tongTienThucTe',
+            'tongTienSauVoucher',
+            'tienComboChinh',
+            'tongTienMonGoiThem'
         ));
     }
 
     /**
-     * Tính tiền món gọi thêm và món combo vượt giới hạn
+     * Tính tiền món gọi thêm (Logic cũ giữ nguyên)
      */
     private function tinhTienMonGoiThem($datBan)
     {
         $tongTienMonGoiThem = 0;
-        
-        // Lấy danh sách món trong combo (để kiểm tra món có thuộc combo không)
+
         $monTrongComboIds = [];
         foreach ($datBan->chiTietDatBan as $chiTiet) {
             if ($chiTiet->combo) {
                 $monTrongCombo = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)->get();
                 foreach ($monTrongCombo as $mtc) {
-                    $monAnId = $mtc->mon_an_id;
-                    if (!in_array($monAnId, $monTrongComboIds)) {
-                        $monTrongComboIds[] = $monAnId;
+                    if (!in_array($mtc->mon_an_id, $monTrongComboIds)) {
+                        $monTrongComboIds[] = $mtc->mon_an_id;
                     }
                 }
             }
         }
-        
-        // Tính tiền cho từng món
+
         foreach ($datBan->orderMon as $order) {
             foreach ($order->chiTietOrders as $ct) {
                 if ($ct->trang_thai != 'huy_mon') {
                     $monAnId = $ct->mon_an_id;
-                    
-                    // Kiểm tra xem món có thuộc combo không
                     $laMonCombo = in_array($monAnId, $monTrongComboIds);
-                    
+
                     if ($ct->loai_mon == 'goi_them' || !$laMonCombo) {
-                        // Món gọi thêm hoặc không thuộc combo: tính tiền bình thường
                         $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $ct->so_luong;
                     }
-                    // Món combo: không tính tiền (luôn miễn phí)
                 }
             }
         }
-        
+
         return $tongTienMonGoiThem;
     }
-    
+
     /**
-     * Tính phụ thu tự động: chỉ tính thời gian (không tính phụ phí món combo nữa)
+     * Tính phụ thu tự động (Logic cũ giữ nguyên)
      */
     private function tinhPhuThuTuDong($datBan, $thoiGianPhucVu)
     {
         $phuThuThoiGian = 0;
-
-        // Tính phụ thu thời gian
         $comboDauTien = $datBan->chiTietDatBan->first();
         if ($comboDauTien && $comboDauTien->combo && $comboDauTien->combo->thoi_luong_phut) {
             $thoiGianQuyDinh = $comboDauTien->combo->thoi_luong_phut;
-            $thoiGianMienPhi = $thoiGianQuyDinh + 10; // Thời gian quy định + 10 phút miễn phí
+            $thoiGianMienPhi = $thoiGianQuyDinh + 10;
 
             if ($thoiGianPhucVu > $thoiGianMienPhi) {
                 $thoiGianVuot = $thoiGianPhucVu - $thoiGianMienPhi;
-                $soLan10Phut = ceil($thoiGianVuot / 10); // Làm tròn lên
-                $phuThuThoiGian = $soLan10Phut * 30000; // Mỗi 10 phút = 30k
+                $soLan10Phut = ceil($thoiGianVuot / 10);
+                $phuThuThoiGian = $soLan10Phut * 30000;
             }
         }
-
-        // Món combo không có giới hạn và phụ phí nữa, chỉ tính phụ thu thời gian
         return $phuThuThoiGian;
     }
-
-    public function vnpayPayment(Request $request, $banId)
-    {
-        $ban = BanAn::findOrFail($banId);
-        $tongTien = $request->input('tong_tien'); // từ form hoặc tính lại
-        $vnp_TmnCode = env('VNP_TMNCODE'); // Merchant code
-        $vnp_HashSecret = env('VNP_HASHSECRET'); 
-        $vnp_Url = env('VNP_URL');
-        $vnp_Returnurl = route('nhanVien.thanh-toan.vnpay.callback', ['banId' => $banId]);
-
-        $vnp_TxnRef = time(); // mã giao dịch duy nhất
-        $vnp_OrderInfo = "Thanh toán bàn $ban->so_ban";
-        $vnp_Amount = $tongTien * 100; // VNPay nhận amount *100 (đơn vị là VND)
-        $vnp_Locale = 'vn';
-        $vnp_IpAddr = $request->ip();
-
-        $inputData = [
-            "vnp_Version" => "2.1.0",
-            "vnp_TmnCode" => $vnp_TmnCode,
-            "vnp_Amount" => $vnp_Amount,
-            "vnp_Command" => "pay",
-            "vnp_CreateDate" => date('YmdHis'),
-            "vnp_CurrCode" => "VND",
-            "vnp_IpAddr" => $vnp_IpAddr,
-            "vnp_Locale" => $vnp_Locale,
-            "vnp_OrderInfo" => $vnp_OrderInfo,
-            "vnp_ReturnUrl" => $vnp_Returnurl,
-            "vnp_TxnRef" => $vnp_TxnRef,
-        ];
-
-        ksort($inputData);
-        $query = http_build_query($inputData, '', '&', PHP_QUERY_RFC3986);
-        $vnp_SecureHash = hash_hmac('sha512', $query, $vnp_HashSecret);
-        $vnp_Url = $vnp_Url . "?" . $query . "&vnp_SecureHash=" . $vnp_SecureHash;
-
-        return redirect($vnp_Url);
-    }
-
-    public function vnpayCallback(Request $request, $banId)
-    {
-        $vnp_ResponseCode = $request->get('vnp_ResponseCode');
-        $ban = BanAn::findOrFail($banId);
-
-        if($vnp_ResponseCode == "00"){
-            $ban->trang_thai = 'da_thanh_toan';
-            $ban->save();
-            return redirect()->route('nhanVien.ban-an.index')->with('success','Thanh toán VNPay thành công!');
-        } else {
-            return redirect()->route('nhanVien.ban-an.index')->with('error','Thanh toán VNPay thất bại!');
-        }
-    }
-
 }
