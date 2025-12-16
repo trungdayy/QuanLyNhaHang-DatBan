@@ -240,16 +240,22 @@ Route::prefix('ban-an')->name('ban-an.')->group(function () {
     Route::post('/update-batch', [NhanVienBanAnController::class, 'updateBatchStatus'])->name('update_batch');
 });
 
-    // --- BỔ SUNG: HÀNG CHỜ PHỤC VỤ (Waiter Logic) ---
-    // Controller: App\Http\Controllers\Shop\NhanVien\WaiterController
-    Route::prefix('phuc-vu')->name('phuc-vu.')->controller(WaiterController::class)->group(function () {
-        // Trang hiển thị danh sách món ăn đã xong (Bếp đã làm xong)
-        Route::get('/dashboard', 'dashboard')->name('dashboard');
-        
-        // API để nhân viên xác nhận đã bưng món (chuyển trạng thái sang 'da_len_mon')
-        Route::post('/confirm-served/{id}', 'xacNhanDaBung')->name('confirm_served');
-Route::get('/dashboard-api', 'getFoodQueueJson')->name('dashboard_api');    });
-    // --------------------------------------------------
+   // --- BỔ SUNG: HÀNG CHỜ PHỤC VỤ (Waiter Logic) ---
+// Controller: App\Http\Controllers\Shop\NhanVien\WaiterController
+Route::prefix('phuc-vu')->name('phuc-vu.')->controller(WaiterController::class)->group(function () {
+    // Trang hiển thị danh sách món ăn đã xong (Bếp đã làm xong)
+    Route::get('/dashboard', 'dashboard')->name('dashboard');
+    
+    // API để nhân viên xác nhận đã bưng món (chuyển trạng thái sang 'da_len_mon')
+    Route::post('/confirm-served/{id}', 'xacNhanDaBung')->name('confirm_served');
+    
+    // API tự động cập nhật món ăn & thông báo
+    Route::get('/dashboard-api', 'getFoodQueueJson')->name('dashboard_api'); 
+    
+    // [MỚI] API đánh dấu thông báo đã xem (Bị thiếu Route này)
+    Route::post('/mark-notif-read', 'markNotifRead')->name('mark_read'); 
+});
+// --------------------------------------------------
 
     // Đặt bàn cho nhân viên (Tạo booking tại quầy)
     Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');

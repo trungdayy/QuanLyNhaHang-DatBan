@@ -504,6 +504,12 @@
 
                     {{-- 1. Món trong Combo --}}
                     <div class="tab-pane fade show active" id="combo-dishes" role="tabpanel">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button id="btn-call-all-combo" class="btn btn-warning fw-bold shadow">
+                                <i class="fa-solid fa-layer-group"></i> GỌI TẤT CẢ
+                            </button>
+                        </div>
+
                         @php
                         $comboMons = [];
                         foreach($order->datBan->combos as $combo){
@@ -798,6 +804,34 @@
                 e.preventDefault();
                 row.scrollLeft += e.deltaY;
             });
+        });
+        document.getElementById('btn-call-all-combo').addEventListener('click', () => {
+
+            const comboCards = document.querySelectorAll('.combo-item');
+
+            if (comboCards.length === 0) {
+                alert('Không có món combo!');
+                return;
+            }
+
+            comboCards.forEach(card => {
+                addToCart(
+                    card.dataset.id,
+                    card.dataset.ten,
+                    card.dataset.gia,
+                    card.dataset.loai,
+                    card.dataset.isCombo
+                );
+            });
+
+            // hiệu ứng nhẹ
+            const btn = document.getElementById('btn-call-all-combo');
+            btn.classList.add('btn-success');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> ĐÃ THÊM';
+            setTimeout(() => {
+                btn.classList.remove('btn-success');
+                btn.innerHTML = '<i class="fa-solid fa-layer-group"></i> GỌI TẤT CẢ';
+            }, 800);
         });
     </script>
     @endsection

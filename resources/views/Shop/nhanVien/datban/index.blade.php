@@ -847,25 +847,30 @@
                 });
             }
 
-            function showBookingToast(ten, sdt, id) {
-                const shownBookings = JSON.parse(localStorage.getItem('shownBookings') || '[]');
-                if (shownBookings.includes(id)) return; // Đã thông báo rồi thì thôi
+function showBookingToast(ten, sdt, id) {
+    // 👇 1. Sửa localStorage thành sessionStorage ở đây
+    const shownBookings = JSON.parse(sessionStorage.getItem('shownBookings') || '[]');
+    
+    // Nếu ID này đã báo rồi thì thôi
+    if (shownBookings.includes(id)) return; 
 
-                if (messageEl && overlay) {
-                    messageEl.innerHTML = `
-                    <i class="fa-solid fa-bell me-1" style="color:#fea116;"></i>
-                    <span style="font-weight:700; color:#0f172b;">Nhà Hàng có đơn đặt bàn mới:</span>
-                    <br>
-                    <span style="font-weight:600; color:#d97706;">Khách: ${ten}</span> <br>
-                    <span style="font-weight:500; color:#16a34a;">SĐT: ${sdt}</span>
-                `;
-                    overlay.classList.add('show');
+    if (messageEl && overlay) {
+        messageEl.innerHTML = `
+            <i class="fa-solid fa-bell me-1" style="color:#fea116;"></i>
+            <span style="font-weight:700; color:#0f172b;">Nhà Hàng có đơn đặt bàn mới:</span>
+            <br>
+            <span style="font-weight:600; color:#d97706;">Khách: ${ten}</span> <br>
+            <span style="font-weight:500; color:#16a34a;">SĐT: ${sdt}</span>
+        `;
+        overlay.classList.add('show');
 
-                    // Lưu vào localStorage để không hiện lại
-                    shownBookings.push(id);
-                    localStorage.setItem('shownBookings', JSON.stringify(shownBookings));
-                }
-            }
+        // Lưu vào mảng
+        shownBookings.push(id);
+        
+        // 👇 2. Sửa localStorage thành sessionStorage ở đây nữa là xong
+        sessionStorage.setItem('shownBookings', JSON.stringify(shownBookings));
+    }
+}
 
             setInterval(() => {
                 const bookingRows = document.querySelectorAll('tr[data-la-dat-online="1"]');

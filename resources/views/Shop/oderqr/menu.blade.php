@@ -368,6 +368,7 @@
             color: #16a34a;
             border: 1px solid #bbf7d0;
         }
+
         /* ------------------------------------------- */
 
         /* --- MOBILE CUSTOMIZATION (FIX BANNER & HEADER) --- */
@@ -1272,14 +1273,6 @@
                 min-width: auto !important;
             }
 
-            .mini-cart-widget {
-                padding: 8px 16px !important;
-                bottom: 15px !important;
-                right: 15px !important;
-                border-radius: 30px !important;
-                gap: 8px !important;
-            }
-
             .widget-label {
                 display: none;
             }
@@ -1288,13 +1281,170 @@
         @keyframes zoomIn {
             from {
                 transform: scale(0.9);
-                opacity: 0;
             }
 
             to {
                 transform: scale(1);
-                opacity: 1;
             }
+        }
+
+        /* Hiệu ứng rung chuông */
+        @keyframes bellshake {
+            0% { transform: rotate(0); }
+            15% { transform: rotate(5deg); }
+            30% { transform: rotate(-5deg); }
+            45% { transform: rotate(4deg); }
+            60% { transform: rotate(-4deg); }
+            75% { transform: rotate(2deg); }
+            85% { transform: rotate(-2deg); }
+            100% { transform: rotate(0); }
+        }
+        
+        /* --- [MỚI] CUSTOM CONFIRM MODAL (Thay thế cho window.confirm) --- */
+        .custom-confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999999; /* Rất cao để nằm trên mọi thứ */
+            display: none; /* Mặc định ẩn */
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+        .custom-confirm-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        .custom-confirm-box {
+            background: var(--white);
+            width: 90%;
+            max-width: 380px;
+            border-radius: 16px;
+            overflow: hidden;
+            animation: zoomIn 0.2s ease-out;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        .confirm-body {
+            padding: 25px;
+            text-align: center;
+        }
+        .confirm-body i {
+            color: var(--primary);
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .confirm-body p {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        .confirm-footer {
+            display: flex;
+            border-top: 1px solid #eee;
+        }
+        .confirm-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 800;
+            transition: background-color 0.2s;
+            background: transparent;
+        }
+        .confirm-btn-ok {
+            color: var(--success);
+            border-left: 1px solid #eee;
+        }
+        .confirm-btn-ok:hover {
+            background: #f0fdf4;
+        }
+        .confirm-btn-cancel {
+            color: var(--text-sub);
+        }
+        .confirm-btn-cancel:hover {
+            background: #f8fafc;
+        }
+        
+        /* --- CẬP NHẬT: BỐ TRÍ CÁC NÚT CỐ ĐỊNH (CART, CALL STAFF, SCROLL TOP) --- */
+
+
+
+        /* 2. Nút Gọi Nhân Viên (Call Staff) */
+        .call-staff-bubble {
+            position: fixed;
+            bottom: 190px; /* Đẩy lên cao hơn để nhường chỗ cho Giỏ hàng & Cuộn lên */
+            right: 30px;
+            background: var(--danger);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            box-shadow: 0 6px 15px rgba(255, 77, 79, 0.6);
+            z-index: 2901;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .call-staff-bubble .bubble-text {
+            /* Ẩn chữ để chỉ hiển thị icon chuông */
+            display: none;
+        }
+        .call-staff-bubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 20px rgba(255, 77, 79, 0.7);
+        }
+        .call-staff-bubble:active {
+            transform: scale(0.95);
+            box-shadow: 0 3px 8px rgba(255, 77, 79, 0.6);
+        }
+        .call-staff-bubble i {
+            /* Tăng kích thước icon cho dễ nhìn */
+            font-size: 1.8rem;
+            color: white;
+            animation: bellshake 2s infinite 5s;
+        }
+
+        /* 3. Giỏ hàng (Mini Cart) */
+        .mini-cart-widget {
+            bottom: 30px; /* Giữ nguyên, là nút dưới cùng trên Desktop */
+            right: 30px;
+            z-index: 2900;
+        }
+        
+        /* --- ĐIỀU CHỈNH VỊ TRÍ TRÊN MOBILE (max-width: 768px) --- */
+        @media (max-width: 768px) {
+            /* Giỏ hàng (Mini Cart) - Vị trí thấp nhất */
+            .mini-cart-widget {
+                bottom: 15px !important; 
+                right: 15px !important;
+                z-index: 2900;
+            }
+
+            /* Nút Gọi Nhân Viên - Ở vị trí giữa */
+            .call-staff-bubble {
+                bottom: 80px !important; /* Đẩy lên 80px */
+                right: 15px !important;
+                width: 50px;
+                height: 50px;
+                z-index: 2901;
+            }
+            .call-staff-bubble i {
+                font-size: 1.4rem !important;
+            }
+
+
         }
     </style>
 
@@ -1321,6 +1471,8 @@
                             <div class="info-pill"
                                 style="border: 1px solid #22c55e; color: #4ade80; background: rgba(34, 197, 94, 0.15);"><i
                                     class="fa-solid fa-utensils"></i> Thêm: <span id="tien-goi-them-badge">0đ</span></div>
+
+                            {{-- Nút Gọi nhân viên cũ đã bị loại bỏ/comment để dùng nút bong bóng cố định --}}
                         </div>
                         <div id="combo-display" class="combo-box" style="display: none;"></div>
                     </div>
@@ -1365,6 +1517,26 @@
         </div>
     </main>
 
+    {{-- [MỚI] CUSTOM CONFIRM MODAL (Thay thế cho window.confirm) --}}
+    <div id="custom-confirm-modal" class="custom-confirm-overlay">
+        <div class="modal-box custom-confirm-box">
+            <div class="confirm-body">
+                <i class="fa-solid fa-headset"></i>
+                <p id="confirm-message">Bạn có muốn gọi nhân viên hỗ trợ tại bàn không?</p>
+            </div>
+            <div class="confirm-footer">
+                <button class="confirm-btn confirm-btn-cancel" onclick="resolveCustomConfirm(false)">Hủy</button>
+                <button class="confirm-btn confirm-btn-ok" onclick="resolveCustomConfirm(true)">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+    
+    {{-- NÚT GỌI NHÂN VIÊN (BONG BÓNG HÌNH TRÒN) --}}
+    <div id="btn-staff-bubble" class="call-staff-bubble" onclick="callStaff()">
+        <i class="fa-solid fa-bell"></i>
+        <span class="bubble-text">Gọi Nhân Viên</span>
+    </div>
+
     {{-- CÁC WIDGET & MODAL --}}
     <div id="mini-cart" class="mini-cart-widget" onclick="openCartModal()">
         <div class="widget-qty" id="total-count-badge">0</div>
@@ -1374,6 +1546,9 @@
             <div class="widget-total" id="widget-total-price">0đ</div>
         </div>
     </div>
+    
+    {{-- [MỚI] NÚT CUỘN LÊN ĐẦU TRANG --}}
+
 
     <div id="cart-modal" class="modal-overlay">
         <div class="modal-box">
@@ -1496,6 +1671,28 @@
         let slideInterval;
         let currentNoteIdx = null;
 
+        // [MỚI] Khai báo biến và hàm Custom Confirm
+        let customConfirmResolver = null;
+        const customConfirmModal = document.getElementById('custom-confirm-modal');
+        const confirmMessageEl = document.getElementById('confirm-message');
+
+        function customConfirm(message) {
+            confirmMessageEl.textContent = message;
+            customConfirmModal.classList.add('active');
+            return new Promise(resolve => {
+                customConfirmResolver = resolve;
+            });
+        }
+
+        function resolveCustomConfirm(result) {
+            if (customConfirmResolver) {
+                customConfirmModal.classList.remove('active');
+                customConfirmResolver(result);
+                customConfirmResolver = null;
+            }
+        }
+        // [HẾT MỚI]
+
         const formatMoney = (a) => new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND'
@@ -1513,6 +1710,17 @@
             document.getElementById('cart-modal').classList.remove('active');
         }
         // =========================================================
+
+        // [MỚI] Hàm Cuộn lên đầu trang
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+
+
 
         // --- ẨN BANNER TỰ ĐỘNG ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -1539,6 +1747,7 @@
             loadSessionInfo();
             setInterval(loadOrderStatus, 5000);
             setInterval(updateTimers, 1000);
+            toggleScrollTopButton(); // Kiểm tra nút cuộn lần đầu
         });
 
         function showToast(msg, type = 'success') {
@@ -2071,7 +2280,7 @@
                         `<div class="status-card ${s.cls}">
                             <div class="stt-header">
                                 <div class="stt-name">
-                                    ${typeBadge} ${i.mon_an.ten_mon} 
+                                    ${typeBadge} ${i.mon_an.ten_mon}
                                     <span class="stt-qty">x${i.so_luong}</span>
                                 </div>
                                 <div class="badge-status"><i class="fa-solid fa-${s.ic}"></i> ${s.txt}</div>
@@ -2109,7 +2318,10 @@
         }
 
         async function cancelOrderItem(id) {
-            if (!confirm('Bạn có chắc muốn hủy món này không?')) return;
+            // Thay thế confirm mặc định bằng customConfirm
+            const isConfirmed = await customConfirm('Bạn có chắc muốn hủy món này không?');
+            if (!isConfirmed) return;
+            
             try {
                 const res = await fetch('/oderqr/order/cancel-item', {
                     method: 'POST',
@@ -2178,6 +2390,56 @@
 
             // Cập nhật mỗi giây
             window.usageTimerInterval = setInterval(runTimer, 1000);
+        }
+
+        // --- HÀM GỌI NHÂN VIÊN (ĐÃ CHỈNH SỬA CHO NÚT BONG BÓNG VÀ CUSTOM CONFIRM) ---
+        async function callStaff() {
+            // 1. Hỏi xác nhận bằng Custom Confirm
+            const isConfirmed = await customConfirm('Bạn có muốn gọi nhân viên hỗ trợ tại bàn không?');
+            if(!isConfirmed) return;
+
+            // Thay đổi selector để nhắm tới nút bong bóng mới
+            const btn = document.getElementById('btn-staff-bubble');
+            const icon = btn.querySelector('i');
+            const originalIconClass = icon.className;
+            
+            // 2. Hiệu ứng đang gửi
+            icon.className = 'fa-solid fa-spinner fa-spin fa-2x'; // Icon loading lớn
+            icon.style.animation = 'none'; // Ngừng rung chuông
+            btn.style.pointerEvents = 'none'; // Khóa nút tạm thời
+            btn.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.8)'; // Hiệu ứng sáng tạm thời
+
+            try {
+                // 3. Gọi API
+                const res = await fetch('/oderqr/call-staff', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ dat_ban_id: DAT_BAN_ID })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast('✅ Đã gửi yêu cầu! Nhân viên sẽ đến ngay.');
+                } else {
+                    showToast('❌ ' + (data.message || 'Lỗi hệ thống'), 'error');
+                }
+
+            } catch (e) {
+                showToast('❌ Lỗi kết nối mạng', 'error');
+                console.error(e);
+            } finally {
+                // 4. Khôi phục nút sau 10 giây (tránh spam)
+                setTimeout(() => {
+                    icon.className = originalIconClass; // Khôi phục icon
+                    icon.style.animation = 'bellshake 2s infinite 5s'; // Khôi phục rung chuông
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.boxShadow = '0 6px 15px rgba(255, 77, 79, 0.6)'; // Khôi phục shadow mặc định
+                }, 10000);
+            }
         }
     </script>
 @endsection

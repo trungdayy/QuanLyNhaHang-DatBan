@@ -40,21 +40,35 @@ class NhanVienBanAnController extends Controller
         // 2. Lấy khu vực + bàn
         $khuVucs = \App\Models\KhuVuc::with('banAns')->get();
 
-        // 3. Lấy danh sách đơn
+        // 3. Lấy danh sách đơn (LOGIC MỚI: THEO CA LÀM VIỆC)
         $now = Carbon::now();
-        $timeStart = $now->copy()->subMinutes(30); 
-        $timeEnd = $now->copy()->addMinutes(30);   
+        
+        // Tự động xác định Ca Trưa hay Ca Tối dựa trên giờ hiện tại (mốc 16:00)
+        if ($now->hour < 16) {
+            // CA TRƯA: Lấy từ đầu ngày đến 16:00
+            // (Mặc dù ca là 10:30-14:00 nhưng lấy rộng ra để không sót đơn sớm/muộn)
+            $timeStart = $now->copy()->startOfDay(); 
+            $timeEnd   = $now->copy()->setHour(16)->setMinute(0)->setSecond(0);
+        } else {
+            // CA TỐI: Lấy từ 16:00 đến hết ngày
+            // (Ca tối thường bắt đầu đón khách từ 17:00 nhưng nhân viên cần xem trước từ 16:00)
+            $timeStart = $now->copy()->setHour(16)->setMinute(0)->setSecond(0);
+            $timeEnd   = $now->copy()->endOfDay();
+        }
 
         $datBansQuery = DatBan::with(['banAn', 'nhanVien']) 
-            ->where(function ($q) use ($timeStart, $timeEnd, $now) {
+            ->where(function ($q) use ($timeStart, $timeEnd) {
+                // Lấy các đơn 'đã xác nhận' nằm trong khung giờ của Ca đó
                 $q->where('trang_thai', 'da_xac_nhan')
-                    ->whereBetween('gio_den', [$timeStart, $timeEnd]);
+                  ->whereBetween('gio_den', [$timeStart, $timeEnd]);
             })
-            ->orWhere(function ($q) use ($now) {
+            ->orWhere(function ($q) use ($timeStart, $timeEnd) {
+                // Lấy thêm cả các đơn 'đang ăn' (khach_da_den) thuộc ca đó 
+                // để nhân viên theo dõi được tình hình thực tế
                 $q->where('trang_thai', 'khach_da_den')
-                    ->where('gio_den', '<=', $now);
+                  ->whereBetween('gio_den', [$timeStart, $timeEnd]);
             })
-            ->orderBy('gio_den', 'asc');
+            ->orderBy('gio_den', 'asc'); // Sắp xếp đơn đến trước lên đầu
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -276,35 +290,35 @@ class NhanVienBanAnController extends Controller
      * Cập nhật trạng thái hàng loạt cho TẤT CẢ các bàn
      * Điều kiện: Chỉ update được những bàn đang 'trong' hoặc 'khong_su_dung'
      */
-public function updateBatchStatus(Request $request)
-{
-    // Nhận dữ liệu là mảng các bàn cần đổi: [{id: 1, status: 'trong'}, {id: 2, status: 'khong_su_dung'}]
-    $request->validate([
-        'changes' => 'required|array',
-        'changes.*.id' => 'required|integer',
-        'changes.*.status' => 'required|in:trong,khong_su_dung',
-    ]);
+    public function updateBatchStatus(Request $request)
+    {
+        // Nhận dữ liệu là mảng các bàn cần đổi: [{id: 1, status: 'trong'}, {id: 2, status: 'khong_su_dung'}]
+        $request->validate([
+            'changes' => 'required|array',
+            'changes.*.id' => 'required|integer',
+            'changes.*.status' => 'required|in:trong,khong_su_dung',
+        ]);
 
-    try {
-        $count = 0;
-        foreach ($request->changes as $change) {
-            // Chỉ update những bàn đang KHÔNG có khách (để an toàn)
-            $updated = BanAn::where('id', $change['id'])
-                ->whereIn('trang_thai', ['trong', 'khong_su_dung']) // Chỉ cho phép đổi nếu đang Trống hoặc Bảo trì
-                ->update(['trang_thai' => $change['status']]);
-            
-            if ($updated) $count++;
+        try {
+            $count = 0;
+            foreach ($request->changes as $change) {
+                // Chỉ update những bàn đang KHÔNG có khách (để an toàn)
+                $updated = BanAn::where('id', $change['id'])
+                    ->whereIn('trang_thai', ['trong', 'khong_su_dung']) // Chỉ cho phép đổi nếu đang Trống hoặc Bảo trì
+                    ->update(['trang_thai' => $change['status']]);
+                
+                if ($updated) $count++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã cập nhật trạng thái cho {$count} bàn."
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => "Đã cập nhật trạng thái cho {$count} bàn."
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage()
-        ]);
     }
-}
 }

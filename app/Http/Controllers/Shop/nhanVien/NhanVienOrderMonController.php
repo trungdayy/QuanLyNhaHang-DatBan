@@ -121,7 +121,7 @@ class NhanVienOrderMonController extends Controller
         $ct = ChiTietOrder::findOrFail($ctId);
 
         $soKhach = ($order->datBan->nguoi_lon ?? 0) + ($order->datBan->tre_em ?? 0);
-if ($soKhach == 0) $soKhach = 1;
+        if ($soKhach == 0) $soKhach = 1;
 
         $comboId = $order->datBan->combo_id ?? null;
 
@@ -156,27 +156,30 @@ if ($soKhach == 0) $soKhach = 1;
     public function create(Request $request)
     {
         $orderId = $request->query('order_id');
-        $order = OrderMon::with(['banAn', 'datBan.combos'])->findOrFail($orderId);
-        $order = OrderMon::with('datBan.combos.monTrongCombo')->findOrFail($orderId);
+        $order = OrderMon::with([
+            'banAn',
+            'datBan.combos.monTrongCombo.monAn',
+            'chiTietOrders.monAn'
+        ])->findOrFail($orderId);
 
         // ✅ CHỈ SINH MÓN KHI CHƯA CÓ
-        if ($order->chiTietOrders()->count() == 0) {
+        // if ($order->chiTietOrders()->count() == 0) {
 
-            foreach ($order->datBan->combos as $combo) {
+        //     foreach ($order->datBan->combos as $combo) {
 
-                foreach ($combo->monTrongCombo as $mon) {
+        //         foreach ($combo->monTrongCombo as $mon) {
 
-                    ChiTietOrder::create([
-                        'order_id' => $orderId,
-                        'mon_an_id' => $mon->mon_an_id,
-                        'so_luong'  => null,
-                        'loai_mon'  => 'combo',
-                        'trang_thai' => 'dang_che_bien',
-                        'deadline' => now()->addMinutes(15),
-                    ]);
-                }
-            }
-        }
+        //             ChiTietOrder::create([
+        //                 'order_id' => $orderId,
+        //                 'mon_an_id' => $mon->mon_an_id,
+        //                 'so_luong'  => null,
+        //                 'loai_mon'  => 'combo',
+        //                 'trang_thai' => 'dang_che_bien',
+        //                 'deadline' => now()->addMinutes(15),
+        //             ]);
+        //         }
+        //     }
+        // }
 
         $monAns = MonAn::where('trang_thai', 'con')->get();
 
@@ -207,33 +210,36 @@ if ($soKhach == 0) $soKhach = 1;
 
         foreach ($items as $item) {
 
-            // 1. TÌM MÓN ĐÃ CÓ TRONG ORDER
-            $existing = ChiTietOrder::where('order_id', $orderId)
-                ->where('mon_an_id', $item['mon_an_id'])
-                ->first();
+            if (($item['so_luong'] ?? 0) <= 0) continue;
 
-            if ($existing) {
-                // ✅ NẾU ĐÃ CÓ → CỘNG SỐ LƯỢNG
-                $existing->so_luong += $item['so_luong'];
+            // $existing = ChiTietOrder::where('order_id', $orderId)
+            //     ->where('mon_an_id', $item['mon_an_id'])
+            //     ->where('loai_mon', $item['is_combo'] ? 'combo' : 'goi_them')
+            //     ->first();
 
-                // ghi đè ghi chú nếu có
-                if (!empty($item['ghi_chu'])) {
-                    $existing->ghi_chu = $item['ghi_chu'];
-                }
+            // if ($existing) {
+            //     if ($existing->loai_mon === 'combo') {
+            //         continue;
+            //     }
 
-                $existing->save();
-            } else {
-                // ✅ CHƯA CÓ → TẠO DÒNG MỚI
+            //     $existing->so_luong += $item['so_luong'];
+
+            //     if (!empty($item['ghi_chu'])) {
+            //         $existing->ghi_chu = $item['ghi_chu'];
+            //     }
+
+            //     $existing->save();
+            // } else {}
                 ChiTietOrder::create([
                     'order_id' => $orderId,
                     'mon_an_id' => $item['mon_an_id'],
                     'so_luong'  => $item['so_luong'],
-                    'ghi_chu'   => $item['ghi_chu'],
+                    'ghi_chu'   => $item['ghi_chu'] ?? null,
                     'loai_mon'  => $item['is_combo'] ? 'combo' : 'goi_them',
                     'trang_thai' => 'cho_bep',
                     'deadline'  => now()->addMinutes(15),
                 ]);
-            }
+
         }
 
         return response()->json([
@@ -383,7 +389,7 @@ if ($soKhach == 0) $soKhach = 1;
     protected function tinhTongTienOrder(OrderMon $order)
     {
         $soKhach = ($order->datBan->nguoi_lon ?? 0) + ($order->datBan->tre_em ?? 0);
-if ($soKhach == 0) $soKhach = 1;
+        if ($soKhach == 0) $soKhach = 1;
 
         $comboId = $order->datBan->combo_id ?? null;
         $tongTien = 0;
