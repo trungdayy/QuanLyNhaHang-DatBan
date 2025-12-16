@@ -237,6 +237,37 @@
     const CHECK_URL = "{{ url('/nhanVien/dat-ban/check-ban-trong') }}";
     const OLD_BAN_ID = "{{ old('ban_id') }}";
 
+    // Hàm tính tổng số khách (Định nghĩa trước để dùng ở các nơi khác)
+    function getTongKhach() {
+        let nguoiLon = parseInt(document.getElementById('inpNguoiLon').value) || 0;
+        let treEm = parseInt(document.getElementById('inpTreEm').value) || 0;
+        return nguoiLon + treEm;
+    }
+
+    // Hàm tự động cập nhật số lượng combo tối thiểu
+    function autoUpdateComboQuantity() {
+        let tongKhach = getTongKhach();
+        if (tongKhach < 1) return; // Không có khách thì không làm gì
+
+        // Lấy tất cả combo items và kiểm tra xem có đang hiển thị không
+        let allCombos = document.querySelectorAll('#combo-picker-container .combo-item');
+        
+        allCombos.forEach(item => {
+            // Kiểm tra xem combo có đang hiển thị không (không bị ẩn)
+            let style = window.getComputedStyle(item);
+            if (style.display !== 'none') {
+                let input = item.querySelector('.input-qty');
+                if (input) {
+                    let currentVal = parseInt(input.value) || 0;
+                    // Nếu số lượng hiện tại < tổng khách, tự động tăng lên
+                    if (currentVal < tongKhach) {
+                        input.value = tongKhach;
+                    }
+                }
+            }
+        });
+    }
+
     // --- 1. LOGIC COMBO (CHỌN GIÁ -> HIỆN COMBO -> RESET SỐ LƯỢNG) ---
     const selGia = document.getElementById('selGiaCombo');
     const comboWrapper = document.getElementById('combo-wrapper');
@@ -266,19 +297,36 @@
                 msgChonGia.classList.add('d-none');
 
                 // Bước 3: Chỉ hiện combo đúng giá
+                let tongKhach = getTongKhach();
+                let firstVisibleCombo = null;
+                
                 list.forEach(item => {
                     let price = item.getAttribute('data-combo-price');
                     // So sánh lỏng (==) vì value là string, data là string/number
                     if (Number(selectedPrice) == Number(price)) {
                         item.style.display = "flex";
+                        // Lưu combo đầu tiên được hiển thị
+                        if (!firstVisibleCombo) {
+                            firstVisibleCombo = item;
+                        }
                     }
                 });
+
+                // Bước 4: Tự động đặt số lượng tối thiểu cho combo đầu tiên (nếu có khách)
+                if (firstVisibleCombo && tongKhach > 0) {
+                    let input = firstVisibleCombo.querySelector('.input-qty');
+                    if (input) {
+                        input.value = tongKhach;
+                    }
+                }
             }
         });
     }
 
     // Logic Tăng/Giảm số lượng (Dùng Delegation để code gọn)
     document.addEventListener('click', function(e) {
+        let tongKhach = getTongKhach();
+        
         if (e.target.closest('.btn-plus')) {
             let btn = e.target.closest('.btn-plus');
             let input = btn.parentElement.querySelector('.input-qty');
@@ -290,7 +338,27 @@
             let btn = e.target.closest('.btn-minus');
             let input = btn.parentElement.querySelector('.input-qty');
             let currentVal = parseInt(input.value) || 0;
-            if (currentVal > 0) input.value = currentVal - 1;
+            // Chỉ cho phép giảm nếu vẫn >= tổng số khách
+            if (currentVal > tongKhach) {
+                input.value = currentVal - 1;
+            } else if (currentVal === tongKhach && tongKhach > 0) {
+                // Nếu đang ở mức tối thiểu, không cho giảm
+                // Có thể hiển thị thông báo hoặc không làm gì
+                return;
+            }
+        }
+    });
+
+    // Ngăn người dùng nhập số lượng < tổng khách
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('input-qty')) {
+            let tongKhach = getTongKhach();
+            let inputVal = parseInt(e.target.value) || 0;
+            
+            // Nếu nhập số < tổng khách, tự động đặt về tổng khách
+            if (inputVal < tongKhach && tongKhach > 0) {
+                e.target.value = tongKhach;
+            }
         }
     });
 
@@ -397,13 +465,26 @@
         ['inpNguoiLon', 'inpTreEm'].forEach(id => {
             let el = document.getElementById(id);
             if (el) {
-                el.addEventListener('change', timBanTrong);
-                el.addEventListener('keyup', timBanTrong);
+                el.addEventListener('change', function() {
+                    timBanTrong();
+                    autoUpdateComboQuantity(); // Tự động cập nhật combo khi số khách thay đổi
+                });
+                el.addEventListener('keyup', function() {
+                    timBanTrong();
+                    autoUpdateComboQuantity(); // Tự động cập nhật combo khi số khách thay đổi
+                });
             }
         });
 
         // Run check ngay khi load (nếu có default value)
         setTimeout(timBanTrong, 300);
+
+        // Tự động cập nhật combo quantity khi trang load (nếu đã chọn giá)
+        setTimeout(function() {
+            if (selGia && selGia.value) {
+                autoUpdateComboQuantity();
+            }
+        }, 500);
 
         // Handle Submit Form -> Gom data Combo vào input ẩn
         let form = document.getElementById('formDatBan');
