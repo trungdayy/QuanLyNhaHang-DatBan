@@ -147,6 +147,203 @@ class ThanhToanController extends Controller
     }
 
     /**
+     * Lưu hóa đơn với trạng thái "chưa thanh toán" (thanh toán sau)
+     */
+    public function luuThanhToanSau(Request $request, $banId)
+    {
+        $ban = BanAn::findOrFail($banId);
+        
+        // Tìm đặt bàn đang hoạt động
+        $datBan = DatBan::where('ban_id', $banId)
+            ->whereIn('trang_thai', ['khach_da_den', 'dang_phuc_vu'])
+            ->with([
+                'chiTietDatBan.combo',
+                'orderMon.chiTietOrders.monAn',
+                'banAn',
+                'hoaDon'
+            ])
+            ->latest()
+            ->first();
+
+        if (!$datBan) {
+            return redirect()
+                ->route('nhanVien.ban-an.index')
+                ->with('error', 'Bàn này chưa có khách hoặc chưa có đặt bàn hợp lệ!');
+        }
+
+        // Kiểm tra xem đã có hóa đơn chưa
+        if ($datBan->hoaDon) {
+            return redirect()
+                ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $datBan->hoaDon->id)
+                ->with('info', 'Hóa đơn đã được tạo trước đó!');
+        }
+
+        // Tự động hủy tất cả món đang chờ bếp trước khi thanh toán
+        foreach ($datBan->orderMon as $order) {
+            foreach ($order->chiTietOrders as $ct) {
+                if ($ct->trang_thai == 'cho_bep') {
+                    $ct->update(['trang_thai' => 'huy_mon']);
+                }
+            }
+        }
+        
+        // Reload lại dữ liệu sau khi hủy để đảm bảo tính toán đúng
+        $datBan->refresh();
+        $datBan->load([
+            'chiTietDatBan.combo',
+            'orderMon.chiTietOrders.monAn',
+            'banAn',
+            'hoaDon'
+        ]);
+
+        // Tính tổng tiền combo
+        $tienComboChinh = 0;
+        $soTreEm = $datBan->tre_em ?? 0;
+        $soNguoiDaXuLy = 0;
+        
+        foreach ($datBan->chiTietDatBan as $chiTiet) {
+            if ($chiTiet->combo) {
+                $giaComboGoc = $chiTiet->combo->gia_co_ban;
+                $soLuongCombo = $chiTiet->so_luong ?? 1;
+                
+                $soNguoiDuocGiam = 0;
+                if ($soTreEm > 0 && $soNguoiDaXuLy < $soTreEm) {
+                    $soTreEmConLai = $soTreEm - $soNguoiDaXuLy;
+                    $soNguoiDuocGiam = min($soTreEmConLai, $soLuongCombo);
+                }
+                
+                $soNguoiKhongGiam = $soLuongCombo - $soNguoiDuocGiam;
+                $thanhTienCombo = ($giaComboGoc * 0.5 * $soNguoiDuocGiam) + ($giaComboGoc * $soNguoiKhongGiam);
+                $tienComboChinh += $thanhTienCombo;
+                $soNguoiDaXuLy += $soLuongCombo;
+            }
+        }
+        
+        // Tính tiền món gọi thêm
+        $tongTienMonGoiThem = $this->tinhTienMonGoiThem($datBan);
+        $tongTienOrder = $tienComboChinh + $tongTienMonGoiThem;
+        
+        $tienCoc = (float) ($datBan->tien_coc ?? 0);
+        $phuThu = 0; // Không có phụ thu khi thanh toán sau
+        
+        // Tính voucher nếu có
+        $voucher = null;
+        $tienGiam = 0;
+        if ($request->filled('voucher_id')) {
+            $voucher = Voucher::find($request->voucher_id);
+            if ($voucher && $voucher->trang_thai == 'dang_ap_dung' && $voucher->ngay_ket_thuc >= now() && $voucher->so_luong > $voucher->so_luong_da_dung) {
+                if ($voucher->loai_giam == 'phan_tram') {
+                    $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
+                    if ($voucher->gia_tri_toi_da && $tienGiam > $voucher->gia_tri_toi_da) {
+                        $tienGiam = $voucher->gia_tri_toi_da;
+                    }
+                } else {
+                    $tienGiam = $voucher->gia_tri;
+                }
+                if ($tienGiam > $tongTienOrder) {
+                    $tienGiam = $tongTienOrder;
+                }
+            }
+        }
+        
+        $daThanhToan = $tongTienOrder - $tienGiam + $phuThu - $tienCoc;
+        if ($daThanhToan < 0) $daThanhToan = 0;
+
+        // Tính thời gian phục vụ
+        $gioVao = Carbon::parse($datBan->gio_den);
+        $gioRa = now();
+        $thoiGianPhucVu = $gioVao->diffInMinutes($gioRa);
+
+        // Tạo danh sách món
+        $danhSachMon = [];
+        foreach ($datBan->orderMon as $order) {
+            foreach ($order->chiTietOrders as $ct) {
+                if ($ct->trang_thai != 'huy_mon' && $ct->monAn) {
+                    $danhSachMon[] = [
+                        'ten_mon' => $ct->monAn->ten_mon,
+                        'so_luong' => $ct->so_luong,
+                        'don_gia' => $ct->monAn->gia,
+                        'thanh_tien' => $ct->so_luong * $ct->monAn->gia,
+                    ];
+                }
+            }
+        }
+
+        // Tạo hóa đơn với trạng thái "chưa thanh toán"
+        $hoaDon = HoaDon::create([
+            'dat_ban_id' => $datBan->id,
+            'voucher_id' => $voucher ? $voucher->id : null,
+            'ma_hoa_don' => 'HD' . date('YmdHis') . '-' . $datBan->id,
+            'tong_tien' => $tongTienOrder,
+            'tien_giam' => $tienGiam,
+            'phu_thu' => $phuThu,
+            'da_thanh_toan' => 0, // Chưa thanh toán nên = 0
+            'phuong_thuc_tt' => 'chua_thanh_toan',
+            'trang_thai' => 'chua_thanh_toan',
+        ]);
+
+        // Lưu chi tiết hóa đơn
+        ChiTietHoaDon::create([
+            'hoa_don_id' => $hoaDon->id,
+            'ten_khach' => $datBan->ten_khach,
+            'sdt_khach' => $datBan->sdt_khach,
+            'email_khach' => $datBan->email_khach,
+            'so_khach' => $datBan->so_khach ?? 1,
+            'nguoi_lon' => $datBan->nguoi_lon ?? 0,
+            'tre_em' => $datBan->tre_em ?? 0,
+            'ban_so' => $datBan->banAn->so_ban ?? null,
+            'khu_vuc' => $datBan->banAn->khuVuc->ten_khu_vuc ?? null,
+            'tang' => $datBan->banAn->khuVuc->tang ?? null,
+            'so_ghe' => $datBan->banAn->so_ghe ?? null,
+            'ma_dat_ban' => $datBan->ma_dat_ban,
+            'gio_vao' => $gioVao,
+            'gio_ra' => $gioRa,
+            'thoi_gian_phuc_vu_phut' => $thoiGianPhucVu,
+            'tong_tien_combo' => $tienComboChinh,
+            'tong_tien_mon_goi_them' => $tongTienMonGoiThem,
+            'danh_sach_mon' => json_encode($danhSachMon),
+            'tong_tien_combo_mon' => $tongTienOrder,
+            'tien_giam_voucher' => $tienGiam,
+            'tong_tien_sau_voucher' => $tongTienOrder - $tienGiam,
+            'tien_coc' => $tienCoc,
+            'tong_phu_thu' => $phuThu,
+            'phai_thanh_toan' => $daThanhToan,
+            'phuong_thuc_tt' => 'chua_thanh_toan',
+            'ma_voucher' => $voucher ? $voucher->ma_voucher : null,
+        ]);
+
+        // Cập nhật voucher
+        if ($voucher) {
+            $voucher->increment('so_luong_da_dung');
+        }
+
+        // Cập nhật trạng thái đặt bàn
+        $datBan->update(['trang_thai' => 'hoan_tat']);
+
+        // Cập nhật trạng thái bàn thành trống và tạo mới mã QR
+        if ($datBan->banAn) {
+            $newUniqueCode = Str::random(12);
+            $baseUrl = config('app.url');
+            
+            $datBan->banAn->update([
+                'trang_thai' => 'trong',
+                'ma_qr' => $newUniqueCode,
+                'duong_dan_qr' => $baseUrl . '/oderqr/menu/' . $newUniqueCode,
+            ]);
+        }
+
+        // Cập nhật trạng thái tất cả order
+        foreach ($datBan->orderMon as $order) {
+            $order->update(['trang_thai' => 'hoan_thanh']);
+        }
+
+        // Chuyển hướng đến trang hiển thị hóa đơn
+        return redirect()
+            ->route('nhanVien.thanh-toan.hien-thi-hoa-don', $hoaDon->id)
+            ->with('success', 'Hóa đơn đã được tạo với trạng thái chưa thanh toán!');
+    }
+
+    /**
      * Lưu hóa đơn từ ban_id
      */
     public function luuThanhToanTuBan(Request $request, $banId)
@@ -431,7 +628,7 @@ class ThanhToanController extends Controller
             $tienTraLai = max(0, $tienKhachDua - $daThanhToan);
         }
 
-        // Tạo hóa đơn
+        // Tạo hóa đơn với trạng thái "đã thanh toán"
         $hoaDon = HoaDon::create([
             'dat_ban_id' => $datBan->id,
             'voucher_id' => $voucher ? $voucher->id : null,
@@ -441,6 +638,7 @@ class ThanhToanController extends Controller
             'phu_thu' => $phuThu,
             'da_thanh_toan' => $daThanhToan,
             'phuong_thuc_tt' => $request->phuong_thuc_tt,
+            'trang_thai' => 'da_thanh_toan',
         ]);
 
         // Tính tổng tiền món gọi thêm (theo trạng thái)
@@ -698,7 +896,7 @@ class ThanhToanController extends Controller
             }
         }
 
-        // Tạo hóa đơn
+        // Tạo hóa đơn với trạng thái "đã thanh toán"
         $hoaDon = HoaDon::create([
             'dat_ban_id' => $datBan->id,
             'voucher_id' => $voucher ? $voucher->id : null,
@@ -708,6 +906,7 @@ class ThanhToanController extends Controller
             'phu_thu' => $phuThu,
             'da_thanh_toan' => $daThanhToan,
             'phuong_thuc_tt' => $request->phuong_thuc_tt,
+            'trang_thai' => 'da_thanh_toan',
         ]);
 
         // Lưu chi tiết hóa đơn
@@ -1088,7 +1287,7 @@ class ThanhToanController extends Controller
         $vnp_Returnurl = env('VNPAY_RETURN_URL') . "?banId=$banId";
 
         $vnp_TxnRef = time(); // mã giao dịch duy nhất
-        $vnp_OrderInfo = urlencode("Thanh toán bàn $ban->so_ban");
+        $vnp_OrderInfo = "Thanh toán bàn $ban->so_ban";
         $vnp_Amount = $tongTien * 100; // VNPay nhận amount *100 (đơn vị là VND)
         $vnp_Locale = 'vn';
         $vnp_IpAddr = $request->ip();
@@ -1322,7 +1521,7 @@ class ThanhToanController extends Controller
             $tongTienSauVoucher = $tongTienOrder - $tienGiam;
             if($tongTienSauVoucher < 0) $tongTienSauVoucher = 0;
 
-            // Tạo hóa đơn
+            // Tạo hóa đơn với trạng thái "đã thanh toán"
             $hoaDon = HoaDon::create([
                 'dat_ban_id' => $datBan->id,
                 'voucher_id' => null,
@@ -1332,6 +1531,7 @@ class ThanhToanController extends Controller
                 'phu_thu' => $phuThu,
                 'da_thanh_toan' => $daThanhToan,
                 'phuong_thuc_tt' => 'vnpay',
+                'trang_thai' => 'da_thanh_toan',
             ]);
 
             // Lưu chi tiết hóa đơn

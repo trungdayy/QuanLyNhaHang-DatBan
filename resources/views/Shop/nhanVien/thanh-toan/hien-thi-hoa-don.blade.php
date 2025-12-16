@@ -183,7 +183,17 @@
                             @endif
 
                             {{-- Danh sách món đã gọi --}}
-                            @if($chiTiet->danh_sach_mon && count($chiTiet->danh_sach_mon) > 0)
+                            @php
+                                // Xử lý danh_sach_mon: có thể là array hoặc JSON string
+                                $danhSachMonArray = $chiTiet->danh_sach_mon;
+                                if (is_string($danhSachMonArray)) {
+                                    $danhSachMonArray = json_decode($danhSachMonArray, true) ?? [];
+                                }
+                                if (!is_array($danhSachMonArray)) {
+                                    $danhSachMonArray = [];
+                                }
+                            @endphp
+                            @if(!empty($danhSachMonArray) && is_array($danhSachMonArray) && count($danhSachMonArray) > 0)
                             <div class="card shadow-sm border-0 mb-3">
                                 <div class="card-header bg-warning text-dark">
                                     <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Danh sách món đã gọi</h5>
@@ -236,7 +246,7 @@
                                         
                                         // Tạo map từ mon_an_id sang thông tin món trong danh_sach_mon
                                         $monMap = [];
-                                        foreach($chiTiet->danh_sach_mon as $mon) {
+                                        foreach($danhSachMonArray as $mon) {
                                             // Tìm mon_an_id từ tên món (cần tìm từ order)
                                             foreach($monAnGrouped as $monAnId => $group) {
                                                 $first = $group->first();
@@ -264,7 +274,7 @@
                                                     $tongTienMonGoiThemTinhLai = 0;
                                                     $stt = 1;
                                                 @endphp
-                                                @foreach($chiTiet->danh_sach_mon as $mon)
+                                                @foreach($danhSachMonArray as $mon)
                                                 @php
                                                     // Ưu tiên sử dụng dữ liệu từ danh_sach_mon đã lưu
                                                     $tenMon = $mon['ten_mon'] ?? 'N/A';
@@ -597,6 +607,16 @@
                                             <span class="text-dark">Phải thanh toán:</span>
                                             <span class="text-danger">{{ number_format($phaiThanhToan) }} đ</span>
                                         </div>
+                                        <div class="d-flex justify-content-between mt-2 fs-5">
+                                            <span class="text-dark">Đã thanh toán:</span>
+                                            <span class="text-{{ $hoaDon->trang_thai == 'chua_thanh_toan' ? 'warning' : 'success' }}">
+                                                @if($hoaDon->trang_thai == 'chua_thanh_toan')
+                                                    {{ number_format(0) }} đ
+                                                @else
+                                                    {{ number_format($hoaDon->da_thanh_toan ?? 0) }} đ
+                                                @endif
+                                            </span>
+                                        </div>
                                         @if($chiTiet->tien_khach_dua > 0)
                                         @php
                                             $tienTraLai = max(0, $chiTiet->tien_khach_dua - $phaiThanhToan);
@@ -619,7 +639,9 @@
                                         @endif
                                         <div class="mt-3 pt-3 border-top">
                                             <p class="mb-0"><strong>Phương thức thanh toán:</strong> 
-                                                @if($chiTiet->phuong_thuc_tt == 'tien_mat')
+                                                @if($hoaDon->trang_thai == 'chua_thanh_toan' || $chiTiet->phuong_thuc_tt == 'chua_thanh_toan')
+                                                    <span class="badge bg-warning">Chưa thanh toán</span>
+                                                @elseif($chiTiet->phuong_thuc_tt == 'tien_mat')
                                                     <span class="badge bg-success">Tiền mặt</span>
                                                 @elseif($chiTiet->phuong_thuc_tt == 'chuyen_khoan')
                                                     <span class="badge bg-primary">Chuyển khoản</span>
@@ -657,7 +679,21 @@
                             <p>Bàn số: {{ $hoaDon->datBan->banAn->so_ban ?? 'N/A' }}</p>
                             <p>Khu vực: {{ $hoaDon->datBan->banAn->khuVuc->ten_khu_vuc ?? 'N/A' }}</p>
                             <p>Ngày tạo: {{ $hoaDon->created_at->format('d/m/Y H:i:s') }}</p>
-                            <p>Phương thức TT: {{ $hoaDon->phuong_thuc_tt }}</p>
+                            <p>Phương thức TT: 
+                                @if($hoaDon->trang_thai == 'chua_thanh_toan' || $hoaDon->phuong_thuc_tt == 'chua_thanh_toan')
+                                    Chưa thanh toán
+                                @elseif($hoaDon->phuong_thuc_tt == 'tien_mat')
+                                    Tiền mặt
+                                @elseif($hoaDon->phuong_thuc_tt == 'chuyen_khoan')
+                                    Chuyển khoản
+                                @elseif($hoaDon->phuong_thuc_tt == 'the_ATM')
+                                    Thẻ ATM
+                                @elseif($hoaDon->phuong_thuc_tt == 'vnpay')
+                                    VNPay
+                                @else
+                                    {{ $hoaDon->phuong_thuc_tt }}
+                                @endif
+                            </p>
                         </div>
                     </div>
                 @endif

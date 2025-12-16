@@ -272,11 +272,25 @@ Route::get('/dashboard-api', 'getFoodQueueJson')->name('dashboard_api');    });
     Route::put('chi-tiet-order/{ctId}', [NhanVienOrderMonController::class, 'update'])->name('chi-tiet-order.update');
     Route::delete('/chi-tiet-order/{id}', [NhanVienOrderMonController::class, 'destroy'])->name('chi-tiet-order.destroy');
 
+    // // Thanh toán (Đã cập nhật sang PayOS)
+    // Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
+    //     Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
+    //     Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
+    //     Route::get('/order/{orderId}', 'thanhToan')->name('order');
+    //     Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
+    //     Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
+    //     Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
+
+    //     // PAYOS ROUTES (Thay thế VNPAY)
+    //     Route::post('/payos-payment/{banId}', 'createPayOSPayment')->name('payos.payment');
+    //     Route::get('/payos/callback/{banId}', 'handlePayOSCallback')->name('payos.callback');
+    // });
     // Thanh toán
     Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
         // thanh toán từ danh sách bàn
         Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
         Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
+        Route::post('/ban/{banId}/thanh-toan-sau', 'luuThanhToanSau')->name('luu-ban-sau');
         // thanh toán từ bên order món
         Route::get('/order/{orderId}', 'thanhToan')->name('order');
         Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');

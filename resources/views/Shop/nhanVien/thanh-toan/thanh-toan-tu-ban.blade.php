@@ -620,6 +620,9 @@
                                         <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-secondary btn-lg px-5">
                                             <i class="bi bi-arrow-left me-2"></i>Quay lại
                                         </a>
+                                        <button type="button" class="btn btn-warning btn-lg px-5" id="btnThanhToanSau" onclick="xacNhanThanhToanSau()">
+                                            <i class="bi bi-clock-history me-2"></i>Thanh toán sau
+                                        </button>
                                         <button type="submit" class="btn btn-success btn-lg px-5">
                                             <i class="bi bi-check-circle me-2"></i>Xác nhận thanh toán
                                         </button>
@@ -888,6 +891,40 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 });
+
+// Function xử lý thanh toán sau
+function xacNhanThanhToanSau() {
+    if (confirm('Bạn có chắc muốn tạo hóa đơn với trạng thái "Chưa thanh toán"? Hóa đơn sẽ được lưu và có thể thanh toán sau.')) {
+        // Tạo form mới để submit
+        const form = document.getElementById('thanhToanForm');
+        const formData = new FormData(form);
+        
+        // Tạo form mới để gửi đến route thanh toán sau
+        const newForm = document.createElement('form');
+        newForm.method = 'POST';
+        newForm.action = '{{ route("nhanVien.thanh-toan.luu-ban-sau", $ban->id) }}';
+        
+        // Thêm CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        newForm.appendChild(csrfInput);
+        
+        // Thêm voucher_id nếu có
+        const voucherId = formData.get('voucher_id');
+        if (voucherId) {
+            const voucherInput = document.createElement('input');
+            voucherInput.type = 'hidden';
+            voucherInput.name = 'voucher_id';
+            voucherInput.value = voucherId;
+            newForm.appendChild(voucherInput);
+        }
+        
+        document.body.appendChild(newForm);
+        newForm.submit();
+    }
+}
 </script>
 
 <style>

@@ -23,8 +23,7 @@ class MonAnRequest extends FormRequest
             'gia' => 'required|numeric',
             'mo_ta' => 'nullable|string',
             'trang_thai' => 'required|in:con,het,an',
-            'thoi_gian_che_bien' => 'required|integer|min:1|max:240',
-            'loai_mon' => 'nullable|in:Khai vị,Món chính,Tráng miệng,Đồ uống',
+            'loai_mon' => 'nullable|in:Sống,Chín,Nướng,Xào / Luộc,Bánh ngọt,Trái cây,Nước có ga,Nước không ga,Trà / Cà phê',
             'hinh_anh' => $hinhAnhRule,
         ];
     }

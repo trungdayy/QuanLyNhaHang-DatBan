@@ -77,49 +77,67 @@ class HomeController extends Controller
     }
 
 public function menu()
-    {
-        // === 1. LẤY DỮ LIỆU CHO TRANG CHỦ (GIỐNG INDEX) ===
+{
+    // === 1. LẤY DỮ LIỆU CHO TRANG CHỦ (GIỐNG INDEX) ===
 
-        // Lấy 10 món ăn mới nhất (nếu cần hiển thị)
-        // $newDishes = MonAn::where('trang_thai', 'con')
-        //     ->orderByDesc('created_at')
-        //     ->limit(10)
-        //     ->get();
+    // Lấy TẤT CẢ combo đang mở bán
+    $combos = ComboBuffet::with(['monTrongCombo.monAn' => function($q) {
+            $q->where('trang_thai', 'con');
+        }])
+        ->where('trang_thai', 'dang_ban')
+        ->orderBy('gia_co_ban', 'asc')
+        ->get();
 
-        // Lấy TẤT CẢ combo đang mở bán
-        $combos = ComboBuffet::with('danhSachMon')
-            ->where('trang_thai', 'dang_ban')
-            ->orderBy('gia_co_ban', 'asc')
-            ->get();
+    // Lấy danh sách khu vực (cho Modal đặt bàn)
+    $khuVucs = KhuVuc::all();
 
-        // Lấy danh sách khu vực (cho Modal đặt bàn)
-        $khuVucs = KhuVuc::all();
+    // Lấy danh sách bàn khả dụng
+    $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
 
-        // Lấy danh sách bàn khả dụng (cho Modal đặt bàn)
-        $banAns = BanAn::whereNotIn('trang_thai', ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])->get();
+    // Lấy danh sách đánh giá
+    $danhGias = DanhGia::where('trang_thai', 'hien_thi')
+        ->orderBy('created_at', 'desc')
+        ->take(10)
+        ->get();
 
-        // Lấy danh sách đánh giá để hiện lên Carousel/Phần đánh giá
-        $danhGias = DanhGia::where('trang_thai', 'hien_thi')
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get();
+    // === 2. LẤY DỮ LIỆU CHÍNH CHO TRANG THỰC ĐƠN ===
+    
+    // Sử dụng Model 'DanhMuc' (khớp với file MonAn.php bạn gửi)
+    $danhMucs = DanhMuc::where('hien_thi', 1)
+        ->with(['monAn' => function($query) {
+            // CHỈ GIỮ LẠI: Món đang có trạng thái 'con'
+            // ĐÃ XÓA: ->where('loai_mon', 'Món gọi thêm') để hiển thị tất cả các loại món
+            $query->where('trang_thai', 'con')
+                  ->orderBy('ten_mon', 'asc');
+        }])
+        ->get()
+        // Lọc bỏ danh mục nào không có món (để tránh hiển thị tiêu đề rỗng)
+        ->filter(function($danhMuc) {
+            return $danhMuc->monAn->count() > 0;
+        })
+        // Sắp xếp thứ tự hiển thị danh mục
+        ->sortBy(function($danhMuc) {
+            $tenDanhMuc = $danhMuc->ten_danh_muc;
+            
+            if (mb_stripos($tenDanhMuc, 'Khai Vị') !== false) {
+                return '0_' . $tenDanhMuc; // Đầu tiên
+            } elseif (mb_stripos($tenDanhMuc, 'Tráng Miệng') !== false) {
+                return '9_' . $tenDanhMuc; // Cuối cùng
+            } else {
+                return '1_' . $tenDanhMuc; // Ở giữa
+            }
+        })
+        ->values(); // Reset keys
 
-        // === 2. LẤY DỮ LIỆU CHÍNH CHO TRANG THỰC ĐƠN ===
-        // Lấy danh mục và MÓN ĂN bên trong để hiển thị thực đơn
-        // Sử dụng `with('monAn')` để tải các món ăn liên quan cho mỗi danh mục, tránh truy vấn N+1
-        $danhMucs = DanhMuc::where('hien_thi', 1)->with('monAn')->get();
-
-
-        // === 3. TRUYỀN TẤT CẢ DỮ LIỆU VÀO VIEW ===
-        return view('restaurants.menu', compact(
-            'combos',      // Combo
-            'khuVucs',     // Modal đặt bàn (khu vực)
-            'banAns',      // Modal đặt bàn (bàn)
-            'danhGias',    // Đánh giá
-            'danhMucs'     // Dữ liệu thực đơn chính
-            // 'newDishes' // Món mới (nếu bạn muốn hiện)
-        ));
-    }
+    // === 3. TRUYỀN TẤT CẢ DỮ LIỆU VÀO VIEW ===
+    return view('restaurants.menu', compact(
+        'combos',      
+        'danhMucs',    
+        'khuVucs',    
+        'banAns',      
+        'danhGias'    
+    ));
+}
 
     /* ==========================================================
        CHỨC NĂNG LIÊN HỆ (CONTACT)

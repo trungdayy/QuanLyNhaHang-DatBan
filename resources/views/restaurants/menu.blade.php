@@ -150,102 +150,292 @@
     #dropdownTimeBtn::after {
         margin-left: 0.5em;
     }
+
+    /* SIDEBAR MENU */
+    .menu-sidebar {
+        position: sticky;
+        top: 100px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px 0;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+    }
+    .menu-sidebar .menu-item {
+        padding: 12px 20px;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .menu-sidebar .menu-item:hover {
+        background: #f8f9fa;
+        border-left-color: #FEA116;
+    }
+    .menu-sidebar .menu-item.active {
+        background: #fff5e6;
+        border-left-color: #FEA116;
+        font-weight: bold;
+        color: #FEA116;
+    }
+    .menu-sidebar .menu-item i {
+        width: 20px;
+        text-align: center;
+    }
+    .menu-content-section {
+        display: none;
+    }
+    .menu-content-section.active {
+        display: block;
+    }
+    
+    /* SUBMENU STYLES */
+    .submenu-container {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        display: none !important;
+    }
+    .submenu-container.show {
+        max-height: 2000px;
+        transition: max-height 0.5s ease-in;
+        display: block !important;
+    }
+    .menu-item.submenu-item {
+        opacity: 0.8;
+    }
+    .menu-item.submenu-item:hover {
+        opacity: 1;
+    }
+    .menu-item.submenu-item.active {
+        opacity: 1;
+        background: #fff5e6;
+        border-left-color: #FEA116;
+        font-weight: bold;
+        color: #FEA116;
+    }
 </style>
 
 {{-- =========================================================== --}}
-{{-- 2. MENU COMBO (ĐÃ CHUYỂN SANG DẠNG CARD & THU GỌN) --}}
+{{-- 2. MENU VỚI SIDEBAR --}}
 {{-- =========================================================== --}}
-@if (isset($combos) && $combos->count() > 0)
-<div class="container-xxl py-4">
+<div class="container-xxl py-5">
     <div class="container">
-        <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
-            <h5 class="section-title ff-secondary text-center text-primary fw-normal">Thực Đơn Combo</h5>
-            <h1 class="mb-4">Các Gói Buffet Đặc Biệt</h1>
+        <div class="text-center wow fadeInUp mb-5" data-wow-delay="0.1s">
+            <h5 class="section-title ff-secondary text-center text-primary fw-normal">Thực Đơn</h5>
+            <h1 class="mb-0">Combo Buffet & Món ăn</h1>
         </div>
         
-        <div class="tab-class text-center wow fadeInUp" data-wow-delay="0.1s">
-            @php $groupedCombos = $combos->groupBy('loai_combo'); @endphp
-
-            {{-- TABS HEADER --}}
-            <ul class="nav nav-pills d-inline-flex justify-content-center border-bottom mb-4">
-                @foreach ($groupedCombos as $type => $typeCombos)
-                    <li class="nav-item">
-                        <a class="d-flex align-items-center text-start mx-2 ms-0 pb-3 {{ $loop->first ? 'active' : '' }}"
-                           data-bs-toggle="pill" href="#tab-combo-{{ $type }}">
-                            <i class="fa fa-utensils fa-2x text-primary"></i>
-                            <div class="ps-3">
-                                <small class="text-body">Gói</small>
-                                <h6 class="mt-n1 mb-0">{{ strtoupper($type) }}</h6>
-                            </div>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-
-            {{-- TABS CONTENT --}}
-            <div class="tab-content">
-                @foreach ($groupedCombos as $type => $typeCombos)
-                    <div id="tab-combo-{{ $type }}" class="tab-pane fade show p-0 {{ $loop->first ? 'active' : '' }}">
-                        <div class="row g-3 justify-content-center">
-                            @foreach($typeCombos as $combo)
-                                @php
-                                    $imagePath = $combo->anh;
-                                    if ($imagePath && !str_starts_with($imagePath, 'uploads/')) {
-                                        $imagePath = 'uploads/' . $imagePath;
-                                    }
-                                    $imageUrl = $combo->anh ? asset($imagePath) : asset('assets/img/menu-1.jpg');
-                                @endphp
-
-                                {{-- THẺ COMBO (CARD) --}}
-                                <div class="col-lg-3 col-md-4 col-sm-6 col-12"> 
-                                    <div class="card h-100 border-0 shadow-sm product-card-trigger"
-                                        style="border-radius: 8px;"
-                                        data-key="combo_{{ $combo->id }}" 
-                                        data-type="combo" 
-                                        data-name="{{ $combo->ten_combo }}"
-                                        data-price="{{ $combo->gia_co_ban }}" 
-                                        data-desc="{{ $combo->mo_ta }}"
-                                        data-img="{{ $imageUrl }}"
-                                        data-dishes="{{ json_encode($combo->danhSachMon ? $combo->danhSachMon->pluck('ten_mon') : []) }}">
-                                        
-                                        {{-- Ảnh trên cùng của Card --}}
-                                        <img src="{{ $imageUrl }}" class="card-img-top" alt="{{ $combo->ten_combo }}" style="height: 160px; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-                                        
-                                        <div class="card-body d-flex flex-column text-start p-3">
-                                            {{-- Tiêu đề và Giá --}}
-                                            <h6 class="card-title fw-bold mb-1">{{ $combo->ten_combo }}</h6>
-                                            <h5 class="text-primary fw-bolder mb-2">{{ number_format($combo->gia_co_ban, 0, ',', '.') }} đ</h5>
-
-                                            {{-- Mô tả/Thời gian --}}
-                                            <small class="fst-italic text-muted mb-1" style="font-size: 0.75rem;"><i class="fa fa-clock me-1 text-warning"></i> Không giới hạn</small>
-                                            <p class="card-text text-secondary line-clamp-2 mb-2" style="font-size: 0.8rem;">
-                                                {{ \Illuminate\Support\Str::limit($combo->mo_ta, 80) }}
-                                            </p>
-                                            
-                                            {{-- Nút chi tiết --}}
-                                            <div class="mt-auto pt-1 text-center">
-                                                <button class="btn btn-sm btn-outline-warning fw-bold rounded-pill px-3 py-1 w-100">
-                                                    <i class="fa fa-eye me-1"></i> Chi tiết
-                                                </button>
-                                            </div>
-                                        </div>
+        <div class="row">
+            {{-- SIDEBAR MENU --}}
+            <div class="col-lg-3 col-md-4 mb-4 mb-md-0">
+                <div class="menu-sidebar">
+                    <h6 class="px-3 mb-3 text-primary fw-bold">
+                        <i class="fa fa-list me-2"></i>Danh Mục
+                    </h6>
+                    
+                    {{-- Menu item: Combo Buffet --}}
+                    @if(isset($combos) && $combos->count() > 0)
+                        <div class="menu-item active" data-category="combo-buffet">
+                            <i class="fa fa-gift"></i>
+                            <span>Combo Buffet</span>
+                            <small class="ms-auto text-muted">({{ $combos->count() }})</small>
+                        </div>
+                    @endif
+                    
+                    {{-- Menu item: Món gọi thêm --}}
+                    @if(isset($danhMucs) && $danhMucs->count() > 0)
+                        @php
+                            $totalMonGoiThem = $danhMucs->sum(function($dm) { return $dm->monAn->count(); });
+                        @endphp
+                        <div class="menu-item" data-category="mon-goi-them" id="menu-item-mon-goi-them">
+                            <i class="fa fa-utensils"></i>
+                            <span>Món ăn</span>
+                            <small class="ms-auto text-muted">({{ $totalMonGoiThem }})</small>
+                        </div>
+                        
+                        {{-- Submenu: Các danh mục con --}}
+                        <div class="submenu-container" id="submenu-mon-goi-them">
+                            @foreach($danhMucs as $index => $danhMuc)
+                                @if($danhMuc->monAn && $danhMuc->monAn->count() > 0)
+                                    <div class="menu-item submenu-item" 
+                                         data-category="mon-goi-them-{{ $danhMuc->id }}"
+                                         data-parent="mon-goi-them"
+                                         style="padding-left: 40px; font-size: 0.9rem;">
+                                        <i class="fa fa-circle" style="font-size: 0.5rem;"></i>
+                                        <span>{{ $danhMuc->ten_danh_muc }}</span>
+                                        <small class="ms-auto text-muted">({{ $danhMuc->monAn->count() }})</small>
                                     </div>
-                                </div>
-                                {{-- END THẺ COMBO --}}
+                                @endif
                             @endforeach
                         </div>
+                    @endif
+                </div>
+            </div>
+            
+            {{-- CONTENT AREA --}}
+            <div class="col-lg-9 col-md-8">
+                
+                {{-- SECTION: COMBO BUFFET (ĐÃ CHỈNH SỬA: Căn giữa, to hơn nếu ít combo) --}}
+{{-- SECTION: COMBO BUFFET (LAYOUT NGANG: ẢNH TRÁI - TIN PHẢI) --}}
+                <div class="menu-content-section active" id="section-combo-buffet">
+                    @if (isset($combos) && $combos->count() > 0)
+                        @php $groupedCombos = $combos->groupBy('loai_combo'); @endphp
+                        
+                        @foreach ($groupedCombos as $type => $typeCombos)
+                            <div class="mb-5">
+                                <h3 class="text-primary mb-4 border-bottom pb-2">
+                                    <i class="fa fa-gift me-2"></i>{{ strtoupper($type) }}
+                                </h3>
+                                
+                                <div class="d-flex flex-column gap-4">
+                                    @foreach($typeCombos as $combo)
+                                        @php
+                                            $imagePath = $combo->anh;
+                                            if ($imagePath && !str_starts_with($imagePath, 'uploads/')) {
+                                                $imagePath = 'uploads/' . $imagePath;
+                                            }
+                                            $imageUrl = $combo->anh ? asset($imagePath) : asset('assets/img/menu-1.jpg');
+                                            
+                                            $monTrongCombo = $combo->monTrongCombo->pluck('monAn.ten_mon')->filter();
+                                        @endphp
+
+                                        {{-- THẺ CARD NẰM NGANG --}}
+                                        <div class="card shadow-sm border-0 overflow-hidden product-card-trigger w-100"
+                                            data-key="combo_{{ $combo->id }}"
+                                            data-type="combo"
+                                            data-name="{{ $combo->ten_combo }}"
+                                            data-price="{{ $combo->gia_co_ban }}"
+                                            data-desc="{{ $combo->mo_ta }}"
+                                            data-img="{{ $imageUrl }}"
+                                            data-dishes="{{ json_encode($monTrongCombo->toArray()) }}">
+                                            
+                                            <div class="row g-0 h-100">
+                                                {{-- CỘT 1: ẢNH (Chiếm 4/12 trên desktop, 5/12 trên tablet) --}}
+                                                <div class="col-md-5 col-lg-4 position-relative">
+                                                    <img src="{{ $imageUrl }}" 
+                                                         class="img-fluid h-100 w-100" 
+                                                         alt="{{ $combo->ten_combo }}" 
+                                                         style="object-fit: cover; min-height: 250px;">
+                                                    
+                                                    {{-- Badge giá nổi trên ảnh (chỉ hiện ở mobile cho đẹp) --}}
+                                                    <div class="position-absolute top-0 start-0 m-2 d-md-none">
+                                                        <span class="badge bg-danger fs-6 shadow">{{ number_format($combo->gia_co_ban, 0, ',', '.') }} đ</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                {{-- CỘT 2: THÔNG TIN (Chiếm phần còn lại) --}}
+                                                <div class="col-md-7 col-lg-8">
+                                                    <div class="card-body d-flex flex-column h-100 p-4">
+                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <h4 class="card-title fw-bold text-dark mb-0">{{ $combo->ten_combo }}</h4>
+                                                            <h4 class="text-primary fw-bolder d-none d-md-block">{{ number_format($combo->gia_co_ban, 0, ',', '.') }} đ</h4>
+                                                        </div>
+                                                        
+                                                        <p class="card-text text-secondary mb-3" style="font-size: 0.95rem; line-height: 1.6;">
+                                                            {{ $combo->mo_ta }}
+                                                        </p>
+                                                        
+                                                        {{-- Hiển thị món trong combo --}}
+                                                        @if($monTrongCombo->count() > 0)
+                                                            <div class="mb-3">
+                                                                <div class="d-flex flex-wrap gap-2">
+                                                                    @foreach($monTrongCombo->take(6) as $tenMon)
+                                                                        <span class="badge bg-light text-dark border px-2 py-1"><i class="fa fa-check text-success me-1 small"></i>{{ $tenMon }}</span>
+                                                                    @endforeach
+                                                                    @if($monTrongCombo->count() > 6)
+                                                                        <span class="badge bg-light text-secondary border px-2 py-1">+{{ $monTrongCombo->count() - 6 }} món khác</span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                        
+                                                        <div class="mt-auto pt-3 border-top">
+                                                            <button class="btn btn-outline-primary rounded-pill px-4 fw-bold float-end">
+                                                                Xem chi tiết <i class="fa fa-arrow-right ms-2"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fa fa-utensils fa-4x text-muted opacity-25"></i>
+                            </div>
+                            <h5 class="text-muted">Hiện chưa có Combo nào đang mở bán.</h5>
+                        </div>
+                    @endif
+                </div>
+                
+                {{-- SECTION: MÓN GỌI THÊM (GIỮ NGUYÊN) --}}
+                @if(isset($danhMucs) && $danhMucs->count() > 0)
+                    @foreach($danhMucs as $index => $danhMuc)
+                        @if($danhMuc->monAn && $danhMuc->monAn->count() > 0)
+                            <div class="menu-content-section {{ $index === 0 ? '' : '' }}" id="section-mon-goi-them-{{ $danhMuc->id }}">
+                                <h3 class="text-primary mb-4">
+                                    <i class="fa fa-utensils me-2"></i>{{ $danhMuc->ten_danh_muc }}
+                                </h3>
+                                <div class="row g-4">
+                                    @foreach($danhMuc->monAn as $monAn)
+                                        @php
+                                            $imagePath = $monAn->hinh_anh;
+                                            if ($imagePath && !str_starts_with($imagePath, 'uploads/')) {
+                                                $imagePath = 'uploads/' . $imagePath;
+                                            }
+                                            $imageUrl = $monAn->hinh_anh ? asset($imagePath) : asset('assets/img/menu-1.jpg');
+                                        @endphp
+                                        
+                                        <div class="col-lg-4 col-md-6 col-sm-6">
+                                            <div class="card h-100 border-0 shadow-sm product-card-trigger"
+                                                data-key="mon_an_{{ $monAn->id }}"
+                                                data-type="mon_an"
+                                                data-name="{{ $monAn->ten_mon }}"
+                                                data-price="{{ $monAn->gia }}"
+                                                data-desc="{{ $monAn->mo_ta ?? 'Món ăn ngon, được chế biến từ nguyên liệu tươi ngon.' }}"
+                                                data-img="{{ $imageUrl }}">
+                                                
+                                                <img src="{{ $imageUrl }}" class="card-img-top" alt="{{ $monAn->ten_mon }}" style="height: 200px; object-fit: cover;">
+                                                
+                                                <div class="card-body d-flex flex-column p-3">
+                                                    <h6 class="card-title fw-bold mb-2">{{ $monAn->ten_mon }}</h6>
+                                                    <p class="card-text text-secondary line-clamp-2 mb-2" style="font-size: 0.85rem;">
+                                                        {{ \Illuminate\Support\Str::limit($monAn->mo_ta ?? 'Món ăn ngon, được chế biến từ nguyên liệu tươi ngon.', 80) }}
+                                                    </p>
+                                                    <h5 class="text-primary fw-bolder mb-3">{{ number_format($monAn->gia, 0, ',', '.') }} đ</h5>
+                                                    
+                                                    <div class="mt-auto">
+                                                        <button class="btn btn-sm btn-outline-warning fw-bold rounded-pill px-3 w-100">
+                                                            <i class="fa fa-eye me-1"></i> Chi tiết
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+                @else
+                    <div class="menu-content-section" id="section-mon-goi-them">
+                        <div class="text-center py-5">
+                            <p class="text-muted">Chưa có món gọi thêm nào.</p>
+                        </div>
                     </div>
-                @endforeach
+                @endif
             </div>
         </div>
     </div>
 </div>
-@endif
-
-{{-- =========================================================== --}}
-{{-- 3. CÁC MỤC THỰC ĐƠN KHÁC (NẾU CÓ) --}}
-{{-- =========================================================== --}}
-
 
 {{-- =========================================================== --}}
 {{-- 4. UI ẨN & JAVASCRIPT --}}
@@ -294,7 +484,7 @@
     </div>
 </div>
 
-{{-- MODAL CHI TIẾT SẢN PHẨM (ĐÃ THU NHỎ VÀ CHUYỂN BỐ CỤC DỌC) --}}
+{{-- MODAL CHI TIẾT SẢN PHẨM --}}
 <div class="modal fade" id="productDetailModal" tabindex="-1" aria-hidden="true" style="z-index: 99998;">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 15px;">
@@ -318,6 +508,7 @@
                             </div>
                         </div>
                     </div>
+                    {{-- Nút này sẽ được JS ẩn đi nếu là món thường --}}
                     <button id="modalAddToCartBtn" class="btn btn-primary w-100 py-3 mt-3 fw-bold rounded-pill shadow-sm">
                         <i class="fa fa-cart-plus me-2"></i> THÊM VÀO GIỎ
                     </button>
@@ -482,10 +673,17 @@
                 if(d.img) document.getElementById('modalImg').src = d.img;
                 
                 const badge = document.getElementById('modalType');
+                const btnAdd = document.getElementById('modalAddToCartBtn'); // Nút thêm giỏ
+
+                // === LOGIC MỚI: KIỂM TRA LOẠI MÓN ===
                 if(d.type === 'combo') { 
-                    badge.className='badge bg-danger text-white mb-2 px-3 py-2 rounded-pill'; badge.innerText='Combo Hot'; 
+                    badge.className='badge bg-danger text-white mb-2 px-3 py-2 rounded-pill'; 
+                    badge.innerText='Combo Hot'; 
+                    btnAdd.style.display = 'block'; // Hiện nút nếu là Combo
                 } else { 
-                    badge.className='badge bg-success mb-2 px-3 py-2 rounded-pill'; badge.innerText='Món Ngon'; 
+                    badge.className='badge bg-success mb-2 px-3 py-2 rounded-pill'; 
+                    badge.innerText='Món Ngon'; 
+                    btnAdd.style.display = 'none'; // ẨN NÚT NẾU LÀ MÓN ĂN THƯỜNG
                 }
 
                 const comboSection = document.getElementById('modalComboItems');
@@ -507,15 +705,18 @@
                     } catch (error) { console.error(error); comboSection.style.display = 'none'; }
                 } else { comboSection.style.display = 'none'; }
 
-                // Reset nút thêm để tránh gán nhiều sự kiện
-                const oldBtn = document.getElementById('modalAddToCartBtn');
-                const newBtn = oldBtn.cloneNode(true);
-                oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+                // Reset nút thêm để tránh gán nhiều sự kiện (Chỉ cần thiết nếu nút hiển thị)
+                if(d.type === 'combo') {
+                    const oldBtn = document.getElementById('modalAddToCartBtn');
+                    const newBtn = oldBtn.cloneNode(true);
+                    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
 
-                newBtn.onclick = function() {
-                    addToCart({ key: d.key, name: d.name, price: parseInt(d.price), img: d.img, type: d.type });
-                    detailModal.hide();
-                };
+                    newBtn.onclick = function() {
+                        addToCart({ key: d.key, name: d.name, price: parseInt(d.price), img: d.img, type: d.type });
+                        detailModal.hide();
+                    };
+                }
+                
                 detailModal.show();
             });
         });
@@ -569,7 +770,7 @@
             });
         }
 
-        // --- LOGIC CHO PHẦN ĐẶT BÀN (Dành cho trang /booking, nhưng giữ lại để hoàn chỉnh code) ---
+        // --- LOGIC CHO PHẦN ĐẶT BÀN ---
         function generateTimeSlots() {
             const list = document.getElementById('timeList');
             const btn = document.getElementById('dropdownTimeBtn');
@@ -645,6 +846,104 @@
         }
         // Render lần đầu
         renderCartUI();
+
+        // ===========================================================
+        // SIDEBAR MENU HANDLER
+        // ===========================================================
+        const menuItems = document.querySelectorAll('.menu-sidebar .menu-item:not(.submenu-item)');
+        const submenuItems = document.querySelectorAll('.menu-sidebar .submenu-item');
+        const contentSections = document.querySelectorAll('.menu-content-section');
+        const submenuContainer = document.getElementById('submenu-mon-goi-them');
+
+        // Xử lý click vào menu item chính (Combo Buffet, Món Gọi Thêm)
+        menuItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const category = this.dataset.category;
+                
+                // Remove active class from all menu items
+                document.querySelectorAll('.menu-sidebar .menu-item').forEach(mi => mi.classList.remove('active'));
+                
+                // Hide all content sections
+                contentSections.forEach(section => section.classList.remove('active'));
+                
+                // Xử lý riêng cho "Món Gọi Thêm"
+                if (category === 'mon-goi-them') {
+                    if (submenuContainer) {
+                        submenuContainer.classList.add('show');
+                    }
+                    
+                    // Tự động chọn danh mục đầu tiên
+                    const firstSubmenuItem = document.querySelector('.submenu-item');
+                    if (firstSubmenuItem) {
+                        firstSubmenuItem.classList.add('active');
+                        const firstCategory = firstSubmenuItem.dataset.category;
+                        const firstSection = document.getElementById('section-' + firstCategory);
+                        if (firstSection) {
+                            firstSection.classList.add('active');
+                            firstSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }
+                    
+                    this.classList.add('active');
+                } else {
+                    // Xử lý cho Combo Buffet
+                    if (submenuContainer) {
+                        submenuContainer.classList.remove('show');
+                    }
+                    
+                    this.classList.add('active');
+                    
+                    const targetSection = document.getElementById('section-' + category);
+                    if (targetSection) {
+                        targetSection.classList.add('active');
+                        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            });
+        });
+
+        // Xử lý click vào submenu item
+        submenuItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const category = this.dataset.category;
+                
+                submenuItems.forEach(mi => mi.classList.remove('active'));
+                this.classList.add('active');
+                
+                const parentItem = document.getElementById('menu-item-mon-goi-them');
+                if (parentItem) {
+                    parentItem.classList.add('active');
+                }
+                
+                if (submenuContainer) {
+                    submenuContainer.classList.add('show');
+                }
+                
+                contentSections.forEach(section => section.classList.remove('active'));
+                
+                const targetSection = document.getElementById('section-' + category);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Tự động chọn combo buffet nếu có hash
+        if (window.location.hash === '#combo-buffet') {
+            const comboBuffetItem = document.querySelector('.menu-item[data-category="combo-buffet"]');
+            if (comboBuffetItem) {
+                comboBuffetItem.click();
+                setTimeout(() => {
+                    const comboSection = document.getElementById('section-combo-buffet');
+                    if (comboSection) {
+                        comboSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            }
+        }
     });
 </script>
 @endsection
