@@ -72,8 +72,9 @@ class LoginController extends Controller
                 case 'bep':
                     return redirect()->route('bep.dashboard');
                 case 'phuc_vu':
+                    return redirect()->route('nhanVien.ban-an.index');
                 case 'le_tan':
-                    return redirect()->route('nhanVien.ban-an.index'); 
+                    return redirect()->route('nhanVien.datban.index'); // Lễ tân chỉ có trang đặt bàn
                 default:
                     Auth::logout();
                     return back()->withErrors(['email' => 'Vai trò không hợp lệ.']);
