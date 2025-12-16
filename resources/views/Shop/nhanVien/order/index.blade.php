@@ -1,6 +1,6 @@
 @extends('layouts.Shop.layout-nhanvien')
 
-@section('title', 'Danh sách bàn')
+@section('title', 'Order món')
 
 @section('content')
 {{-- 1. FILE ÂM THANH NỘI BỘ (Đã sửa theo file ting_ting.mp3 của bạn) --}}
