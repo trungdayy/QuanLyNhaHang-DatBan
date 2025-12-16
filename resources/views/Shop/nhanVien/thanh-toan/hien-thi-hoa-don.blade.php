@@ -264,7 +264,6 @@
                                                     <th>STT</th>
                                                     <th>Tên món</th>
                                                     <th class="text-center">SL</th>
-                                                    <th class="text-center">Trạng thái</th>
                                                     <th class="text-end">Đơn giá</th>
                                                     <th class="text-end">Thành tiền</th>
                                                 </tr>
@@ -312,223 +311,61 @@
                                                         }
                                                     }
                                                     
-                                                    // Tính trạng thái từ quan hệ (nếu có)
+                                                    // Chỉ hiển thị món gọi thêm (không phải món combo)
+                                                    if($coTrongCombo) {
+                                                        continue; // Bỏ qua món combo
+                                                    }
+                                                    
+                                                    // Tính trạng thái từ quan hệ (nếu có): chỉ tính đã lên + đang nấu + chờ cung ứng
                                                     $soLuongDaLen = 0;
-                                                    $soLuongChoBep = 0;
                                                     $soLuongDangCheBien = 0;
-                                                    $soLuongChuaNauXong = 0;
-                                                    $soLuongDaLenTrongVuot = 0;
-                                                    $soLuongChuaNauXongTrongVuot = 0;
-                                                    $soLuongDangCheBienTrongVuot = 0;
-                                                    $soLuongChoBepTrongVuot = 0;
+                                                    $soLuongChoCungUng = 0;
                                                     $soLuongHuy = 0;
                                                     
                                                     if($monAnGroup) {
                                                         foreach($monAnGroup as $ct) {
                                                             if($ct->trang_thai == 'da_len_mon') {
                                                                 $soLuongDaLen += $ct->so_luong;
-                                                            } elseif($ct->trang_thai == 'cho_bep') {
-                                                                $soLuongChoBep += $ct->so_luong;
-                                                                $soLuongChuaNauXong += $ct->so_luong;
                                                             } elseif($ct->trang_thai == 'dang_che_bien') {
                                                                 $soLuongDangCheBien += $ct->so_luong;
-                                                                $soLuongChuaNauXong += $ct->so_luong;
+                                                            } elseif($ct->trang_thai == 'cho_cung_ung') {
+                                                                $soLuongChoCungUng += $ct->so_luong;
                                                             } elseif($ct->trang_thai == 'huy_mon') {
                                                                 $soLuongHuy += $ct->so_luong;
                                                             }
+                                                            // Bỏ qua: cho_bep
                                                         }
                                                         
-                                                        if($soLuongVuot > 0 && $tongGioiHan !== null) {
-                                                            $soLuongDaLenTrongVuot = max(0, $soLuongDaLen - $tongGioiHan);
-                                                            $soLuongChuaNauXongTrongVuot = $soLuongVuot - $soLuongDaLenTrongVuot;
-                                                            $soLuongConLaiTrongVuot = $soLuongChuaNauXongTrongVuot;
-                                                            $soLuongDangCheBienTrongVuot = min($soLuongDangCheBien, $soLuongConLaiTrongVuot);
-                                                            $soLuongChoBepTrongVuot = $soLuongConLaiTrongVuot - $soLuongDangCheBienTrongVuot;
-                                                        }
-                                                        
-                                                        // Tính tổng số lượng từ order (bao gồm cả món đã hủy)
-                                                        $tongSoLuongHienThi = $monAnGroup->sum('so_luong');
+                                                        // Số lượng hiển thị = đã lên + đang nấu + chờ cung ứng (không tính hủy, chờ bếp)
+                                                        $tongSoLuongHienThi = $soLuongDaLen + $soLuongDangCheBien + $soLuongChoCungUng;
                                                     } else {
                                                         // Nếu không có monAnGroup (món đã bị xóa), sử dụng số lượng từ danh_sach_mon
                                                         $tongSoLuongHienThi = $soLuong;
                                                     }
                                                     
-                                                    // Chỉ hiển thị món nếu có đã lên hoặc đang nấu
-                                                    // Nếu chỉ có đã hủy thì không hiển thị
-                                                    if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) {
+                                                    // Chỉ hiển thị món có số lượng > 0
+                                                    if($tongSoLuongHienThi <= 0) {
                                                         continue;
                                                     }
-                                                    
-                                                    $coMonChuaNauXong = $soLuongChuaNauXong > 0 || $soLuongChuaNauXongTrongVuot > 0;
-                                                    
-                                                    // Lấy phụ phí từ danh_sach_mon đã lưu
-                                                    $tienPhuPhiTinhLai = $mon['phu_phi_tong'] ?? 0;
-                                                    $phuPhiDonVi = $mon['phu_phi'] ?? 0;
-                                                    
-                                                    // Tính lại thành tiền từ trạng thái nếu cần hiển thị chi tiết
-                                                    // Nhưng ưu tiên sử dụng $thanhTien từ danh_sach_mon đã lưu
-                                                    $thanhTienTinhLai = $thanhTien; // Sử dụng giá trị đã lưu
                                                 @endphp
                                                 <tr>
                                                     <td>{{ $mon['stt'] ?? $stt++ }}</td>
                                                     <td>
                                                         {{ $tenMon }}
-                                                        @if($coTrongCombo)
-                                                            <span class="badge bg-warning">Món combo</span>
-                                                            @if($mon['vuot_gioi_han'] ?? false)
-                                                                <span class="badge bg-danger">Vượt giới hạn</span>
-                                                            @endif
-                                                        @else
-                                                            <span class="badge bg-info">Gọi thêm</span>
-                                                        @endif
                                                     </td>
                                                     <td class="text-center">
                                                         {{ $tongSoLuongHienThi }}
-                                                        @if($tongGioiHan !== null && $tongGioiHan > 0)
-                                                            <br><small class="text-muted">(Giới hạn: {{ $tongGioiHan }})</small>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-center">
-                                                        @if($monAnGroup)
-                                                            @php
-                                                                $tongSoLuongKhongHuy = $tongSoLuongHienThi - $soLuongHuy;
-                                                            @endphp
-                                                            @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuongHienThi)
-                                                                {{-- Tất cả đã hủy --}}
-                                                                <div class="d-flex flex-column align-items-center">
-                                                                    <span class="badge bg-danger mb-1">Đã hủy: {{ $soLuongHuy }}/{{ $tongSoLuongHienThi }}</span>
-                                                                </div>
-                                                            @elseif($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0 && $soLuongChoBep == 0)
-                                                                {{-- Tất cả đã lên, không có trạng thái khác --}}
-                                                                <div class="d-flex flex-column align-items-center">
-                                                                    <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuongHienThi }}</span>
-                                                                </div>
-                                                            @else
-                                                                {{-- Có nhiều trạng thái - hiển thị chi tiết --}}
-                                                                <div class="d-flex flex-column align-items-center gap-1">
-                                                                    @if($soLuongDaLen > 0)
-                                                                        <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}</span>
-                                                                    @endif
-                                                                    @if($soLuongDangCheBien > 0)
-                                                                        <span class="badge bg-warning text-dark">Đang nấu: {{ $soLuongDangCheBien }}</span>
-                                                                    @endif
-                                                                    @if($soLuongChoBep > 0)
-                                                                        <span class="badge bg-info text-white">Chờ bếp: {{ $soLuongChoBep }}</span>
-                                                                    @endif
-                                                                    @if($soLuongHuy > 0)
-                                                                        <span class="badge bg-danger">Đã hủy: {{ $soLuongHuy }}</span>
-                                                                    @endif
-                                                                </div>
-                                                            @endif
-                                                        @else
-                                                            <span class="badge bg-secondary">N/A</span>
-                                                        @endif
                                                     </td>
                                                     <td class="text-end">
-                                                        @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuongHienThi)
-                                                            {{-- Tất cả món đã hủy --}}
-                                                            <span class="text-danger">0 đ</span>
-                                                            <br><small class="text-muted">(Đã hủy)</small>
-                                                        @elseif($coTrongCombo && $soLuongVuot == 0)
-                                                            {{-- Món combo chưa vượt giới hạn: hiển thị 0 đ --}}
-                                                            <span class="text-success">0 đ</span>
-                                                            <br><small class="text-muted">(Đã bao gồm trong combo)</small>
-                                                            @if($soLuongHuy > 0)
-                                                                <br><small class="text-danger">Đã hủy ({{ $soLuongHuy }}): 0 đ</small>
-                                                            @endif
-                                                        @elseif($donGiaGoc > 0 || $coMonChuaNauXong || $soLuongVuot > 0)
-                                                            {{-- Món vượt giới hạn hoặc món gọi thêm: hiển thị chi tiết --}}
-                                                            <div>
-                                                                <small class="text-muted">Giá gốc: {{ number_format($donGiaGoc) }} đ</small>
-                                                                @if($soLuongHuy > 0)
-                                                                    <br><small class="text-danger">Đã hủy ({{ $soLuongHuy }}): 0 đ</small>
-                                                                @endif
-                                                                @if($coMonChuaNauXong)
-                                                                    <br>
-                                                                    <small class="text-warning">
-                                                                        <i class="bi bi-info-circle me-1"></i>
-                                                                        @if($coTrongCombo && $soLuongVuot > 0)
-                                                                            @if($soLuongDaLenTrongVuot > 0)
-                                                                                Đã nấu xong ({{ $soLuongDaLenTrongVuot }}): 100% = {{ number_format($donGiaGoc * $soLuongDaLenTrongVuot) }} đ
-                                                                                @if($soLuongChuaNauXongTrongVuot > 0)
-                                                                                    <br>
-                                                                                    @if($soLuongDangCheBienTrongVuot > 0)
-                                                                                        Đang nấu dở ({{ $soLuongDangCheBienTrongVuot }}): 100% = {{ number_format($donGiaGoc * $soLuongDangCheBienTrongVuot) }} đ
-                                                                                        @if($soLuongChoBepTrongVuot > 0)
-                                                                                            <br>
-                                                                                            Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 0 đ
-                                                                                        @endif
-                                                                                    @elseif($soLuongChoBepTrongVuot > 0)
-                                                                                        Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 0 đ
-                                                                                    @endif
-                                                                                @endif
-                                                                            @elseif($soLuongChuaNauXongTrongVuot > 0)
-                                                                                @if($soLuongDangCheBienTrongVuot > 0)
-                                                                                    Đang nấu dở ({{ $soLuongDangCheBienTrongVuot }}): 30% = {{ number_format($donGiaGoc * 0.3 * $soLuongDangCheBienTrongVuot) }} đ
-                                                                                    @if($soLuongChoBepTrongVuot > 0)
-                                                                                        <br>
-                                                                                        Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 0 đ
-                                                                                    @endif
-                                                                                @elseif($soLuongChoBepTrongVuot > 0)
-                                                                                    Chờ bếp ({{ $soLuongChoBepTrongVuot }}): 0 đ
-                                                                                @endif
-                                                                            @endif
-                                                                        @elseif(!$coTrongCombo)
-                                                                            @if($soLuongDaLen > 0)
-                                                                                Đã nấu xong ({{ $soLuongDaLen }}): 100% = {{ number_format($donGiaGoc * $soLuongDaLen) }} đ
-                                                                                @if($soLuongChuaNauXong > 0)
-                                                                                    <br>
-                                                                                    @if($soLuongDangCheBien > 0)
-                                                                                        Đang nấu dở ({{ $soLuongDangCheBien }}): 100% = {{ number_format($donGiaGoc * $soLuongDangCheBien) }} đ
-                                                                                        @if($soLuongChoBep > 0)
-                                                                                            <br>
-                                                                                            Chờ bếp ({{ $soLuongChoBep }}): 0 đ
-                                                                                        @endif
-                                                                                    @elseif($soLuongChoBep > 0)
-                                                                                        Chờ bếp ({{ $soLuongChoBep }}): 0 đ
-                                                                                    @endif
-                                                                                @endif
-                                                                            @elseif($soLuongChuaNauXong > 0)
-                                                                                @if($soLuongDangCheBien > 0)
-                                                                                    Đang nấu dở ({{ $soLuongDangCheBien }}): 30% = {{ number_format($donGiaGoc * 0.3 * $soLuongDangCheBien) }} đ
-                                                                                    @if($soLuongChoBep > 0)
-                                                                                        <br>
-                                                                                        Chờ bếp ({{ $soLuongChoBep }}): 0 đ
-                                                                                    @endif
-                                                                                @elseif($soLuongChoBep > 0)
-                                                                                    Chờ bếp ({{ $soLuongChoBep }}): 0 đ
-                                                                                @endif
-                                                                            @endif
-                                                                        @endif
-                                                                    </small>
-                                                                @endif
-                                                            </div>
-                                                            @if($tienPhuPhiTinhLai > 0)
-                                                                <br>
-                                                                <small class="text-danger">
-                                                                    + Phụ phí: {{ number_format($tienPhuPhiTinhLai) }} đ
-                                                                    @if($soLuongDaLenTrongVuot > 1 && $phuPhiDonVi > 0)
-                                                                        <br><small class="text-muted">({{ number_format($phuPhiDonVi) }} đ × {{ $soLuongDaLenTrongVuot }})</small>
-                                                                    @endif
-                                                                </small>
-                                                            @endif
-                                                        @else
-                                                            <span class="text-success">0 đ</span>
-                                                            <br><small class="text-muted">(Đã bao gồm trong combo)</small>
-                                                        @endif
+                                                        {{ number_format($donGiaGoc) }} đ
                                                     </td>
                                                     <td class="text-end fw-bold">
-                                                        @if($monAnGroup && $soLuongHuy > 0 && isset($tongSoLuongHienThi) && $soLuongHuy == $tongSoLuongHienThi)
-                                                            {{-- Tất cả món đã hủy --}}
-                                                            <span class="text-danger">0 đ</span>
-                                                        @elseif($thanhTien > 0)
-                                                            {{ number_format($thanhTien) }} đ
-                                                            @php
-                                                                $tongTienMonGoiThemTinhLai += $thanhTien;
-                                                            @endphp
-                                                        @else
-                                                            <span class="text-success">0 đ</span>
-                                                        @endif
+                                                        @php
+                                                            // Tính thành tiền: đã lên + đang nấu + chờ cung ứng
+                                                            $thanhTienTinhLai = ($donGiaGoc * $soLuongDaLen) + ($donGiaGoc * $soLuongDangCheBien) + ($donGiaGoc * $soLuongChoCungUng);
+                                                            $tongTienMonGoiThemTinhLai += $thanhTienTinhLai;
+                                                        @endphp
+                                                        {{ number_format($thanhTienTinhLai) }} đ
                                                     </td>
                                                 </tr>
                                                 @endforeach
@@ -542,7 +379,7 @@
                                                 @endphp
                                                 @if($tongTienComboTinhLai > 0)
                                                 <tr class="table-warning fw-bold">
-                                                    <td colspan="5" class="text-end">
+                                                    <td colspan="4" class="text-end">
                                                         <i class="bi bi-star-fill text-warning me-1"></i>Tổng tiền combo chính:
                                                     </td>
                                                     <td class="text-end text-primary fs-5">{{ number_format($tongTienComboTinhLai) }} đ</td>
@@ -550,12 +387,12 @@
                                                 @endif
                                                 @if($tongTienMonGoiThem > 0)
                                                 <tr class="table-secondary fw-bold">
-                                                    <td colspan="5" class="text-end">Tổng tiền món gọi thêm:</td>
+                                                    <td colspan="4" class="text-end">Tổng tiền món gọi thêm:</td>
                                                     <td class="text-end text-info">{{ number_format($tongTienMonGoiThem) }} đ</td>
                                                 </tr>
                                                 @endif
                                                 <tr class="table-primary fw-bold fs-5">
-                                                    <td colspan="5" class="text-end">TỔNG CỘNG:</td>
+                                                    <td colspan="4" class="text-end">TỔNG CỘNG:</td>
                                                     <td class="text-end text-danger">{{ number_format($tongCong) }} đ</td>
                                                 </tr>
                                             </tbody>
@@ -609,12 +446,31 @@
                                         </div>
                                         <div class="d-flex justify-content-between mt-2 fs-5">
                                             <span class="text-dark">Đã thanh toán:</span>
-                                            <span class="text-{{ $hoaDon->trang_thai == 'chua_thanh_toan' ? 'warning' : 'success' }}">
-                                                @if($hoaDon->trang_thai == 'chua_thanh_toan')
-                                                    {{ number_format(0) }} đ
-                                                @else
-                                                    {{ number_format($hoaDon->da_thanh_toan ?? 0) }} đ
-                                                @endif
+                                            @php
+                                                // Xác định đã thanh toán chưa: kiểm tra phuong_thuc_tt hoặc tien_khach_dua
+                                                $daThanhToan = false;
+                                                $soTienDaThanhToan = 0;
+                                                
+                                                if($chiTiet) {
+                                                    // Nếu có phuong_thuc_tt và khác 'chua_thanh_toan' thì đã thanh toán
+                                                    if($chiTiet->phuong_thuc_tt && $chiTiet->phuong_thuc_tt != 'chua_thanh_toan') {
+                                                        $daThanhToan = true;
+                                                        $soTienDaThanhToan = $chiTiet->phai_thanh_toan ?? $phaiThanhToan;
+                                                    } elseif($chiTiet->tien_khach_dua && $chiTiet->tien_khach_dua > 0) {
+                                                        // Nếu có tien_khach_dua thì đã thanh toán
+                                                        $daThanhToan = true;
+                                                        $soTienDaThanhToan = $chiTiet->phai_thanh_toan ?? $phaiThanhToan;
+                                                    } elseif($hoaDon->trang_thai == 'da_thanh_toan') {
+                                                        $daThanhToan = true;
+                                                        $soTienDaThanhToan = $hoaDon->da_thanh_toan ?? $phaiThanhToan;
+                                                    }
+                                                } elseif($hoaDon->trang_thai == 'da_thanh_toan') {
+                                                    $daThanhToan = true;
+                                                    $soTienDaThanhToan = $hoaDon->da_thanh_toan ?? $phaiThanhToan;
+                                                }
+                                            @endphp
+                                            <span class="text-{{ $daThanhToan ? 'success' : 'warning' }}">
+                                                {{ number_format($soTienDaThanhToan) }} đ
                                             </span>
                                         </div>
                                         @if($chiTiet->tien_khach_dua > 0)
@@ -639,18 +495,39 @@
                                         @endif
                                         <div class="mt-3 pt-3 border-top">
                                             <p class="mb-0"><strong>Phương thức thanh toán:</strong> 
-                                                @if($hoaDon->trang_thai == 'chua_thanh_toan' || $chiTiet->phuong_thuc_tt == 'chua_thanh_toan')
+                                                @php
+                                                    // Ưu tiên lấy từ chi_tiet_hoa_don, sau đó từ hoa_don
+                                                    $phuongThucTT = $chiTiet->phuong_thuc_tt ?? $hoaDon->phuong_thuc_tt ?? null;
+                                                    
+                                                    // Nếu có tien_khach_dua hoặc phuong_thuc_tt khác 'chua_thanh_toan' thì đã thanh toán
+                                                    $daThanhToan = false;
+                                                    if($chiTiet) {
+                                                        if($chiTiet->tien_khach_dua && $chiTiet->tien_khach_dua > 0) {
+                                                            $daThanhToan = true;
+                                                        } elseif($phuongThucTT && $phuongThucTT != 'chua_thanh_toan') {
+                                                            $daThanhToan = true;
+                                                        }
+                                                    } elseif($hoaDon->trang_thai == 'da_thanh_toan') {
+                                                        $daThanhToan = true;
+                                                    }
+                                                    
+                                                    // Nếu chưa thanh toán hoặc phuong_thuc_tt là 'chua_thanh_toan' hoặc null
+                                                    if(!$daThanhToan || !$phuongThucTT || $phuongThucTT == 'chua_thanh_toan') {
+                                                        $phuongThucTT = 'chua_thanh_toan';
+                                                    }
+                                                @endphp
+                                                @if($phuongThucTT == 'chua_thanh_toan')
                                                     <span class="badge bg-warning">Chưa thanh toán</span>
-                                                @elseif($chiTiet->phuong_thuc_tt == 'tien_mat')
+                                                @elseif($phuongThucTT == 'tien_mat')
                                                     <span class="badge bg-success">Tiền mặt</span>
-                                                @elseif($chiTiet->phuong_thuc_tt == 'chuyen_khoan')
+                                                @elseif($phuongThucTT == 'chuyen_khoan')
                                                     <span class="badge bg-primary">Chuyển khoản</span>
-                                                @elseif($chiTiet->phuong_thuc_tt == 'the_ATM')
+                                                @elseif($phuongThucTT == 'the_ATM')
                                                     <span class="badge bg-info">Thẻ ATM</span>
-                                                @elseif($chiTiet->phuong_thuc_tt == 'vnpay')
+                                                @elseif($phuongThucTT == 'vnpay')
                                                     <span class="badge bg-warning">VNPay</span>
                                                 @else
-                                                    <span class="badge bg-secondary">{{ $chiTiet->phuong_thuc_tt }}</span>
+                                                    <span class="badge bg-secondary">{{ $phuongThucTT }}</span>
                                                 @endif
                                             </p>
                                             @if($chiTiet->ma_voucher)

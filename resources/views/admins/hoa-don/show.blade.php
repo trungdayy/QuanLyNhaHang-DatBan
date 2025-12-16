@@ -2,6 +2,10 @@
 
 @section('title', 'Chi tiết hóa đơn')
 
+@section('style')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+@endsection
+
 @section('content')
 <main class="app-content">
     <div class="app-title d-flex justify-content-between align-items-center mb-4">
@@ -363,6 +367,7 @@
                                     // Tính trạng thái từ quan hệ
                                     $soLuongDaLen = 0;
                                     $soLuongDangCheBien = 0;
+                                    $soLuongChoCungUng = 0;
                                     $soLuongChoBep = 0;
                                     $soLuongHuy = 0;
                                     $tongSoLuongHienThi = 0;
@@ -374,6 +379,8 @@
                                                 $soLuongDaLen += $ct->so_luong;
                                             } elseif($ct->trang_thai == 'dang_che_bien') {
                                                 $soLuongDangCheBien += $ct->so_luong;
+                                            } elseif($ct->trang_thai == 'cho_cung_ung') {
+                                                $soLuongChoCungUng += $ct->so_luong;
                                             } elseif($ct->trang_thai == 'cho_bep') {
                                                 $soLuongChoBep += $ct->so_luong;
                                             } elseif($ct->trang_thai == 'huy_mon') {
@@ -389,12 +396,13 @@
                                         // Giả sử tất cả đã hoàn thành (vì đã thanh toán)
                                         $soLuongDaLen = $mon['so_luong'] ?? 0;
                                         $soLuongDangCheBien = 0;
+                                        $soLuongChoCungUng = 0;
                                         $soLuongChoBep = 0;
                                         $soLuongHuy = 0;
                                         $tongSoLuongHienThi = $mon['so_luong'] ?? 0;
                                     } else {
-                                        // Chỉ hiển thị món đã lên hoặc đang nấu (bỏ qua món đã hủy và chờ bếp)
-                                        if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) {
+                                        // Chỉ hiển thị món đã lên, đang nấu hoặc chờ cung ứng (bỏ qua món đã hủy và chờ bếp)
+                                        if($soLuongDaLen == 0 && $soLuongDangCheBien == 0 && $soLuongChoCungUng == 0) {
                                             continue;
                                         }
                                         // Số lượng hiển thị phải là tổng số lượng bao gồm cả món đã hủy
@@ -424,21 +432,36 @@
                                         @php
                                             $tongSoLuongKhongHuy = $tongSoLuongHienThi - $soLuongHuy;
                                         @endphp
-                                        @if($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0 && $soLuongChoBep == 0)
-                                            <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuongHienThi }}</span>
+                                        @if($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0 && $soLuongChoCungUng == 0 && $soLuongChoBep == 0)
+                                            <span class="badge bg-success rounded-pill px-3 py-2" style="font-size: 0.85rem; font-weight: 500;">
+                                                <i class="bi bi-check-circle me-1"></i>Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuongHienThi }}
+                                            </span>
                                         @else
-                                            <div class="d-flex flex-column align-items-center gap-1">
+                                            <div class="d-flex flex-column align-items-center gap-2" style="min-width: 120px;">
                                                 @if($soLuongDaLen > 0)
-                                                    <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}</span>
+                                                    <span class="badge bg-success rounded-pill px-3 py-1" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-check-circle me-1"></i>Đã lên: {{ $soLuongDaLen }}
+                                                    </span>
+                                                @endif
+                                                @if($soLuongChoCungUng > 0)
+                                                    <span class="badge rounded-pill px-3 py-1" style="background-color: #0d6efd; color: white; font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-clock-history me-1"></i>Chờ cung ứng: {{ $soLuongChoCungUng }}
+                                                    </span>
                                                 @endif
                                                 @if($soLuongDangCheBien > 0)
-                                                    <span class="badge bg-warning text-dark">Đang nấu: {{ $soLuongDangCheBien }}</span>
+                                                    <span class="badge bg-warning rounded-pill px-3 py-1 text-dark" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-fire me-1"></i>Đang nấu: {{ $soLuongDangCheBien }}
+                                                    </span>
                                                 @endif
                                                 @if($soLuongChoBep > 0)
-                                                    <span class="badge bg-info text-white">Chờ bếp: {{ $soLuongChoBep }}</span>
+                                                    <span class="badge bg-info rounded-pill px-3 py-1 text-white" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-hourglass-split me-1"></i>Chờ bếp: {{ $soLuongChoBep }}
+                                                    </span>
                                                 @endif
                                                 @if($soLuongHuy > 0)
-                                                    <span class="badge bg-danger">Đã hủy: {{ $soLuongHuy }}</span>
+                                                    <span class="badge bg-danger rounded-pill px-3 py-1" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-x-circle me-1"></i>Đã hủy: {{ $soLuongHuy }}
+                                                    </span>
                                                 @endif
                                             </div>
                                         @endif
@@ -588,6 +611,7 @@
                                     $soLuongDaLen = 0;
                                     $soLuongChoBep = 0;
                                     $soLuongDangCheBien = 0;
+                                    $soLuongChoCungUng = 0;
                                     $soLuongChuaNauXong = 0;
                                     $soLuongDaLenTrongVuot = 0;
                                     $soLuongChuaNauXongTrongVuot = 0;
@@ -605,6 +629,8 @@
                                             } elseif($ct->trang_thai == 'dang_che_bien') {
                                                 $soLuongDangCheBien += $ct->so_luong;
                                                 $soLuongChuaNauXong += $ct->so_luong;
+                                            } elseif($ct->trang_thai == 'cho_cung_ung') {
+                                                $soLuongChoCungUng += $ct->so_luong;
                                             } elseif($ct->trang_thai == 'huy_mon') {
                                                 $soLuongHuy += $ct->so_luong;
                                             }
@@ -618,9 +644,9 @@
                                             $soLuongChoBepTrongVuot = $soLuongConLaiTrongVuot - $soLuongDangCheBienTrongVuot;
                                         }
                                         
-                                        // Chỉ hiển thị món nếu có đã lên hoặc đang nấu
+                                        // Chỉ hiển thị món nếu có đã lên, đang nấu hoặc chờ cung ứng
                                         // Nếu chỉ có đã hủy thì không hiển thị
-                                        if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) {
+                                        if($soLuongDaLen == 0 && $soLuongDangCheBien == 0 && $soLuongChoCungUng == 0) {
                                             continue;
                                         }
                                     }
@@ -655,11 +681,13 @@
                                         $tienMonDaLen = $donGiaGoc * $soLuongDaLen;
                                         // Đang nấu: 100% giá
                                         $tienMonDangCheBien = $donGiaGoc * $soLuongDangCheBien;
+                                        // Chờ cung ứng: 100% giá (đã nấu xong, chờ nhân viên xác nhận)
+                                        $tienMonChoCungUng = $donGiaGoc * $soLuongChoCungUng;
                                         // Chờ bếp: 0 đồng
                                         $tienMonChoBep = 0;
                                         // Đã hủy: 0 đồng
                                         $tienMonHuy = 0;
-                                        $thanhTienTinhLai = $tienMonDaLen + $tienMonDangCheBien + $tienMonChoBep + $tienMonHuy;
+                                        $thanhTienTinhLai = $tienMonDaLen + $tienMonDangCheBien + $tienMonChoCungUng + $tienMonChoBep + $tienMonHuy;
                                     }
                                 @endphp
                                 <tr>
@@ -690,23 +718,36 @@
                                             <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
                                                 <span style="font-size: 11px; color: #dc3545; font-weight: bold; padding: 2px 6px; background-color: #f8d7da; border-radius: 3px;">Đã hủy: {{ $soLuongHuy }}/{{ $tongSoLuongHienThi }}</span>
                                             </div>
-                                        @elseif($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0 && $soLuongChoBep == 0)
-                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                                <span style="font-size: 11px; color: #28a745; font-weight: bold; padding: 2px 6px; background-color: #d4edda; border-radius: 3px;">Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuongHienThi }}</span>
-                                            </div>
+                                        @elseif($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0 && $soLuongChoCungUng == 0 && $soLuongChoBep == 0)
+                                            <span class="badge bg-success rounded-pill px-3 py-2" style="font-size: 0.85rem; font-weight: 500;">
+                                                <i class="bi bi-check-circle me-1"></i>Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuongHienThi }}
+                                            </span>
                                         @else
-                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                            <div class="d-flex flex-column align-items-center gap-2" style="min-width: 120px;">
                                                 @if($soLuongDaLen > 0)
-                                                    <span style="font-size: 11px; color: #28a745; font-weight: bold; padding: 2px 6px; background-color: #d4edda; border-radius: 3px;">Đã lên: {{ $soLuongDaLen }}</span>
+                                                    <span class="badge bg-success rounded-pill px-3 py-1" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-check-circle me-1"></i>Đã lên: {{ $soLuongDaLen }}
+                                                    </span>
+                                                @endif
+                                                @if($soLuongChoCungUng > 0)
+                                                    <span class="badge rounded-pill px-3 py-1" style="background-color: #0d6efd; color: white; font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-clock-history me-1"></i>Chờ cung ứng: {{ $soLuongChoCungUng }}
+                                                    </span>
                                                 @endif
                                                 @if($soLuongDangCheBien > 0)
-                                                    <span style="font-size: 11px; color: #856404; font-weight: bold; padding: 2px 6px; background-color: #fff3cd; border-radius: 3px;">Đang nấu: {{ $soLuongDangCheBien }}</span>
+                                                    <span class="badge bg-warning rounded-pill px-3 py-1 text-dark" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-fire me-1"></i>Đang nấu: {{ $soLuongDangCheBien }}
+                                                    </span>
                                                 @endif
                                                 @if($soLuongChoBep > 0)
-                                                    <span style="font-size: 11px; color: #0c5460; font-weight: bold; padding: 2px 6px; background-color: #d1ecf1; border-radius: 3px;">Chờ bếp: {{ $soLuongChoBep }}</span>
+                                                    <span class="badge bg-info rounded-pill px-3 py-1 text-white" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-hourglass-split me-1"></i>Chờ bếp: {{ $soLuongChoBep }}
+                                                    </span>
                                                 @endif
                                                 @if($soLuongHuy > 0)
-                                                    <span style="font-size: 11px; color: #dc3545; font-weight: bold; padding: 2px 6px; background-color: #f8d7da; border-radius: 3px;">Đã hủy: {{ $soLuongHuy }}</span>
+                                                    <span class="badge bg-danger rounded-pill px-3 py-1" style="font-size: 0.8rem; font-weight: 500; width: fit-content;">
+                                                        <i class="bi bi-x-circle me-1"></i>Đã hủy: {{ $soLuongHuy }}
+                                                    </span>
                                                 @endif
                                             </div>
                                         @endif
