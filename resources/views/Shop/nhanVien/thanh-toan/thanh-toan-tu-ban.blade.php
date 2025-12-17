@@ -3,140 +3,6 @@
 @section('title', 'Thanh toán bàn ' . $ban->so_ban)
 
 @section('content')
-
-{{-- 
-    =========================================================
-    1. KHỐI XỬ LÝ LOGIC PHP (TÍNH TOÁN DỮ LIỆU ĐẦU VÀO)
-    =========================================================
---}}
-@php
-// --- Khởi tạo biến ---
-$tienCoc = $datBan->tien_coc ?? 0;
-$soNguoiLon = $datBan->nguoi_lon ?? 0;
-$soTreEm = $datBan->tre_em ?? 0;
-
-// Đếm khách từ chi tiết nếu data bàn chưa có
-if ($soNguoiLon == 0 && $soTreEm == 0 && $datBan->chiTietDatBan) {
-foreach ($datBan->chiTietDatBan as $ct) {
-$sl = $ct->so_luong ?? 1;
-if ($ct->combo && $ct->combo->loai_combo == 'tre_em') $soTreEm += $sl;
-else $soNguoiLon += $sl;
-}
-}
-$tongSoKhach = $soNguoiLon + $soTreEm;
-
-// --- Tính tiền Combo (Ưu tiên giảm giá trẻ em) ---
-$tongTienCombo = 0;
-$danhSachComboDisplay = [];
-if ($datBan->chiTietDatBan) {
-$soTreEmConLai = $soTreEm;
-foreach ($datBan->chiTietDatBan as $ct) {
-if ($ct->combo) {
-$giaGoc = $ct->combo->gia_co_ban ?? 0;
-$sl = $ct->so_luong ?? 1;
-
-$slGiam = 0;
-if ($soTreEmConLai > 0) {
-$slGiam = min($soTreEmConLai, $sl);
-$soTreEmConLai -= $slGiam;
-}
-$slNguyen = $sl - $slGiam;
-$thanhTien = ($slGiam * $giaGoc * 0.5) + ($slNguyen * $giaGoc);
-$tongTienCombo += $thanhTien;
-
-$danhSachComboDisplay[] = (object)[
-'ten' => $ct->combo->ten_combo,
-'gia_goc' => $giaGoc,
-'sl_giam' => $slGiam,
-'sl_nguyen' => $slNguyen,
-'thanh_tien' => $thanhTien
-];
-}
-}
-}
-
-// --- Tính tiền Món ăn (Theo trạng thái) ---
-$tongTienMon = 0;
-$danhSachMonDisplay = [];
-$idsMonCombo = [];
-
-// Lấy ID món trong combo để miễn phí
-if ($datBan->chiTietDatBan) {
-foreach ($datBan->chiTietDatBan as $ct) {
-if ($ct->combo && $ct->combo->monAn) {
-foreach($ct->combo->monAn as $m) $idsMonCombo[] = $m->id;
-}
-}
-}
-
-if ($datBan->orderMon) {
-$allCt = collect();
-foreach ($datBan->orderMon as $ord) {
-foreach ($ord->chiTietOrders as $ct) $allCt->push($ct);
-}
-
-foreach ($allCt->groupBy('mon_an_id') as $monId => $group) {
-$first = $group->first();
-$tenMon = $first->monAn->ten_mon ?? 'N/A';
-$donGia = $first->monAn->gia ?? 0;
-$isCombo = in_array($monId, $idsMonCombo);
-
-$slDaLen = $group->where('trang_thai', 'da_len_mon')->sum('so_luong');
-$slDangNau = $group->where('trang_thai', 'dang_che_bien')->sum('so_luong');
-$slHuy = $group->where('trang_thai', 'huy_mon')->sum('so_luong');
-$tongSl = $group->sum('so_luong');
-$slChoBep = $tongSl - $slDaLen - $slDangNau - $slHuy;
-
-$thanhTienItem = 0;
-if (!$isCombo) {
-// Chỉ tính tiền món Đã lên (100%) và Đang nấu (30%)
-$thanhTienItem = ($slDaLen * $donGia) + ($slDangNau * $donGia * 0.3);
-}
-$tongTienMon += $thanhTienItem;
-
-$danhSachMonDisplay[] = (object)[
-'ten_mon' => $tenMon,
-'is_combo' => $isCombo,
-'tong_sl' => $tongSl,
-'sl_hien_thi' => $tongSl - $slHuy,
-'sl_da_len' => $slDaLen,
-'sl_dang_nau' => $slDangNau,
-'sl_huy' => $slHuy,
-'sl_cho_bep' => $slChoBep,
-'don_gia' => $donGia,
-'thanh_tien' => $thanhTienItem
-];
-}
-}
-
-// --- Phụ thu thời gian ---
-$thoiGianPhucVu = $thoiGianPhucVu ?? 0;
-$phuThuThoiGian = 0;
-$thoiGianVuot = 0;
-$soLan10Phut = 0;
-$tgQuyDinh = 0; $tgMienPhi = 0;
-
-if ($datBan->comboBuffet && $datBan->comboBuffet->thoi_luong_phut) {
-$tgQuyDinh = $datBan->comboBuffet->thoi_luong_phut;
-$tgMienPhi = $tgQuyDinh + 10;
-$thoiGianVuot = max(0, $thoiGianPhucVu - $tgMienPhi);
-if ($thoiGianVuot > 0) {
-$soLan10Phut = ceil($thoiGianVuot / 10);
-$phuThuThoiGian = $soLan10Phut * 30000;
-}
-}
-$phuThuTuDong = $phuThuThoiGian;
-
-// TỔNG TIỀN CHUẨN
-$tongTienThucTe = $tongTienCombo + $tongTienMon;
-@endphp
-
-{{-- 
-    =========================================================
-    2. GIAO DIỆN HTML
-    =========================================================
---}}
-
 <div class="container-xxl py-5">
     <div class="container">
         <div class="row justify-content-center">
@@ -157,485 +23,462 @@ $tongTienThucTe = $tongTienCombo + $tongTienMon;
                 @endif
 
                 <div class="row g-4">
-                    {{-- CỘT TRÁI: THÔNG TIN KHÁCH & BÀN --}}
+                    {{-- Cột trái: Thông tin khách và bàn --}}
                     <div class="col-lg-4">
-                        {{-- Khách hàng --}}
+                        {{-- Thông tin khách hàng --}}
                         <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-primary text-white">
                                 <h5 class="mb-0"><i class="bi bi-person-circle me-2"></i>Thông tin khách hàng</h5>
                             </div>
                             <div class="card-body">
-                                <p class="mb-2"><strong>Tên khách:</strong> {{ $datBan->ten_khach ?? 'N/A' }}</p>
-                                <p class="mb-2"><strong>SĐT:</strong> {{ $datBan->sdt_khach ?? 'N/A' }}</p>
-                                <p class="mb-2"><strong>Email:</strong> {{ $datBan->email_khach ?? 'N/A' }}</p>
-                                <p class="mb-1"><strong>Số khách:</strong> <span
+                                <p class="mb-2"><strong>Tên khách:</strong><br>{{ $datBan->ten_khach ?? 'N/A' }}</p>
+                                <p class="mb-2"><strong>SĐT:</strong><br>{{ $datBan->sdt_khach ?? 'N/A' }}</p>
+                                <p class="mb-2"><strong>Email:</strong><br>{{ $datBan->email_khach ?? 'N/A' }}</p>
+                                @php
+                                // Ưu tiên lấy từ datBan->nguoi_lon và datBan->tre_em
+                                $soNguoiLon = $datBan->nguoi_lon ?? 0;
+                                $soTreEm = $datBan->tre_em ?? 0;
+
+                                // Nếu không có giá trị trong datBan, tính từ chiTietDatBan
+                                if($soNguoiLon == 0 && $soTreEm == 0 && $datBan->chiTietDatBan &&
+                                $datBan->chiTietDatBan->count() > 0) {
+                                $soNguoiLon = 0;
+                                $soTreEm = 0;
+                                foreach($datBan->chiTietDatBan as $chiTiet) {
+                                if($chiTiet->combo) {
+                                $soLuong = $chiTiet->so_luong ?? 1;
+                                if($chiTiet->combo->loai_combo == 'nguoi_lon') {
+                                $soNguoiLon += $soLuong;
+                                } elseif($chiTiet->combo->loai_combo == 'tre_em') {
+                                $soTreEm += $soLuong;
+                                } else {
+                                $soNguoiLon += $soLuong;
+                                }
+                                }
+                                }
+                                }
+                                $tongSoKhach = $soNguoiLon + $soTreEm;
+                                @endphp
+                                <p class="mb-1"><strong>Số khách:</strong><br><span
                                         class="badge bg-info">{{ $tongSoKhach }} người</span></p>
-                                <small class="text-muted">- Người lớn: <strong>{{ $soNguoiLon }}</strong> | Trẻ em:
-                                    <strong>{{ $soTreEm }}</strong></small>
+                                <p class="mb-0">
+                                    <small class="text-muted">
+                                        - Người lớn: <strong>{{ $soNguoiLon }}</strong> người<br>
+                                        - Trẻ em: <strong>{{ $soTreEm }}</strong> người
+                                    </small>
+                                </p>
                             </div>
                         </div>
 
-                        {{-- Bàn --}}
+                        {{-- Thông tin bàn --}}
                         <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-info text-white">
                                 <h5 class="mb-0"><i class="bi bi-table me-2"></i>Thông tin bàn</h5>
                             </div>
                             <div class="card-body">
-                                <p class="mb-2"><strong>Bàn số:</strong> <span
+                                <p class="mb-2"><strong>Bàn số:</strong><br><span
                                         class="fs-4 fw-bold text-primary">{{ $ban->so_ban }}</span></p>
-                                <p class="mb-2"><strong>Khu vực:</strong> {{ $ban->khuVuc->ten_khu_vuc ?? 'N/A' }}</p>
-                                <p class="mb-0"><strong>Mã đặt:</strong> <code>{{ $datBan->ma_dat_ban ?? 'N/A' }}</code>
-                                </p>
+                                <p class="mb-2"><strong>Khu vực:</strong><br>{{ $ban->khuVuc->ten_khu_vuc ?? 'N/A' }} -
+                                    Tầng {{ $ban->khuVuc->tang ?? 'N/A' }}</p>
+                                <p class="mb-2"><strong>Sức chứa:</strong><br>{{ $ban->so_ghe }} chỗ</p>
+                                <p class="mb-0"><strong>Mã đặt
+                                        bàn:</strong><br><code>{{ $datBan->ma_dat_ban ?? 'N/A' }}</code></p>
                             </div>
                         </div>
 
-                        {{-- Thời gian --}}
+                        {{-- Thời gian phục vụ --}}
                         <div class="card shadow-sm border-0">
                             <div class="card-header bg-success text-white">
                                 <h5 class="mb-0"><i class="bi bi-clock me-2"></i>Thời gian phục vụ</h5>
                             </div>
                             <div class="card-body">
-
-                                <p class="mb-2"><strong>Vào:</strong> <span
-                                        class="badge bg-light text-dark">{{ $gioVao->format('H:i d/m') }}</span></p>
-                                <p class="mb-2"><strong>Ra:</strong> <span
-                                        class="badge bg-light text-dark">{{ $gioRa->format('H:i d/m') }}</span></p>
-                                <p class="mb-2"><strong>Thời lượng:</strong> <span
-                                        class="badge bg-success">{{ floor($thoiGianPhucVu / 60) }}h
-                                        {{ $thoiGianPhucVu % 60 }}p</span></p>
-
-                                @if($tgQuyDinh > 0)
-                                <p class="mb-2"><strong>Quy định:</strong> <span
-                                        class="badge bg-info">{{ floor($tgQuyDinh / 60) }}h
-                                        {{ $tgQuyDinh % 60 }}p</span></p>
-                                @if($thoiGianVuot > 0)
-                                <div class="alert alert-warning py-1 px-2 mb-0">
-                                    <small class="text-danger fw-bold">Quá giờ: {{ floor($thoiGianVuot / 60) }}h
-                                        {{ $thoiGianVuot % 60 }}p</small><br>
-                                    <small class="text-muted">(Phạt: {{ number_format($phuThuThoiGian) }}đ)</small>
-                                </div>
-                                @else
-                                <span class="badge bg-success">Trong giờ cho phép</span>
-                                @endif
-                                @endif
-
                                 <p class="mb-2">
                                     <strong>Giờ vào:</strong><br>
-                                    <span class="badge bg-light text-dark fs-6">{{ $gioVao->format('d/m/Y H:i') }}</span>
+                                    <span
+                                        class="badge bg-light text-dark fs-6">{{ $gioVao->format('d/m/Y H:i') }}</span>
                                 </p>
                                 <p class="mb-2">
                                     <strong>Giờ ra:</strong><br>
                                     <span class="badge bg-light text-dark fs-6">{{ $gioRa->format('d/m/Y H:i') }}</span>
                                 </p>
-                                    <p class="mb-0">
-                                        <strong>Thời gian phục vụ:</strong><br>
-                                        <span class="badge bg-success fs-6">{{ floor($thoiGianPhucVu / 60) }} giờ {{ $thoiGianPhucVu % 60 }} phút</span>
-                                    </p>
-
+                                <p class="mb-0">
+                                    <strong>Thời gian phục vụ:</strong><br>
+                                    <span class="badge bg-success fs-6">{{ floor($thoiGianPhucVu / 60) }} giờ
+                                        {{ $thoiGianPhucVu % 60 }} phút</span>
+                                </p>
                             </div>
                         </div>
                     </div>
 
-                    {{-- CỘT PHẢI: CHI TIẾT & THANH TOÁN --}}
+                    {{-- Cột phải: Form thanh toán --}}
                     <div class="col-lg-8">
-                        {{-- Card Chi tiết Combo & Món --}}
+                        {{-- Thông tin combo và món --}}
                         <div class="card shadow-sm border-0 mb-3">
                             <div class="card-header bg-warning text-dark">
                                 <h5 class="mb-0"><i class="bi bi-basket3 me-2"></i>Thông tin combo & món đã gọi</h5>
                             </div>
                             <div class="card-body">
-                                {{-- Combo --}}
-                                @if(count($danhSachComboDisplay) > 0)
-                                @foreach($danhSachComboDisplay as $combo)
-                                <div class="mb-3 p-3 bg-light rounded border border-warning">
-                                    <h6 class="fw-bold text-primary mb-2"><i
-                                            class="bi bi-star-fill me-1 text-warning"></i>{{ $combo->ten }}</h6>
-                                    @if($combo->sl_giam > 0) <p class="mb-1"><strong>Trẻ em (50%):</strong>
-                                        {{ $combo->sl_giam }} x {{ number_format($combo->gia_goc * 0.5) }} đ</p> @endif
-                                    @if($combo->sl_nguyen > 0) <p class="mb-1"><strong>Người lớn:</strong>
-                                        {{ $combo->sl_nguyen }} x {{ number_format($combo->gia_goc) }} đ</p> @endif
-                                    <p class="mb-0 mt-2 text-end"><strong>Thành tiền:</strong> <span
-                                            class="text-danger fw-bold fs-5">{{ number_format($combo->thanh_tien) }}
-                                            đ</span></p>
-                                </div>
-                                @endforeach
-                                @else
-                                <div class="alert alert-warning mb-3"><i class="bi bi-exclamation-triangle"></i> Chưa
-                                    chọn combo</div>
-                                @endif
+                                @if($datBan->chiTietDatBan && $datBan->chiTietDatBan->count() > 0)
+                                @php
+                                $soTreEm = $datBan->tre_em ?? 0;
+                                $soNguoiDaXuLy = 0;
+                                @endphp
+                                @foreach($datBan->chiTietDatBan as $chiTiet)
+                                @if($chiTiet->combo)
+                                @php
+                                $giaComboGoc = $chiTiet->combo->gia_co_ban;
+                                $soLuongCombo = $chiTiet->so_luong ?? 1;
+                                $soNguoiDuocGiam = 0;
 
-                                {{-- Món --}}
-                                @if(count($danhSachMonDisplay) > 0)
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-bordered align-middle">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Tên món</th>
-                                                <th class="text-center">SL</th>
-                                                <th class="text-center">Trạng thái</th>
-                                                <th class="text-end">Đơn giá</th>
-                                                <th class="text-end">Thành tiền</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                if($soTreEm > 0 && $soNguoiDaXuLy < $soTreEm) { $soTreEmConLai=$soTreEm -
+                                    $soNguoiDaXuLy; $soNguoiDuocGiam=min($soTreEmConLai, $soLuongCombo); }
+                                    $soNguoiKhongGiam=$soLuongCombo - $soNguoiDuocGiam; $soNguoiDaXuLy +=$soLuongCombo;
+                                    @endphp {{-- Hiển thị combo giảm giá --}} @if($soNguoiDuocGiam> 0)
+                                    @php
+                                    $giaComboGiam = $giaComboGoc * 0.5;
+                                    $thanhTienGiam = $giaComboGiam * $soNguoiDuocGiam;
+                                    @endphp
+                                    <div class="mb-3 p-3 bg-light rounded border border-warning">
+                                        <h6 class="fw-bold text-primary mb-2">
+                                            <i
+                                                class="bi bi-star-fill me-1 text-warning"></i>{{ $chiTiet->combo->ten_combo }}
+                                            <span class="badge bg-success ms-2">Combo chính</span>
+                                            <span class="badge bg-info ms-2">Trẻ em (Giảm 50%)</span>
+                                        </h6>
+                                        <p class="mb-1">
+                                            <strong>Giá combo:</strong>
+                                            <span
+                                                class="text-decoration-line-through text-muted">{{ number_format($giaComboGoc) }}
+                                                đ</span>
+                                            <span class="text-danger fw-bold"> {{ number_format($giaComboGiam) }}
+                                                đ</span>
+                                            <small class="text-success">(Giảm 50%)</small> /người
+                                        </p>
+                                        <p class="mb-1"><strong>Số lượng:</strong> {{ $soNguoiDuocGiam }} người</p>
+                                        <p class="mb-0 mt-2"><strong>Thành tiền combo:</strong>
+                                            <span class="text-danger fw-bold fs-5">{{ number_format($thanhTienGiam) }}
+                                                đ</span>
+                                        </p>
+                                    </div>
+                                    @endif
 
-                                            @foreach($danhSachMonDisplay as $mon)
-                                            <tr>
-                                                <td>{{ $mon->ten_mon }} @if($mon->is_combo) <span
-                                                        class="badge bg-warning text-dark">Combo</span> @else <span
-                                                        class="badge bg-info">Gọi thêm</span> @endif</td>
-                                                <td class="text-center fw-bold">{{ $mon->sl_hien_thi }}</td>
-                                                <td class="text-center small">
-                                                    @if($mon->sl_huy > 0) <div class="text-danger">Hủy:
-                                                        {{ $mon->sl_huy }}</div> @endif
-                                                    @if($mon->sl_da_len > 0) <div class="text-success">Đã lên:
-                                                        {{ $mon->sl_da_len }}</div> @endif
-                                                    @if($mon->sl_dang_nau > 0) <div class="text-warning text-dark">Đang
-                                                        nấu: {{ $mon->sl_dang_nau }}</div> @endif
-                                                    @if($mon->sl_cho_bep > 0) <div class="text-muted">Chờ bếp:
-                                                        {{ $mon->sl_cho_bep }}</div> @endif
-                                                </td>
-                                                <td class="text-end">
-                                                    @if($mon->is_combo) <span class="text-success">0 đ</span>
-                                                    @else {{ number_format($mon->don_gia) }} đ @endif
-                                                </td>
-                                                <td class="text-end fw-bold">{{ number_format($mon->thanh_tien) }} đ
+                                    {{-- Hiển thị combo giá gốc --}}
+                                    @if($soNguoiKhongGiam > 0)
+                                    @php
+                                    $thanhTienGoc = $giaComboGoc * $soNguoiKhongGiam;
+                                    @endphp
+                                    <div class="mb-3 p-3 bg-light rounded border border-warning">
+                                        <h6 class="fw-bold text-primary mb-2">
+                                            <i
+                                                class="bi bi-star-fill me-1 text-warning"></i>{{ $chiTiet->combo->ten_combo }}
+                                            <span class="badge bg-success ms-2">Combo chính</span>
+                                        </h6>
+                                        <p class="mb-1">
+                                            <strong>Giá combo:</strong> {{ number_format($giaComboGoc) }} đ/người
+                                        </p>
+                                        <p class="mb-1"><strong>Số lượng:</strong> {{ $soNguoiKhongGiam }} người</p>
+                                        <p class="mb-0 mt-2"><strong>Thành tiền combo:</strong>
+                                            <span class="text-danger fw-bold fs-5">{{ number_format($thanhTienGoc) }}
+                                                đ</span>
+                                        </p>
+                                    </div>
+                                    @endif
+                                    @endif
+                                    @endforeach
+                                    @else
+                                    <div class="alert alert-warning mb-3">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>Chưa chọn combo cho bàn này
+                                    </div>
+                                    @endif
 
-                                            @php 
-                                                $stt = 1;
-                                                $tongTienGoiThem = 0;
-                                                
-                                                // Món combo không có giới hạn nữa, chỉ cần kiểm tra xem món có trong combo không
-                                                // Tính tổng số lượng đã order cho từng món (cả combo và goi_them)
-                                                // Chỉ bỏ qua món đang chờ bếp (không bỏ qua món đã hủy để hiển thị số lượng đầy đủ)
-                                                $tongSoLuongMon = [];
-                                                $monAnListFiltered = $monAnList->filter(function($ct) {
+                                    {{-- Danh sách món đã gọi --}}
+                                    @php
+                                    $hasMonAn = false;
+                                    $monAnList = collect();
+
+                                    foreach($datBan->orderMon as $order) {
+                                    foreach($order->chiTietOrders as $ct) {
+                                    $hasMonAn = true;
+                                    $monAnList->push($ct);
+                                    }
+                                    }
+
+                                    // Tính lại tổng tiền combo chính xác
+                                    $tongTienComboChinh = 0;
+                                    $soTreEm = $datBan->tre_em ?? 0;
+                                    $soNguoiDaXuLy = 0;
+
+                                    foreach($datBan->chiTietDatBan as $chiTiet) {
+                                    if($chiTiet->combo) {
+                                    $giaComboGoc = $chiTiet->combo->gia_co_ban ?? 0;
+                                    $soLuongCombo = $chiTiet->so_luong ?? 1;
+                                    $soNguoiDuocGiam = 0;
+
+                                    if($soTreEm > 0 && $soNguoiDaXuLy < $soTreEm) { $soTreEmConLai=$soTreEm -
+                                        $soNguoiDaXuLy; $soNguoiDuocGiam=min($soTreEmConLai, $soLuongCombo); }
+                                        $soNguoiKhongGiam=$soLuongCombo - $soNguoiDuocGiam;
+                                        $thanhTienCombo=($giaComboGoc * 0.5 * $soNguoiDuocGiam) + ($giaComboGoc *
+                                        $soNguoiKhongGiam); $tongTienComboChinh +=$thanhTienCombo; $soNguoiDaXuLy
+                                        +=$soLuongCombo; } } @endphp @if($hasMonAn && $monAnList->isNotEmpty())
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>STT</th>
+                                                        <th>Tên món</th>
+                                                        <th class="text-center">SL</th>
+                                                        <th class="text-center">Trạng thái</th>
+                                                        <th class="text-end">Đơn giá</th>
+                                                        <th class="text-end">Thành tiền</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @php
+                                                    $stt = 1;
+                                                    $tongTienGoiThem = 0;
+                                                    $tongSoLuongMon = [];
+
+                                                    // Filter món không chờ bếp
+                                                    $monAnListFiltered = $monAnList->filter(function($ct) {
                                                     return $ct->trang_thai != 'cho_bep';
-                                                });
-                                                foreach($monAnListFiltered as $ct) {
+                                                    });
+
+                                                    foreach($monAnListFiltered as $ct) {
                                                     $monAnId = $ct->mon_an_id;
                                                     if(!isset($tongSoLuongMon[$monAnId])) {
-                                                        $tongSoLuongMon[$monAnId] = 0;
+                                                    $tongSoLuongMon[$monAnId] = 0;
                                                     }
                                                     $tongSoLuongMon[$monAnId] += $ct->so_luong;
-                                                }
-                                            @endphp
-                                            {{-- Hiển thị các món đã gọi (bỏ qua món chờ bếp, nhưng hiển thị món đã hủy) --}}
-                                            @php
-                                                // Nhóm món theo mon_an_id để hiển thị gộp (bao gồm cả món đã hủy, chỉ bỏ món chờ bếp)
-                                                $monAnGrouped = $monAnListFiltered->groupBy('mon_an_id');
-                                            @endphp
-                                            @foreach($monAnGrouped as $monAnId => $monAnGroup)
-                                                @php
+                                                    }
+
+                                                    $monAnGrouped = $monAnListFiltered->groupBy('mon_an_id');
+                                                    @endphp
+
+                                                    @foreach($monAnGrouped as $monAnId => $monAnGroup)
+                                                    @php
                                                     $ctFirst = $monAnGroup->first();
-                                                    // Tính tổng số lượng từ tất cả món trong group (bao gồm cả món đã hủy)
                                                     $tongSoLuong = $monAnGroup->sum('so_luong');
-                                                    
-                                                    // Tính số lượng món theo trạng thái (bao gồm cả món đã hủy, chỉ bỏ món chờ bếp)
-                                                    $soLuongDaLen = 0; // Đã lên món (da_len_mon) - tính 100%
-                                                    $soLuongDangCheBien = 0; // Đang chế biến (dang_che_bien) - tính 100%
-                                                    $soLuongHuy = 0; // Đã hủy (huy_mon) - tính 0%
-                                                    
-                                                    // Món combo không có giới hạn nữa
-                                                    $tongGioiHan = null;
-                                                    $soLuongVuot = 0;
-                                                    
-                                                    // Tính số lượng theo trạng thái (bao gồm cả món đã hủy)
+                                                    $soLuongDaLen = 0;
+                                                    $soLuongDangCheBien = 0;
+                                                    $soLuongHuy = 0;
+
                                                     foreach($monAnGroup as $ct) {
-                                                        if($ct->trang_thai == 'da_len_mon') {
-                                                            $soLuongDaLen += $ct->so_luong;
-                                                        } elseif($ct->trang_thai == 'dang_che_bien') {
-                                                            $soLuongDangCheBien += $ct->so_luong;
-                                                        } elseif($ct->trang_thai == 'huy_mon') {
-                                                            $soLuongHuy += $ct->so_luong;
-                                                        }
-                                                        // Bỏ qua trạng thái 'cho_bep' - không tính
+                                                    if($ct->trang_thai == 'da_len_mon') $soLuongDaLen += $ct->so_luong;
+                                                    elseif($ct->trang_thai == 'dang_che_bien') $soLuongDangCheBien +=
+                                                    $ct->so_luong;
+                                                    elseif($ct->trang_thai == 'huy_mon') $soLuongHuy += $ct->so_luong;
                                                     }
-                                                    
-                                                    // Chỉ hiển thị món nếu có đã lên hoặc đang nấu
-                                                    // Nếu chỉ có đã hủy thì không hiển thị
-                                                    if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) {
-                                                        continue;
-                                                    }
-                                                    
-                                                // Món combo không có giới hạn nữa, không cần tính phần vượt
-                                                $soLuongDaLenTrongVuot = 0;
-                                                $soLuongChoBepTrongVuot = 0;
-                                                $soLuongDangCheBienTrongVuot = 0;
-                                                $soLuongChuaNauXongTrongVuot = 0;
-                                                    
-                                                    // Kiểm tra xem món có trong combo nào không
+
+                                                    if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) continue;
+
                                                     $coTrongCombo = false;
-                                                    
-                                                    // Tìm món trong combo
                                                     foreach($datBan->chiTietDatBan as $chiTiet) {
-                                                        if($chiTiet->combo) {
-                                                            $monTrongComboItem = \App\Models\MonTrongCombo::where('combo_id', $chiTiet->combo->id)
-                                                                ->where('mon_an_id', $monAnId)
-                                                                ->first();
-                                                            if($monTrongComboItem) {
-                                                                $coTrongCombo = true;
-                                                                break;
-                                                            }
-                                                        }
+                                                    if($chiTiet->combo) {
+                                                    $monTrongComboItem = \App\Models\MonTrongCombo::where('combo_id',
+                                                    $chiTiet->combo->id)
+                                                    ->where('mon_an_id', $monAnId)
+                                                    ->first();
+                                                    if($monTrongComboItem) {
+                                                    $coTrongCombo = true;
+                                                    break;
                                                     }
-                                                    
+                                                    }
+                                                    }
+
                                                     $tienMon = 0;
                                                     $donGiaHienThi = 0;
-                                                    $soLuongHienThi = $tongSoLuong;
-                                                    $coPhuPhi = false;
-                                                    $tienPhuPhi = 0; // Khởi tạo biến phụ phí
                                                     $donGiaGoc = $ctFirst->monAn->gia ?? 0;
-                                                    
+
                                                     if($coTrongCombo) {
-                                                        // Món thuộc combo: luôn miễn phí (không có giới hạn, không có phụ phí)
-                                                        $donGiaHienThi = 0;
-                                                        $tienMon = 0;
-                                                        $tienPhuPhi = 0;
-                                                        $coPhuPhi = false;
-                                                        } else {
-                                                            // Món không thuộc combo: tính tiền theo trạng thái nấu
-                                                            // Phần đã nấu xong: 100% giá
-                                                            $tienMonDaLen = $donGiaGoc * $soLuongDaLen;
-                                                            
-                                                            // Phần đang chế biến: 100% giá (đã xác nhận, đang nấu)
-                                                            $tienMonDangCheBien = $donGiaGoc * $soLuongDangCheBien;
-                                                            
-                                                            // Phần chờ bếp: 0 đồng (chưa xác nhận, có thể hủy)
-                                                            $tienMonChoBep = 0;
-                                                            
-                                                            // Phần đã hủy: 0 đồng (không tính tiền)
-                                                            $tienMonHuy = 0;
-                                                            
-                                                            // Tổng tiền (không tính món hủy)
-                                                            $tienMon = $tienMonDaLen + $tienMonDangCheBien + $tienMonChoBep + $tienMonHuy;
-                                                        
-                                                        // Hiển thị đơn giá trung bình (chỉ tính cho món không hủy)
-                                                        $soLuongKhongHuy = $tongSoLuong - $soLuongHuy;
-                                                        if($soLuongKhongHuy > 0) {
-                                                            $donGiaHienThi = $tienMon / $soLuongKhongHuy;
-                                                        } else {
-                                                            $donGiaHienThi = 0; // Tất cả đã hủy
-                                                        }
-                                                        
-                                                        $tongTienGoiThem += $tienMon;
-                                                        $tienPhuPhi = 0;
+                                                    $tienMon = 0;
+                                                    } else {
+                                                    $tienMonDaLen = $donGiaGoc * $soLuongDaLen;
+                                                    $tienMonDangCheBien = $donGiaGoc * $soLuongDangCheBien;
+                                                    $tienMon = $tienMonDaLen + $tienMonDangCheBien;
+
+                                                    $soLuongKhongHuy = $tongSoLuong - $soLuongHuy;
+                                                    if($soLuongKhongHuy > 0) {
+                                                    $donGiaHienThi = $tienMon / $soLuongKhongHuy;
                                                     }
-                                                @endphp
-                                                <tr>
-                                                    <td>{{ $stt++ }}</td>
-                                                    <td>
-                                                        {{ $ctFirst->monAn->ten_mon ?? 'N/A' }}
-                                                        @if($coTrongCombo)
+
+                                                    $tongTienGoiThem += $tienMon;
+                                                    }
+                                                    @endphp
+                                                    <tr>
+                                                        <td>{{ $stt++ }}</td>
+                                                        <td>
+                                                            {{ $ctFirst->monAn->ten_mon ?? 'N/A' }}
+                                                            @if($coTrongCombo)
                                                             <span class="badge bg-warning">Món combo</span>
-                                                        @else
+                                                            @else
                                                             <span class="badge bg-info">Gọi thêm</span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-center">
-                                                        {{ $soLuongHienThi }}
-                                                    </td>
-                                                    <td class="text-center">
-                                                        @php
-                                                            // Tính tổng số lượng không hủy để hiển thị
-                                                            $tongSoLuongKhongHuy = $tongSoLuong - $soLuongHuy;
-                                                        @endphp
-                                                        @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuong)
-                                                            {{-- Tất cả đã hủy --}}
-                                                            <div class="d-flex flex-column align-items-center">
-                                                                <span class="badge bg-danger mb-1">Đã hủy: {{ $soLuongHuy }}/{{ $tongSoLuong }}</span>
-                                                            </div>
-                                                        @elseif($soLuongDaLen == $tongSoLuongKhongHuy && $soLuongHuy == 0 && $soLuongDangCheBien == 0)
-                                                            {{-- Tất cả đã lên, không có trạng thái khác --}}
-                                                            <div class="d-flex flex-column align-items-center">
-                                                                <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}/{{ $tongSoLuong }}</span>
-                                                            </div>
-                                                        @else
-                                                            {{-- Có nhiều trạng thái - hiển thị chi tiết (không hiển thị chờ bếp) --}}
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center">{{ $tongSoLuong }}</td>
+                                                        <td class="text-center">
+                                                            @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuong)
+                                                            <span class="badge bg-danger">Đã hủy:
+                                                                {{ $soLuongHuy }}</span>
+                                                            @else
                                                             <div class="d-flex flex-column align-items-center gap-1">
-                                                                @if($soLuongDaLen > 0)
-                                                                    <span class="badge bg-success">Đã lên: {{ $soLuongDaLen }}</span>
-                                                                @endif
-                                                                @if($soLuongDangCheBien > 0)
-                                                                    <span class="badge bg-warning text-dark">Đang nấu: {{ $soLuongDangCheBien }}</span>
-                                                                @endif
-                                                                @if($soLuongHuy > 0)
-                                                                    <span class="badge bg-danger">Đã hủy: {{ $soLuongHuy }}</span>
-                                                                @endif
+                                                                @if($soLuongDaLen > 0) <span class="badge bg-success">Đã
+                                                                    lên: {{ $soLuongDaLen }}</span> @endif
+                                                                @if($soLuongDangCheBien > 0) <span
+                                                                    class="badge bg-warning text-dark">Đang nấu:
+                                                                    {{ $soLuongDangCheBien }}</span> @endif
+                                                                @if($soLuongHuy > 0) <span class="badge bg-danger">Đã
+                                                                    hủy: {{ $soLuongHuy }}</span> @endif
                                                             </div>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-end">
-                                                        @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuong)
-                                                            {{-- Tất cả món đã hủy --}}
-                                                            <span class="text-danger">0 đ</span>
-                                                            <br><small class="text-muted">(Đã hủy)</small>
-                                                        @elseif($coTrongCombo)
-                                                            {{-- Món thuộc combo: luôn 0 đ --}}
-                                                            <span class="text-success">0 đ</span>
-                                                            <br><small class="text-muted">(Đã bao gồm trong combo)</small>
-                                                        @else
-                                                            {{-- Món gọi thêm: hiển thị giá và chi tiết trạng thái --}}
-                                                            @php
-                                                                $donGiaGocHienThi = $ctFirst->monAn->gia ?? 0;
-                                                            @endphp
-                                                            <div>
-                                                                <strong>Giá gốc: {{ number_format($donGiaGocHienThi) }} đ</strong>
-                                                                @if($soLuongHuy > 0)
-                                                                    <br><small class="text-danger">Đã hủy ({{ $soLuongHuy }}): 0 đ</small>
-                                                                @endif
-                                                                @if($soLuongDaLen > 0)
-                                                                    <br><small class="text-success">Đã nấu xong ({{ $soLuongDaLen }}): 100% = {{ number_format($donGiaGocHienThi * $soLuongDaLen) }} đ</small>
-                                                                @endif
-                                                                @if($soLuongDangCheBien > 0)
-                                                                    <br><small class="text-warning">Đang nấu dở ({{ $soLuongDangCheBien }}): 100% = {{ number_format($donGiaGocHienThi * $soLuongDangCheBien) }} đ</small>
-                                                                @endif
-                                                            </div>
-                                                        @endif
-                                                    </td>
-
-                                                    <td class="text-end fw-bold">
-                                                        @if($soLuongHuy > 0 && $soLuongHuy == $tongSoLuong)
-                                                            {{-- Tất cả món đã hủy --}}
-                                                            <span class="text-danger">0 đ</span>
-                                                        @elseif($tienMon > 0)
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-end">
+                                                            @if($coTrongCombo)
+                                                            <span class="text-success">0 đ</span><br><small
+                                                                class="text-muted">(Trong combo)</small>
+                                                            @else
+                                                            {{ number_format($donGiaGoc) }} đ
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-end fw-bold">
                                                             {{ number_format($tienMon) }} đ
-                                                        @else
-                                                            <span class="text-success">0 đ</span>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                            
-                                            {{-- Tổng kết --}}
-                                            @php
-                                                // Tính lại tổng tiền từ bảng để đảm bảo chính xác
-                                                $tongTienThucTe = $tongTienComboChinh + $tongTienGoiThem;
-                                            @endphp
-                                            @if($tongTienComboChinh > 0)
-                                            <tr class="table-warning fw-bold">
-                                                <td colspan="5" class="text-end">
-                                                    <i class="bi bi-star-fill text-warning me-1"></i>Tổng tiền combo chính:
+                                                        </td>
+                                                    </tr>
+                                                    @endforeach
 
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                            {{-- Tổng cộng dùng cho JS lấy --}}
-                                            <tr class="table-primary fw-bold fs-5">
-                                                <td colspan="4" class="text-end">TỔNG CỘNG:</td>
-                                                <td class="text-end text-danger" id="tongTienTuBang"
-                                                    data-tong-tien="{{ $tongTienThucTe }}">
-                                                    {{ number_format($tongTienThucTe) }} đ</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                @else
-                                <p class="text-center text-muted">Chưa gọi món</p>
-                                @endif
+                                                    {{-- Tổng kết --}}
+                                                    @php
+                                                    $tongTienThucTe = $tongTienComboChinh + $tongTienGoiThem;
+                                                    @endphp
+                                                    @if($tongTienComboChinh > 0)
+                                                    <tr class="table-warning fw-bold">
+                                                        <td colspan="5" class="text-end"><i
+                                                                class="bi bi-star-fill text-warning me-1"></i>Tổng tiền
+                                                            combo chính:</td>
+                                                        <td class="text-end text-primary fs-5">
+                                                            {{ number_format($tongTienComboChinh) }} đ</td>
+                                                    </tr>
+                                                    @endif
+                                                    @if($tongTienGoiThem > 0)
+                                                    <tr class="table-secondary fw-bold">
+                                                        <td colspan="5" class="text-end">Tổng tiền món gọi thêm:</td>
+                                                        <td class="text-end text-info">
+                                                            {{ number_format($tongTienGoiThem) }} đ</td>
+                                                    </tr>
+                                                    @endif
+                                                    <tr class="table-primary fw-bold fs-5">
+                                                        <td colspan="5" class="text-end">TỔNG CỘNG:</td>
+                                                        <td class="text-end text-danger" id="tongTienTuBang"
+                                                            data-tong-tien="{{ $tongTienThucTe }}">
+                                                            {{ number_format($tongTienThucTe) }} đ</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        @else
+                                        <p class="text-muted text-center">Chưa có món nào được gọi</p>
+                                        @endif
                             </div>
                         </div>
 
-                        {{-- Card Form Thanh Toán --}}
+                        {{-- Form thanh toán --}}
                         <div class="card shadow-sm border-0">
                             <div class="card-header bg-danger text-white">
-                                <h5 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Thanh toán</h5>
+                                <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>Thanh toán</h5>
                             </div>
                             <div class="card-body">
                                 <form action="{{ route('nhanVien.thanh-toan.luu-ban', $ban->id) }}" method="POST"
                                     id="thanhToanForm">
                                     @csrf
 
-                                    {{-- !!! INPUT ẨN CHỨA TỔNG TIỀN !!! --}}
-                                    <input type="hidden" name="tong_tien" id="hidden_tong_tien_payos" value="0">
-
                                     {{-- Phương thức thanh toán --}}
                                     <div class="mb-4">
-                                        <label class="form-label fw-bold">Phương thức thanh toán <span
+                                        <label class="form-label fw-bold" style="color: #333 !important;"><i
+                                                class="bi bi-credit-card me-2"></i>Phương thức thanh toán <span
                                                 class="text-danger">*</span></label>
                                         <div class="row g-3">
-                                            @foreach(['tien_mat' => ['Tiền mặt', 'cash-stack', 'success'],
-                                            'chuyen_khoan' => ['Chuyển khoản', 'bank', 'primary'], 'the_ATM' => ['Thẻ
-                                            ATM', 'credit-card-2-front', 'info'], 'payos' => ['PayOS (QR)', 'qr-code',
-                                            'warning']] as $val => $info)
-                                            <div class="col-md-3 col-6">
+                                            <div class="col-md-4">
                                                 <div class="form-check border rounded p-3 h-100 payment-method-card">
                                                     <input class="form-check-input" type="radio" name="phuong_thuc_tt"
-                                                        id="{{ $val }}" value="{{ $val }}"
-                                                        {{ $val == 'tien_mat' ? 'checked' : '' }}>
-                                                    <label class="form-check-label w-100" for="{{ $val }}">
-                                                        <i
-                                                            class="bi bi-{{ $info[1] }} text-{{ $info[2] }} fs-3 d-block mb-2"></i>
-                                                        <strong>{{ $info[0] }}</strong>
+                                                        id="tien_mat" value="tien_mat" checked>
+                                                    <label class="form-check-label w-100" for="tien_mat">
+                                                        <i class="bi bi-cash-stack text-success fs-3 d-block mb-2"></i>
+                                                        <strong>Tiền mặt</strong>
                                                     </label>
                                                 </div>
                                             </div>
-                                            @endforeach
+                                            <div class="col-md-4">
+                                                <div class="form-check border rounded p-3 h-100 payment-method-card">
+                                                    <input class="form-check-input" type="radio" name="phuong_thuc_tt"
+                                                        id="chuyen_khoan" value="chuyen_khoan">
+                                                    <label class="form-check-label w-100" for="chuyen_khoan">
+                                                        <i class="bi bi-bank text-primary fs-3 d-block mb-2"></i>
+                                                        <strong>Chuyển khoản</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check border rounded p-3 h-100 payment-method-card">
+                                                    <input class="form-check-input" type="radio" name="phuong_thuc_tt"
+                                                        id="the_ATM" value="the_ATM">
+                                                    <label class="form-check-label w-100" for="the_ATM">
+                                                        <i
+                                                            class="bi bi-credit-card-2-front text-info fs-3 d-block mb-2"></i>
+                                                        <strong>Thẻ ATM</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check border rounded p-3 h-100 payment-method-card">
+                                                    <input class="form-check-input" type="radio" name="phuong_thuc_tt"
+                                                        id="vnpay" value="vnpay">
+                                                    <label class="form-check-label w-100" for="vnpay">
+                                                        <i class="bi bi-credit-card text-warning fs-3 d-block mb-2"></i>
+                                                        <strong>VNPay</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {{-- ĐÃ THÊM LẠI PAYOS --}}
+                                            <div class="col-md-4">
+                                                <div class="form-check border rounded p-3 h-100 payment-method-card">
+                                                    <input class="form-check-input" type="radio" name="phuong_thuc_tt"
+                                                        id="payos" value="payos">
+                                                    <label class="form-check-label w-100" for="payos">
+                                                        <i class="bi bi-qr-code text-primary fs-3 d-block mb-2"></i>
+                                                        <strong>PayOS (QR)</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {{-- Tiền khách đưa --}}
+                                    {{-- Tiền khách đưa (chỉ hiện khi chọn tiền mặt) --}}
                                     <div class="mb-4" id="tienKhachDuaGroup">
-                                        <label class="form-label fw-bold">Tiền khách đưa</label>
+                                        <label for="tien_khach_dua" class="form-label fw-bold"
+                                            style="color: #333 !important;">Tiền khách đưa</label>
                                         <div class="input-group input-group-lg">
                                             <input type="number" class="form-control" id="tien_khach_dua"
-                                                name="tien_khach_dua" min="0" placeholder="Nhập số tiền...">
+                                                name="tien_khach_dua" min="0" step="1000" placeholder="Nhập số tiền">
                                             <span class="input-group-text">đ</span>
                                         </div>
                                         <div id="tienTraLai" class="mt-2 fw-bold" style="display: none;"></div>
                                     </div>
 
-
-                                    {{-- Voucher & Phụ thu --}}
-                                    <div class="row">
-                                        <div class="col-md-6 mb-4">
-                                            <label class="form-label fw-bold"><i
-                                                    class="bi bi-ticket-perforated me-2"></i>Voucher</label>
-                                            <select class="form-select form-select-lg" id="voucher_id"
-                                                name="voucher_id">
-                                                <option value="" data-giam="0">-- Không sử dụng --</option>
-                                                @foreach($vouchers as $voucher)
-                                                {{-- [QUAN TRỌNG] Làm sạch dữ liệu Voucher: Loại bỏ dấu phẩy --}}
-                                                @php
-                                                $giaTriClean = intval(preg_replace('/[^0-9]/', '', $voucher->gia_tri));
-                                                $maxClean = intval(preg_replace('/[^0-9]/', '',
-                                                $voucher->gia_tri_toi_da));
-                                                @endphp
-                                                <option value="{{ $voucher->id }}" data-loai="{{ $voucher->loai_giam }}"
-                                                    data-gia-tri="{{ $giaTriClean }}" data-max="{{ $maxClean }}">
-                                                    {{ $voucher->ma_voucher }} - Giảm
-                                                    {{ $voucher->loai_giam == 'phan_tram' ? $voucher->gia_tri.'%' : number_format($giaTriClean).'đ' }}
-                                                </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6 mb-4">
-                                            <label class="form-label fw-bold"><i class="bi bi-plus-circle me-2"></i>Phụ
-                                                thu thêm</label>
-                                            <div class="input-group input-group-lg">
-                                                <input type="number" class="form-control" id="phu_thu" name="phu_thu"
-                                                    value="0" min="0" step="1000">
-                                                <span class="input-group-text">đ</span>
-                                            </div>
-                                            <small class="text-muted">Phụ thu tự động: <strong
-                                                    id="phuThuTuDongText">{{ number_format($phuThuTuDong) }}
-                                                    đ</strong></small>
-
                                     {{-- Voucher --}}
                                     <div class="mb-4">
-                                        <label for="voucher_id" class="form-label fw-bold" style="color: #333 !important;"><i class="bi bi-ticket-perforated me-2"></i>Voucher (nếu có)</label>
+                                        <label for="voucher_id" class="form-label fw-bold"
+                                            style="color: #333 !important;"><i
+                                                class="bi bi-ticket-perforated me-2"></i>Voucher (nếu có)</label>
                                         <select class="form-select form-select-lg" id="voucher_id" name="voucher_id">
                                             <option value="">-- Không sử dụng voucher --</option>
                                             @foreach($vouchers as $voucher)
-                                            <option value="{{ $voucher->id }}" 
-                                                data-loai="{{ $voucher->loai_giam }}"
+                                            <option value="{{ $voucher->id }}" data-loai="{{ $voucher->loai_giam }}"
                                                 data-gia-tri="{{ $voucher->gia_tri }}"
                                                 data-gia-tri-toi-da="{{ $voucher->gia_tri_toi_da }}">
-                                                {{ $voucher->ma_voucher }} - 
+                                                {{ $voucher->ma_voucher }} -
                                                 @if($voucher->loai_giam == 'phan_tram')
-                                                    Giảm {{ $voucher->gia_tri }}%
+                                                Giảm {{ $voucher->gia_tri }}%
                                                 @else
-                                                    Giảm {{ number_format($voucher->gia_tri) }} đ
+                                                Giảm {{ number_format($voucher->gia_tri) }} đ
                                                 @endif
                                             </option>
                                             @endforeach
@@ -648,59 +491,65 @@ $tongTienThucTe = $tongTienCombo + $tongTienMon;
                                             <i class="bi bi-plus-circle me-2"></i>Phụ thu thêm (nếu có)
                                         </label>
                                         <div class="input-group input-group-lg">
-                                            <input type="number" class="form-control" id="phu_thu" name="phu_thu" value="0" min="0" step="1000">
+                                            <input type="number" class="form-control" id="phu_thu" name="phu_thu"
+                                                value="0" min="0" step="1000">
                                             <span class="input-group-text">đ</span>
-
                                         </div>
                                     </div>
 
                                     {{-- Tóm tắt thanh toán --}}
                                     <div class="mb-4 p-4 bg-white rounded-3 border shadow-sm">
+                                        <h5 class="mb-3 text-dark fw-bold"><i class="bi bi-calculator me-2"></i>Tóm tắt
+                                            thanh toán</h5>
                                         <div class="d-flex justify-content-between mb-2">
-                                            <span class="text-dark">Tổng tiền hàng:</span>
-                                            <strong class="text-primary fs-5">{{ number_format($tongTienThucTe) }}
+                                            <span class="text-dark">Tổng tiền (Combo + Món):</span>
+                                            <strong id="tongTien"
+                                                class="text-primary fs-5">{{ number_format($tongTienThucTe ?? $tongTienOrder) }}
                                                 đ</strong>
                                         </div>
                                         <div class="d-flex justify-content-between mb-2" id="tienGiamRow"
                                             style="display: none;">
-                                            <span class="text-dark">(-) Voucher giảm:</span>
+                                            <span class="text-dark">(-) Tiền giảm (Voucher):</span>
                                             <strong class="text-success" id="tienGiam">- 0 đ</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2" id="tongTienSauVoucherRow"
+                                            style="display: none;">
+                                            <span class="text-dark fw-bold">Tổng tiền sau voucher:</span>
+                                            <strong id="tongTienSauVoucher" class="text-warning fs-5">0 đ</strong>
                                         </div>
                                         @if($tienCoc > 0)
                                         <div class="d-flex justify-content-between mb-2">
                                             <span class="text-dark">(-) Tiền cọc:</span>
-                                            <strong class="text-success">- {{ number_format($tienCoc) }} đ</strong>
+                                            <strong class="text-success" id="tienCoc">- {{ number_format($tienCoc) }}
+                                                đ</strong>
                                         </div>
                                         @endif
                                         <div class="d-flex justify-content-between mb-2" id="phuThuRow"
                                             style="display: none;">
                                             <span class="text-dark">(+) Phụ thu:</span>
-                                            <strong class="text-danger" id="phuThuText">+ 0 đ</strong>
+                                            <strong class="text-danger" id="phuThu">+
+                                                {{ number_format($phuThuTuDong ?? 0) }} đ</strong>
                                         </div>
                                         <hr class="my-3">
-                                        <div class="d-flex justify-content-between fs-4 fw-bold align-items-center">
-                                            <span class="text-dark">PHẢI THANH TOÁN:</span>
+                                        <div class="d-flex justify-content-between fs-4 fw-bold">
+                                            <span class="text-dark">Phải thanh toán:</span>
                                             <span id="phaiThanhToan"
-                                                class="text-danger">{{ number_format(max(0, $tongTienThucTe - $tienCoc + $phuThuTuDong)) }}
+                                                class="text-danger">{{ number_format($tongTienOrder - $tienCoc) }}
                                                 đ</span>
                                         </div>
                                     </div>
 
-                                    {{-- Actions --}}
+                                    {{-- Nút xác nhận --}}
                                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-
                                         <a href="{{ route('nhanVien.ban-an.index') }}"
-                                            class="btn btn-secondary btn-lg px-4">Quay lại</a>
-                                        <button type="submit" class="btn btn-success btn-lg px-5 fw-bold">
-
-                                        <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-secondary btn-lg px-5">
+                                            class="btn btn-secondary btn-lg px-5">
                                             <i class="bi bi-arrow-left me-2"></i>Quay lại
                                         </a>
-                                        <button type="button" class="btn btn-warning btn-lg px-5" id="btnThanhToanSau" onclick="xacNhanThanhToanSau()">
+                                        <button type="button" class="btn btn-warning btn-lg px-5" id="btnThanhToanSau"
+                                            onclick="xacNhanThanhToanSau()">
                                             <i class="bi bi-clock-history me-2"></i>Thanh toán sau
                                         </button>
                                         <button type="submit" class="btn btn-success btn-lg px-5">
-
                                             <i class="bi bi-check-circle me-2"></i>Xác nhận thanh toán
                                         </button>
                                     </div>
@@ -714,191 +563,190 @@ $tongTienThucTe = $tongTienCombo + $tongTienMon;
     </div>
 </div>
 
-{{-- 
-    =========================================================
-    3. JAVASCRIPT: LOGIC TÍNH TOÁN & PAYOS
-    =========================================================
---}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-    // 1. Lấy dữ liệu gốc an toàn
-    const tongTienElement = document.getElementById('tongTienTuBang');
-    // ParseFloat để lấy số thực từ data attribute
-    const tongTienGoc = tongTienElement ? (parseFloat(tongTienElement.getAttribute('data-tong-tien')) || 0) : 0;
-    const tienCoc = {{ $tienCoc }};
-    const phuThuTuDong = {{ $phuThuTuDong }};
+    // 1. Lấy tổng tiền chính xác từ giao diện
+    const tongTienTuBangElement = document.getElementById('tongTienTuBang');
+    let tongTienOrder = 0;
     
-    // 2. DOM Elements
-    const elTienKhach = document.getElementById('tien_khach_dua');
-    const elTienTraLai = document.getElementById('tienTraLai');
-    const elVoucher = document.getElementById('voucher_id');
-    const elPhuThuInput = document.getElementById('phu_thu');
-    const elPhaiThanhToan = document.getElementById('phaiThanhToan');
-    const elTienGiamRow = document.getElementById('tienGiamRow');
-    const elTienGiamText = document.getElementById('tienGiam');
-    const elPhuThuRow = document.getElementById('phuThuRow');
-    const elPhuThuText = document.getElementById('phuThuText');
-    const radioPhuongThuc = document.getElementsByName('phuong_thuc_tt');
-    const groupTienKhach = document.getElementById('tienKhachDuaGroup');
-    const elHiddenTien = document.getElementById('hidden_tong_tien_payos');
-
-    // Hàm format tiền tệ đẹp (VD: 70,000 đ)
-    function formatMoney(amount) {
-        return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
-    }
-
-    // 3. Hàm tính toán chính
-    function tinhToan() {
-        // --- A. Tính Voucher ---
-        let giamGia = 0;
-        const opt = elVoucher.options[elVoucher.selectedIndex];
-        
-        if (opt && opt.value) {
-            const loai = opt.getAttribute('data-loai');
-            const val = parseFloat(opt.getAttribute('data-gia-tri')) || 0;
-            const max = parseFloat(opt.getAttribute('data-max')) || 0;
-
-            if (loai == 'phan_tram') {
-                giamGia = tongTienGoc * (val / 100);
-                if (max > 0 && giamGia > max) giamGia = max;
-            } else {
-                giamGia = val;
-            }
-            
-            // Không giảm quá tổng tiền
-            if(giamGia > tongTienGoc) giamGia = tongTienGoc;
-
-            elTienGiamRow.style.display = 'flex';
-            elTienGiamText.textContent = '- ' + formatMoney(giamGia);
+    if (tongTienTuBangElement) {
+        const tongTienFromData = tongTienTuBangElement.getAttribute('data-tong-tien');
+        if (tongTienFromData) {
+            tongTienOrder = parseFloat(tongTienFromData);
         } else {
-            elTienGiamRow.style.display = 'none';
-        }
-
-        // --- B. Tính Phụ thu (Auto + Thủ công) ---
-        const phuThuThem = parseFloat(elPhuThuInput.value) || 0;
-        const tongPhuThu = phuThuTuDong + phuThuThem;
-
-        if (tongPhuThu > 0) {
-            elPhuThuRow.style.display = 'flex';
-            elPhuThuText.textContent = '+ ' + formatMoney(tongPhuThu);
-        } else {
-            elPhuThuRow.style.display = 'none';
-        }
-
-        // --- C. Tổng kết ---
-        let canTra = tongTienGoc - tienCoc - giamGia + tongPhuThu;
-        if (canTra < 0) canTra = 0;
-        
-        // Cập nhật text hiển thị phải thanh toán
-        elPhaiThanhToan.textContent = formatMoney(canTra);
-        
-        // Cập nhật giá trị vào Input ẩn để gửi sang PayOS (Quan trọng!)
-        if(elHiddenTien) {
-            elHiddenTien.value = canTra;
-        }
-
-        // --- D. Tiền thừa trả khách ---
-        if (document.getElementById('tien_mat').checked) {
-            const khachDua = parseFloat(elTienKhach.value) || 0;
-            if (khachDua > 0) {
-                const diff = khachDua - canTra;
-                elTienTraLai.style.display = 'block';
-                if (diff >= 0) {
-                    elTienTraLai.className = 'mt-2 text-success fw-bold';
-                    elTienTraLai.innerHTML = '<i class="bi bi-check-circle"></i> Trả lại: ' + formatMoney(diff);
-                } else {
-                    elTienTraLai.className = 'mt-2 text-danger fw-bold';
-                    elTienTraLai.innerHTML = '<i class="bi bi-exclamation-circle"></i> Thiếu: ' + formatMoney(Math.abs(diff));
-                }
-            } else {
-                elTienTraLai.style.display = 'none';
+            const tongTienText = tongTienTuBangElement.textContent.replace(/[^\d]/g, '');
+            if (tongTienText && tongTienText.length > 0) {
+                tongTienOrder = parseInt(tongTienText);
             }
         }
     }
-
-    // 4. Lắng nghe sự kiện thay đổi
-    elVoucher.addEventListener('change', tinhToan);
-    elPhuThuInput.addEventListener('input', tinhToan);
-    elTienKhach.addEventListener('input', tinhToan);
-
-    // Ẩn hiện ô nhập tiền mặt
-    Array.from(radioPhuongThuc).forEach(r => {
-        r.addEventListener('change', function() {
-            if (this.value == 'tien_mat') {
-                groupTienKhach.style.display = 'block';
+    
+    // Fallback
+    if (!tongTienOrder || tongTienOrder === 0 || isNaN(tongTienOrder)) {
+        @php
+            $tongTienThucTeValue = isset($tongTienThucTe) ? $tongTienThucTe : ($tongTienOrder ?? 0);
+        @endphp
+        tongTienOrder = {{ $tongTienThucTeValue }};
+    }
+    
+    // Cập nhật hiển thị ban đầu
+    const tongTienElement = document.getElementById('tongTien');
+    if (tongTienElement) {
+        tongTienElement.textContent = tongTienOrder.toLocaleString('vi-VN') + ' đ';
+    }
+    
+    // 2. KHAI BÁO BIẾN TOÀN CỤC
+    const tienCoc = {{ $tienCoc ?? 0 }}; 
+    const phuThuTuDong = {{ $phuThuTuDong ?? 0 }};
+    
+    // DOM Elements
+    const phuongThucTT = document.querySelectorAll('input[name="phuong_thuc_tt"]');
+    const tienKhachDuaGroup = document.getElementById('tienKhachDuaGroup');
+    const tienKhachDuaInput = document.getElementById('tien_khach_dua');
+    const tienTraLaiDiv = document.getElementById('tienTraLai');
+    const voucherSelect = document.getElementById('voucher_id');
+    const phuThuInput = document.getElementById('phu_thu');
+    
+    // 3. Xử lý hiển thị nhập tiền mặt
+    const tienMatRadio = document.getElementById('tien_mat');
+    if (tienMatRadio && tienMatRadio.checked) {
+        tienKhachDuaGroup.style.display = 'block';
+    } else {
+        tienKhachDuaGroup.style.display = 'none';
+    }
+    
+    phuongThucTT.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'tien_mat') {
+                tienKhachDuaGroup.style.display = 'block';
             } else {
-                groupTienKhach.style.display = 'none';
-                elTienKhach.value = '';
-                elTienTraLai.style.display = 'none';
+                tienKhachDuaGroup.style.display = 'none';
+                tienKhachDuaInput.value = '';
+                tienTraLaiDiv.style.display = 'none';
             }
             tinhToan();
         });
     });
 
-    // 5. Xử lý Submit Form (Logic PayOS)
-    const form = document.getElementById('thanhToanForm');
-    if(form){
-        form.addEventListener('submit', function(e){
-            // Kiểm tra số tiền
-            const amountCheck = parseFloat(elHiddenTien ? elHiddenTien.value : 0);
-            
-            if(document.getElementById('payos').checked){
-                if (amountCheck <= 0) {
-                    e.preventDefault();
-                    alert('Số tiền thanh toán phải lớn hơn 0đ mới tạo được mã QR!');
-                    return;
-                }
-                e.preventDefault();
-                // Đổi action sang route PayOS
-                this.action = '{{ route("nhanVien.thanh-toan.payos.payment", $ban->id) }}';
-                this.submit();
-            }
-        });
-    }
+    // Events tính toán
+    tienKhachDuaInput.addEventListener('input', tinhToan);
+    voucherSelect.addEventListener('change', tinhToan);
+    phuThuInput.addEventListener('input', tinhToan);
 
-    // Chạy tính toán lần đầu khi load trang
+    // 4. Hàm tính toán trung tâm
+    function tinhToan() {
+        let tongTien = tongTienOrder;
+        
+        // Cập nhật lại tổng tiền từ DOM nếu có thay đổi
+        const tongTienTuBangElement = document.getElementById('tongTienTuBang');
+        if (tongTienTuBangElement) {
+            const tongTienFromData = tongTienTuBangElement.getAttribute('data-tong-tien');
+            if (tongTienFromData) tongTien = parseFloat(tongTienFromData);
+        }
+        
+        let tienGiam = 0;
+        let phuThu = parseFloat(phuThuInput.value) || 0;
+        
+        // Tính Voucher
+        const selectedVoucher = voucherSelect.options[voucherSelect.selectedIndex];
+        if (selectedVoucher && selectedVoucher.value) {
+            const loaiGiam = selectedVoucher.getAttribute('data-loai');
+            const giaTri = parseFloat(selectedVoucher.getAttribute('data-gia-tri')) || 0;
+            const giaTriToiDa = parseFloat(selectedVoucher.getAttribute('data-gia-tri-toi-da')) || null;
+            
+            if (loaiGiam === 'phan_tram') {
+                tienGiam = tongTien * (giaTri / 100);
+                if (giaTriToiDa && tienGiam > giaTriToiDa) {
+                    tienGiam = giaTriToiDa;
+                }
+            } else {
+                tienGiam = giaTri;
+            }
+            
+            if (tienGiam > tongTien) tienGiam = tongTien;
+            
+            if (tienGiam > 0) {
+                document.getElementById('tienGiamRow').style.display = 'flex';
+                document.getElementById('tienGiam').textContent = '- ' + tienGiam.toLocaleString('vi-VN') + ' đ';
+            } else {
+                document.getElementById('tienGiamRow').style.display = 'none';
+            }
+        } else {
+            document.getElementById('tienGiamRow').style.display = 'none';
+        }
+        
+        // Tổng tiền sau voucher
+        const tongTienSauVoucher = tongTien - tienGiam;
+        if (selectedVoucher && selectedVoucher.value) {
+            document.getElementById('tongTienSauVoucherRow').style.display = 'flex';
+            document.getElementById('tongTienSauVoucher').textContent = tongTienSauVoucher.toLocaleString('vi-VN') + ' đ';
+        } else {
+            document.getElementById('tongTienSauVoucherRow').style.display = 'none';
+        }
+        
+        // Tổng phụ thu
+        const phuThuTotal = phuThuTuDong + phuThu;
+        if (phuThuTotal > 0) {
+            document.getElementById('phuThuRow').style.display = 'flex';
+            document.getElementById('phuThu').textContent = '+ ' + phuThuTotal.toLocaleString('vi-VN') + ' đ';
+        } else {
+            document.getElementById('phuThuRow').style.display = 'none';
+        }
+        
+        // Phải thanh toán
+        let phaiThanhToan = tongTienSauVoucher - tienCoc + phuThuTotal;
+        if (phaiThanhToan < 0) phaiThanhToan = 0;
+        
+        document.getElementById('phaiThanhToan').textContent = phaiThanhToan.toLocaleString('vi-VN') + ' đ';
+        
+        // Tiền thừa trả khách
+        if (document.getElementById('tien_mat').checked) {
+            const tienKhachDua = parseFloat(tienKhachDuaInput.value) || 0;
+            if (tienKhachDua > 0) {
+                const tienTraLai = tienKhachDua - phaiThanhToan;
+                tienTraLaiDiv.style.display = 'block';
+                if (tienTraLai >= 0) {
+                    tienTraLaiDiv.className = 'mt-2 text-success fw-bold';
+                    tienTraLaiDiv.textContent = 'Tiền trả lại: ' + tienTraLai.toLocaleString('vi-VN') + ' đ';
+                } else {
+                    tienTraLaiDiv.className = 'mt-2 text-danger fw-bold';
+                    tienTraLaiDiv.textContent = 'Thiếu: ' + Math.abs(tienTraLai).toLocaleString('vi-VN') + ' đ';
+                }
+            } else {
+                tienTraLaiDiv.style.display = 'none';
+            }
+        }
+    }
+    
     tinhToan();
 
-
-
+    // 5. Xử lý Submit Form (Cập nhật cho cả VNPay và PayOS)
     document.getElementById('thanhToanForm').addEventListener('submit', function(e){
         const vnpayRadio = document.getElementById('vnpay');
-        if(vnpayRadio.checked){
+        const payosRadio = document.getElementById('payos'); // Đã thêm ID payos
+
+        // Kiểm tra nếu chọn thanh toán online (VNPay hoặc PayOS)
+        if(vnpayRadio.checked || (payosRadio && payosRadio.checked)){
             e.preventDefault();
             
-            // Lấy tổng tiền từ element
-            let tongTien = 0;
+            // Lấy lại các giá trị hiện tại
+            let tongTien = tongTienOrder;
             const tongTienTuBangElement = document.getElementById('tongTienTuBang');
             if (tongTienTuBangElement) {
                 const tongTienFromData = tongTienTuBangElement.getAttribute('data-tong-tien');
-                if (tongTienFromData) {
-                    tongTien = parseFloat(tongTienFromData);
-                }
+                if (tongTienFromData) tongTien = parseFloat(tongTienFromData);
             }
             
-            // Lấy tổng tiền sau voucher nếu có
-            const tongTienSauVoucherElement = document.getElementById('tongTienSauVoucher');
-            if (tongTienSauVoucherElement && tongTienSauVoucherElement.textContent.trim() !== '0 đ') {
-                const tongTienSauVoucherText = tongTienSauVoucherElement.textContent.replace(/[^\d]/g, '');
-                if (tongTienSauVoucherText && tongTienSauVoucherText.length > 0) {
-                    tongTien = parseInt(tongTienSauVoucherText);
-                }
-            }
-            
-            // Lấy tiền cọc
-            const tienCoc = parseFloat(document.getElementById('tienCoc')?.value || 0);
-            
-            // Tính phải thanh toán
             const phaiThanhToanElement = document.getElementById('phaiThanhToan');
-            let phaiThanhToan = tongTien - tienCoc;
+            let amountToPay = tongTien;
+            
             if (phaiThanhToanElement) {
-                const phaiThanhToanText = phaiThanhToanElement.textContent.replace(/[^\d]/g, '');
-                if (phaiThanhToanText && phaiThanhToanText.length > 0) {
-                    phaiThanhToan = parseInt(phaiThanhToanText);
-                }
+                const textVal = phaiThanhToanElement.textContent.replace(/[^\d]/g, '');
+                if(textVal) amountToPay = parseInt(textVal);
+            } else {
+                amountToPay = tongTien - tienCoc; 
             }
             
-            // Thêm input hidden cho tổng tiền
             let tongTienInput = document.getElementById('tong_tien_hidden');
             if (!tongTienInput) {
                 tongTienInput = document.createElement('input');
@@ -907,37 +755,38 @@ $tongTienThucTe = $tongTienCombo + $tongTienMon;
                 tongTienInput.id = 'tong_tien_hidden';
                 this.appendChild(tongTienInput);
             }
-            tongTienInput.value = phaiThanhToan > 0 ? phaiThanhToan : tongTien;
             
-            // Gửi form qua route VNPay
-            this.action = '{{ route("nhanVien.thanh-toan.vnpay.payment", $ban->id) }}';
+            tongTienInput.value = amountToPay > 0 ? amountToPay : 0;
+            
+            // Điều hướng dựa trên phương thức thanh toán
+            if (vnpayRadio.checked) {
+                this.action = '{{ route("nhanVien.thanh-toan.vnpay.payment", $ban->id) }}';
+            } else if (payosRadio && payosRadio.checked) {
+                // Route PayOS đã có trong Controller (createPayOSPayment)
+                this.action = '{{ route("nhanVien.thanh-toan.payos.create", $ban->id) }}';
+            }
+
             this.submit();
         }
     });
 
-
 });
 
-// Function xử lý thanh toán sau
 function xacNhanThanhToanSau() {
     if (confirm('Bạn có chắc muốn tạo hóa đơn với trạng thái "Chưa thanh toán"? Hóa đơn sẽ được lưu và có thể thanh toán sau.')) {
-        // Tạo form mới để submit
         const form = document.getElementById('thanhToanForm');
         const formData = new FormData(form);
         
-        // Tạo form mới để gửi đến route thanh toán sau
         const newForm = document.createElement('form');
         newForm.method = 'POST';
         newForm.action = '{{ route("nhanVien.thanh-toan.luu-ban-sau", $ban->id) }}';
         
-        // Thêm CSRF token
         const csrfInput = document.createElement('input');
         csrfInput.type = 'hidden';
         csrfInput.name = '_token';
         csrfInput.value = '{{ csrf_token() }}';
         newForm.appendChild(csrfInput);
         
-        // Thêm voucher_id nếu có
         const voucherId = formData.get('voucher_id');
         if (voucherId) {
             const voucherInput = document.createElement('input');
@@ -956,7 +805,7 @@ function xacNhanThanhToanSau() {
 <style>
     .payment-method-card {
         cursor: pointer;
-        transition: 0.3s;
+        transition: all 0.3s;
     }
 
     .payment-method-card:hover {
