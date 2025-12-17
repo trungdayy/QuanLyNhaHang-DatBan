@@ -314,6 +314,9 @@
                         <i class="fa fa-home fa-3x"></i><span>Client</span>
                     </a>
                     <a href="{{ route('nhanVien.ban-an.index') }}" target="_blank" class="dashboard-card card-nv">
+                        <i class="fa fa-user-circle fa-3x"></i><span>Lễ tân</span>
+                    </a>
+                    <a href="{{ route('nhanVien.order.index') }}" target="_blank" class="dashboard-card card-lt">
                         <i class="fa fa-user fa-3x"></i><span>Nhân viên</span>
                     </a>
                     <a href="{{ route('bep.dashboard') }}" target="_blank" class="dashboard-card card-bep">
