@@ -213,7 +213,7 @@
 </div>
 {{-- About End --}}
 
-{{-- MENU COMBO --}}
+{{-- MENU COMBO ĐÃ CHỈNH SỬA --}}
 @if (isset($combos) && $combos->count() > 0)
 <div class="container-xxl py-5">
     <div class="container">
@@ -222,74 +222,58 @@
             <h1 class="mb-5">Các Gói Buffet Đặc Biệt</h1>
         </div>
         
-        <div class="tab-class text-center wow fadeInUp" data-wow-delay="0.1s">
-            @php $groupedCombos = $combos->groupBy('loai_combo'); @endphp
+        <div class="wow fadeInUp" data-wow-delay="0.1s">
+            {{-- LOẠI BỎ PHẦN TABS HEADER (ul.nav.nav-pills) --}}
 
-            {{-- TABS HEADER --}}
-            <ul class="nav nav-pills d-inline-flex justify-content-center border-bottom mb-5">
-                @foreach ($groupedCombos as $type => $typeCombos)
-                    <li class="nav-item">
-                        <a class="d-flex align-items-center text-start mx-3 ms-0 pb-3 {{ $loop->first ? 'active' : '' }}"
-                           data-bs-toggle="pill" href="#tab-combo-{{ $type }}">
-                            <i class="fa fa-utensils fa-2x text-primary"></i>
-                            <div class="ps-3">
-                                <small class="text-body">Gói</small>
-                                <h6 class="mt-n1 mb-0">{{ strtoupper($type) }}</h6>
-                            </div>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-
-            {{-- TABS CONTENT --}}
+            {{-- HIỂN THỊ TẤT CẢ COMBO TRONG MỘT KHỐI NỘI DUNG --}}
             <div class="tab-content">
-                @foreach ($groupedCombos as $type => $typeCombos)
-                    <div id="tab-combo-{{ $type }}" class="tab-pane fade show p-0 {{ $loop->first ? 'active' : '' }}">
-                        <div class="row g-4">
-                            @foreach($typeCombos as $combo)
-                                @php
-                                    $imagePath = $combo->anh;
-                                    if ($imagePath && !str_starts_with($imagePath, 'uploads/')) {
-                                        $imagePath = 'uploads/' . $imagePath;
-                                    }
-                                    $imageUrl = $combo->anh ? asset($imagePath) : asset('assets/img/menu-1.jpg');
-                                @endphp
+                {{-- Chỉ cần một div duy nhất để chứa tất cả combo, có thể thêm class 'active' nếu cần --}}
+                <div id="tab-combo-all" class="tab-pane fade show p-0 active"> 
+                    <div class="row g-4 justify-content-center"> {{-- Thêm justify-content-center nếu muốn căn giữa --}}
+                        {{-- LẶP QUA TẤT CẢ CÁC COMBO --}}
+                        @foreach($combos as $combo)
+                            @php
+                                $imagePath = $combo->anh;
+                                if ($imagePath && !str_starts_with($imagePath, 'uploads/')) {
+                                    $imagePath = 'uploads/' . $imagePath;
+                                }
+                                $imageUrl = $combo->anh ? asset($imagePath) : asset('assets/img/menu-1.jpg');
+                            @endphp
 
-                                <div class="col-lg-6">
-                                    {{-- ITEM CARD --}}
-                                    <div class="d-flex align-items-center product-card-trigger rounded p-3 bg-white shadow-sm h-100"
-                                         data-key="combo_{{ $combo->id }}" 
-                                         data-type="combo" 
-                                         data-name="{{ $combo->ten_combo }}"
-                                         data-price="{{ $combo->gia_co_ban }}" 
-                                         data-desc="{{ $combo->mo_ta }}"
-                                         data-img="{{ $imageUrl }}"
-                                         data-dishes="{{ json_encode($combo->danhSachMon ? $combo->danhSachMon->pluck('ten_mon') : []) }}">
+                            <div class="col-lg-6">
+                                {{-- ITEM CARD --}}
+                                <div class="d-flex align-items-center product-card-trigger rounded p-3 bg-white shadow-sm h-100"
+                                     data-key="combo_{{ $combo->id }}" 
+                                     data-type="combo" 
+                                     data-name="{{ $combo->ten_combo }}"
+                                     data-price="{{ $combo->gia_co_ban }}" 
+                                     data-desc="{{ $combo->mo_ta }}"
+                                     data-img="{{ $imageUrl }}"
+                                     data-dishes="{{ json_encode($combo->danhSachMon ? $combo->danhSachMon->pluck('ten_mon') : []) }}">
+                                
+                                    {{-- Ảnh --}}
+                                    <img class="flex-shrink-0 img-fluid rounded" src="{{ $imageUrl }}" alt="{{ $combo->ten_combo }}" style="width: 100px; height: 100px; object-fit: cover;">
                                     
-                                        {{-- Ảnh --}}
-                                        <img class="flex-shrink-0 img-fluid rounded" src="{{ $imageUrl }}" alt="{{ $combo->ten_combo }}" style="width: 100px; height: 100px; object-fit: cover;">
+                                    {{-- Thông tin --}}
+                                    <div class="w-100 d-flex flex-column text-start ps-4">
+                                        <h5 class="d-flex justify-content-between border-bottom pb-2">
+                                            <span>{{ $combo->ten_combo }}</span>
+                                            <span class="text-primary">{{ number_format($combo->gia_co_ban, 0, ',', '.') }} đ</span>
+                                        </h5>
+                                        <small class="fst-italic text-muted mb-2"><i class="fa fa-clock me-1"></i> Không giới hạn</small>
+                                        <small class="fst-italic text-secondary line-clamp-2">{{ \Illuminate\Support\Str::limit($combo->mo_ta, 60) }}</small>
                                         
-                                        {{-- Thông tin --}}
-                                        <div class="w-100 d-flex flex-column text-start ps-4">
-                                            <h5 class="d-flex justify-content-between border-bottom pb-2">
-                                                <span>{{ $combo->ten_combo }}</span>
-                                                <span class="text-primary">{{ number_format($combo->gia_co_ban, 0, ',', '.') }} đ</span>
-                                            </h5>
-                                            <small class="fst-italic text-muted mb-2"><i class="fa fa-clock me-1"></i> Không giới hạn</small>
-                                            <small class="fst-italic text-secondary line-clamp-2">{{ \Illuminate\Support\Str::limit($combo->mo_ta, 60) }}</small>
-                                            
-                                            <div class="mt-auto pt-2">
-                                                <button class="btn btn-sm btn-outline-warning fw-bold rounded-pill px-3">
-                                                    <i class="fa fa-eye me-1"></i> Xem chi tiết
-                                                </button>
-                                            </div>
+                                        <div class="mt-auto pt-2">
+                                            <button class="btn btn-sm btn-outline-warning fw-bold rounded-pill px-3">
+                                                <i class="fa fa-eye me-1"></i> Xem chi tiết
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
-                        </div>
+                            </div>
+                        @endforeach
                     </div>
-                @endforeach
+                </div>
             </div>
         </div>
     </div>
