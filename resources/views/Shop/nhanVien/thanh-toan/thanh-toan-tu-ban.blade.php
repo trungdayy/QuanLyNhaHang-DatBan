@@ -260,16 +260,18 @@
                                                     $tongSoLuong = $monAnGroup->sum('so_luong');
                                                     $soLuongDaLen = 0;
                                                     $soLuongDangCheBien = 0;
+                                                    $soLuongChoCungUng = 0;
                                                     $soLuongHuy = 0;
 
                                                     foreach($monAnGroup as $ct) {
                                                     if($ct->trang_thai == 'da_len_mon') $soLuongDaLen += $ct->so_luong;
                                                     elseif($ct->trang_thai == 'dang_che_bien') $soLuongDangCheBien +=
                                                     $ct->so_luong;
+                                                    elseif($ct->trang_thai == 'cho_cung_ung') $soLuongChoCungUng += $ct->so_luong;
                                                     elseif($ct->trang_thai == 'huy_mon') $soLuongHuy += $ct->so_luong;
                                                     }
 
-                                                    if($soLuongDaLen == 0 && $soLuongDangCheBien == 0) continue;
+                                                    if($soLuongDaLen == 0 && $soLuongDangCheBien == 0 && $soLuongChoCungUng == 0) continue;
 
                                                     $coTrongCombo = false;
                                                     foreach($datBan->chiTietDatBan as $chiTiet) {
@@ -294,7 +296,8 @@
                                                     } else {
                                                     $tienMonDaLen = $donGiaGoc * $soLuongDaLen;
                                                     $tienMonDangCheBien = $donGiaGoc * $soLuongDangCheBien;
-                                                    $tienMon = $tienMonDaLen + $tienMonDangCheBien;
+                                                    $tienMonChoCungUng = $donGiaGoc * $soLuongChoCungUng;
+                                                    $tienMon = $tienMonDaLen + $tienMonDangCheBien + $tienMonChoCungUng;
 
                                                     $soLuongKhongHuy = $tongSoLuong - $soLuongHuy;
                                                     if($soLuongKhongHuy > 0) {
@@ -326,6 +329,9 @@
                                                                 @if($soLuongDangCheBien > 0) <span
                                                                     class="badge bg-warning text-dark">Đang nấu:
                                                                     {{ $soLuongDangCheBien }}</span> @endif
+                                                                @if($soLuongChoCungUng > 0) <span
+                                                                    class="badge bg-info text-white">Chờ cung ứng:
+                                                                    {{ $soLuongChoCungUng }}</span> @endif
                                                                 @if($soLuongHuy > 0) <span class="badge bg-danger">Đã
                                                                     hủy: {{ $soLuongHuy }}</span> @endif
                                                             </div>
