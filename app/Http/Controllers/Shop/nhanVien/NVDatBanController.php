@@ -234,10 +234,14 @@ public function ajaxCheckBanTrong(Request $request)
             'ban_id' => [
                 'required',
                 'exists:ban_an,id',
-                // Cho phép chọn bàn đang 'trong' (bao gồm cả bàn limited)
+                // Chỉ cho phép chọn bàn đang 'trong' trong database
+                // (Logic kiểm tra xung đột lịch chi tiết sẽ được xử lý ở bước sau)
                 Rule::exists('ban_an', 'id')->where('trang_thai', 'trong'),
             ],
             'gio_den' => 'required|date',
+        ], [
+            'ban_id.required' => 'Vui lòng chọn bàn.',
+            'ban_id.exists' => 'Bàn được chọn không tồn tại hoặc không còn trống.',
         ]);
 
         $tongKhach = $request->nguoi_lon + $request->tre_em;
