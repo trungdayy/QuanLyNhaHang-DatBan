@@ -244,7 +244,7 @@
         return nguoiLon + treEm;
     }
 
-    // Hàm tự động cập nhật số lượng combo tối thiểu
+    // Hàm tự động cập nhật số lượng combo tối thiểu (CHỈ KHI NGƯỜI DÙNG ĐÃ CHỌN COMBO)
     function autoUpdateComboQuantity() {
         let tongKhach = getTongKhach();
         if (tongKhach < 1) return; // Không có khách thì không làm gì
@@ -259,8 +259,9 @@
                 let input = item.querySelector('.input-qty');
                 if (input) {
                     let currentVal = parseInt(input.value) || 0;
-                    // Nếu số lượng hiện tại < tổng khách, tự động tăng lên
-                    if (currentVal < tongKhach) {
+                    // CHỈ tự động tăng nếu người dùng ĐÃ CHỌN combo (số lượng > 0)
+                    // Tránh tự động set combo khi người dùng chưa chọn
+                    if (currentVal > 0 && currentVal < tongKhach) {
                         input.value = tongKhach;
                     }
                 }
@@ -312,13 +313,8 @@
                     }
                 });
 
-                // Bước 4: Tự động đặt số lượng tối thiểu cho combo đầu tiên (nếu có khách)
-                if (firstVisibleCombo && tongKhach > 0) {
-                    let input = firstVisibleCombo.querySelector('.input-qty');
-                    if (input) {
-                        input.value = tongKhach;
-                    }
-                }
+                // Bước 4: KHÔNG tự động đặt số lượng - để người dùng tự chọn
+                // (Đã bỏ logic tự động set để tránh thêm combo không mong muốn vào cart)
             }
         });
     }
@@ -532,10 +528,13 @@
                     let qty = parseInt(input.value) || 0;
                     let key = input.getAttribute('data-combo-key');
                     
+                    // CHỈ thêm combo vào cart nếu số lượng > 0
+                    // (Đảm bảo chỉ thêm combo mà người dùng thực sự chọn)
                     if (qty > 0) {
                         cartItems.push({ key: key, quantity: qty });
                     }
                 });
+                // Luôn set cart_data, kể cả khi rỗng (để tránh lỗi)
                 document.getElementById('cart_data').value = JSON.stringify(cartItems);
             });
         }

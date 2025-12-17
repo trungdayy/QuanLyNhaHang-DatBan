@@ -374,14 +374,26 @@ public function ajaxCheckBanTrong(Request $request)
      */
     private function syncBookingDetails($datBan, $cartJson)
     {
-        if (empty($cartJson)) return;
+        // Kiểm tra cartJson có rỗng hoặc null không
+        if (empty($cartJson) || trim($cartJson) === '' || trim($cartJson) === '[]') {
+            return; // Không có combo/món nào được chọn
+        }
 
         $cartItems = json_decode($cartJson, true);
-        if (!is_array($cartItems)) return;
+        
+        // Kiểm tra decode có thành công và là mảng không
+        if (!is_array($cartItems) || empty($cartItems)) {
+            return; // Không có item nào trong cart
+        }
 
         foreach ($cartItems as $item) {
             $key = $item['key'] ?? '';
-            $qty = $item['quantity'] ?? 1;
+            $qty = (int)($item['quantity'] ?? 0);
+            
+            // Chỉ lưu nếu số lượng > 0
+            if ($qty <= 0) {
+                continue;
+            }
 
             if (Str::startsWith($key, 'combo_')) {
                 ChiTietDatBan::create([
