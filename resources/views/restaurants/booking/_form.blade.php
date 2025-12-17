@@ -120,6 +120,7 @@
             <div class="form-floating">
                 <input type="date" name="booking_date" class="form-control" id="bookingDate"
                     value="{{ old('booking_date', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('Y-m-d') : now()->format('Y-m-d')) }}"
+                    min="{{ date('Y-m-d') }}"
                     required>
                 <label for="bookingDate"><i class="fa fa-calendar-alt"></i>Ngày đến</label>
             </div>
