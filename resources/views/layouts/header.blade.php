@@ -9,20 +9,19 @@
         <div class="navbar-nav ms-auto py-0 pe-4">
 
             <a href="{{ route('home') }}" class="nav-item nav-link {{ Route::is('home') ? 'active' : '' }}">
-                Home
+                TRANG CHỦ
             </a>
             <a href="{{ route('about') }}" class="nav-item nav-link {{ Route::is('about') ? 'active' : '' }}">
-                About
+                GIỚI THIỆU
             </a>
             <a href="{{ route('service') }}" class="nav-item nav-link {{ Route::is('service') ? 'active' : '' }}">
-                Service
+                DỊCH VỤ
             </a>
-            <a href="{{ route('combos.index') }}"
-                class="nav-item nav-link {{ Route::is('combos.index') || Route::is('combos.*') ? 'active' : '' }}">
-                Combo Buffet
+            <a href="{{ route('menu') }}" class="nav-item nav-link {{ Route::is('menu') ? 'active' : '' }}">
+                THỰC ĐƠN
             </a>
             <a href="{{ route('contact') }}" class="nav-item nav-link {{ Route::is('contact') ? 'active' : '' }}">
-                Contact
+                LIÊN HỆ
             </a>
 
         </div>

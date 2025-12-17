@@ -19,7 +19,7 @@ class NhanVienBanAnController extends Controller
     {
         $autoCancelAfter = 30; // phút
 
-        // 1. Huỷ các đơn quá hạn (Logic cũ giữ nguyên)
+        // 1. Huỷ các đơn quá hạn
         $donQuahan = DatBan::where('trang_thai', 'da_xac_nhan')
             ->get()
             ->filter(function($don) use ($autoCancelAfter) {
@@ -40,27 +40,36 @@ class NhanVienBanAnController extends Controller
         // 2. Lấy khu vực + bàn
         $khuVucs = \App\Models\KhuVuc::with('banAns')->get();
 
-        // 3. Lấy danh sách đơn
+        // 3. Lấy danh sách đơn (LOGIC MỚI: THEO CA LÀM VIỆC)
         $now = Carbon::now();
         
-        // --- SỬA LOGIC THỜI GIAN: Trước và Sau 30 phút ---
-        $timeStart = $now->copy()->subMinutes(30); // Thời điểm hiện tại lùi lại 30p
-        $timeEnd = $now->copy()->addMinutes(30);   // Thời điểm hiện tại cộng thêm 30p
+        // Tự động xác định Ca Trưa hay Ca Tối dựa trên giờ hiện tại (mốc 16:00)
+        if ($now->hour < 16) {
+            // CA TRƯA: Lấy từ đầu ngày đến 16:00
+            // (Mặc dù ca là 10:30-14:00 nhưng lấy rộng ra để không sót đơn sớm/muộn)
+            $timeStart = $now->copy()->startOfDay(); 
+            $timeEnd   = $now->copy()->setHour(16)->setMinute(0)->setSecond(0);
+        } else {
+            // CA TỐI: Lấy từ 16:00 đến hết ngày
+            // (Ca tối thường bắt đầu đón khách từ 17:00 nhưng nhân viên cần xem trước từ 16:00)
+            $timeStart = $now->copy()->setHour(16)->setMinute(0)->setSecond(0);
+            $timeEnd   = $now->copy()->endOfDay();
+        }
 
         $datBansQuery = DatBan::with(['banAn', 'nhanVien']) 
-            ->where(function ($q) use ($timeStart, $timeEnd, $now) {
-                // Đơn đã xác nhận: nằm trong khoảng [Now - 30p, Now + 30p]
+            ->where(function ($q) use ($timeStart, $timeEnd) {
+                // Lấy các đơn 'đã xác nhận' nằm trong khung giờ của Ca đó
                 $q->where('trang_thai', 'da_xac_nhan')
-                    ->whereBetween('gio_den', [$timeStart, $timeEnd]);
+                  ->whereBetween('gio_den', [$timeStart, $timeEnd]);
             })
-            ->orWhere(function ($q) use ($now) {
-                // Đơn khách đã đến: vẫn giữ logic cũ (hiển thị để biết ai đang ngồi)
+            ->orWhere(function ($q) use ($timeStart, $timeEnd) {
+                // Lấy thêm cả các đơn 'đang ăn' (khach_da_den) thuộc ca đó 
+                // để nhân viên theo dõi được tình hình thực tế
                 $q->where('trang_thai', 'khach_da_den')
-                    ->where('gio_den', '<=', $now);
+                  ->whereBetween('gio_den', [$timeStart, $timeEnd]);
             })
-            ->orderBy('gio_den', 'asc');
+            ->orderBy('gio_den', 'asc'); // Sắp xếp đơn đến trước lên đầu
 
-        // Nếu có search
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $datBansQuery->where(function($q) use ($search) {
@@ -88,131 +97,174 @@ class NhanVienBanAnController extends Controller
             }
         }
 
-        // 5. LOGIC CHO MODAL CHECK-IN
+        // 5. LOGIC CHO MODAL CHECK-IN (Tái sử dụng logic hiển thị)
         $checkInBooking = null;
-        $banTrongsSorted = null;
+        $banTrongsSorted = collect(); 
         $tongKhachCheckIn = 0;
 
         if ($request->has('checkin_id')) {
             $checkInBooking = DatBan::find($request->checkin_id);
-            
             if ($checkInBooking) {
-                $tongKhachCheckIn = ($checkInBooking->nguoi_lon ?? 0) + ($checkInBooking->tre_em ?? 0);
-                if ($tongKhachCheckIn == 0 && isset($checkInBooking->so_khach)) $tongKhachCheckIn = $checkInBooking->so_khach;
-                if ($tongKhachCheckIn == 0) $tongKhachCheckIn = 1;
-
-                $banTrongs = \App\Models\BanAn::with('khuVuc')->where('trang_thai', 'trong')->get();
-                
-                $banTrongsSorted = $banTrongs->sortBy(function ($ban) use ($tongKhachCheckIn) {
-                    if ($ban->so_ghe >= $tongKhachCheckIn) {
-                        return $ban->so_ghe;
-                    } else {
-                        return 1000 + $ban->so_ghe;
-                    }
-                });
+                // Gọi hàm nội bộ để lấy danh sách bàn phù hợp
+                $result = $this->getSuitableTables($checkInBooking);
+                $banTrongsSorted = $result['tables'];
+                $tongKhachCheckIn = $result['tongKhach'];
             }
         }
 
         return view('shop.nhanVien.ban_khuvuc', compact('khuVucs', 'datBans', 'checkInBooking', 'banTrongsSorted', 'tongKhachCheckIn'));
     }
  
-   // --- Hiển thị form chọn bàn (Giữ nguyên) ---
-   public function showCheckInForm($id)
-   {
-       $datBan = DatBan::findOrFail($id);
-       
-       $tongKhach = ($datBan->nguoi_lon ?? 0) + ($datBan->tre_em ?? 0);
-       if ($tongKhach == 0 && isset($datBan->so_khach)) $tongKhach = $datBan->so_khach;
-       if ($tongKhach == 0) $tongKhach = 1;
+    /**
+     * Hiển thị form chọn bàn (Trang riêng)
+     */
+    public function showCheckInForm($id)
+    {
+        $datBan = DatBan::findOrFail($id);
+        
+        // Gọi hàm logic tìm bàn
+        $result = $this->getSuitableTables($datBan);
+        
+        $banTrongsSorted = $result['tables'];
+        $tongKhach = $result['tongKhach'];
 
-       $banTrongs = BanAn::with('khuVuc')->where('trang_thai', 'trong')->get();
-
-       $banTrongsSorted = $banTrongs->sortBy(function ($ban) use ($tongKhach) {
-           if ($ban->so_ghe >= $tongKhach) {
-               return $ban->so_ghe; 
-           } else {
-               return 1000 + $ban->so_ghe;
-           }
-       });
-
-       return view('shop.nhanVien.checkin_confirm', compact('datBan', 'banTrongsSorted', 'tongKhach'));
-   }
-
-   // --- SỬA: Xử lý Check-in với Logic phân công ngẫu nhiên người ít việc nhất ---
-   public function processCheckIn(Request $request)
-   {
-       $request->validate([
-           'dat_ban_id' => 'required|exists:dat_ban,id',
-           'ban_id'     => 'required|exists:ban_an,id',
-       ]);
-
-       $datBan = DatBan::findOrFail($request->dat_ban_id);
-       $banMoi = BanAn::with('khuVuc')->findOrFail($request->ban_id);
-
-       if ($banMoi->trang_thai !== 'trong') {
-           return redirect()->route('nhanVien.ban-an.index')
-               ->with('error', 'Bàn ' . $banMoi->so_ban . ' vừa có người nhận rồi!');
-       }
-
-       // 1. Xử lý bàn cũ (nếu có)
-       if ($datBan->ban_id && $datBan->ban_id != $banMoi->id) {
-           BanAn::where('id', $datBan->ban_id)->update(['trang_thai' => 'trong']);
-       }
-
-       // ====================================================
-       // === LOGIC PHÂN CÔNG: NGẪU NHIÊN NGƯỜI ÍT BÀN NHẤT ===
-       // ====================================================
-       
-       // Lấy danh sách phục vụ đang đi làm + đếm số đơn đang phục vụ (khach_da_den)
-       $phucVuList = \App\Models\NhanVien::where('vai_tro', 'phuc_vu')
-           ->where('trang_thai', 1)
-           ->withCount(['datBans' => function($q) {
-               $q->where('trang_thai', 'khach_da_den');
-           }])
-           ->get();
-
-       $assignedNhanVien = null;
-       $messsageBonus = "";
-
-       if ($phucVuList->isEmpty()) {
-           // Không có nhân viên phục vụ nào -> Gán cho người đang login
-           $datBan->nhan_vien_id = Auth::id();
-           $messsageBonus = "Không tìm thấy NV Phục vụ. Gán cho bạn.";
-       } else {
-           // Tìm số bàn ít nhất hiện tại (ví dụ: min là 0, hoặc 1, hoặc 5...)
-           $minBan = $phucVuList->min('dat_bans_count');
-
-           // Lọc ra danh sách các nhân viên đang có số bàn = min
-           $ungVienTiemNang = $phucVuList->where('dat_bans_count', $minBan);
-
-           // Chọn ngẫu nhiên 1 người trong số những người ít việc nhất
-           if ($ungVienTiemNang->isNotEmpty()) {
-               $assignedNhanVien = $ungVienTiemNang->random();
-               
-               $datBan->nhan_vien_id = $assignedNhanVien->id;
-               $messsageBonus = "Đã phân công: " . $assignedNhanVien->ho_ten . " (Đang phục vụ: " . $minBan . " bàn)";
-           } else {
-               // Fallback an toàn (hiếm khi xảy ra)
-               $datBan->nhan_vien_id = Auth::id();
-           }
-       }
-       // ====================================================
-
-       // 2. Update dữ liệu
-       $datBan->ban_id = $banMoi->id;
-       $datBan->trang_thai = 'khach_da_den';
-       $datBan->gio_den = Carbon::now();
-       $datBan->save();
-
-       $banMoi->update(['trang_thai' => 'dang_phuc_vu']);
-
-       return redirect()->route('nhanVien.ban-an.index')
-           ->with('success', "Check-in bàn {$banMoi->so_ban}. $messsageBonus");
-   }
+        return view('shop.nhanVien.checkin_confirm', compact('datBan', 'banTrongsSorted', 'tongKhach'));
+    }
 
     /**
-     * Reset bàn
+     * [MỚI] Hàm tách riêng logic tìm bàn "Best Fit" để dùng chung
      */
+    private function getSuitableTables($datBan)
+    {
+        $tongKhach = ($datBan->nguoi_lon ?? 0) + ($datBan->tre_em ?? 0);
+        if ($tongKhach == 0 && isset($datBan->so_khach)) $tongKhach = $datBan->so_khach;
+        if ($tongKhach == 0) $tongKhach = 1;
+
+        // 1. Lấy tất cả bàn đang TRỐNG (vật lý)
+        $allFreeTables = BanAn::with('khuVuc')->where('trang_thai', 'trong')->get();
+
+        // 2. Phân loại bàn
+        // - Bàn Thường: Không thuộc khu 5 (Kho) và 9 (SOS)
+        // - Bàn Dự Phòng: Thuộc khu 5 hoặc 9
+        $standardTables = $allFreeTables->whereNotIn('khu_vuc_id', [5, 9]);
+        $backupTables   = $allFreeTables->whereIn('khu_vuc_id', [5, 9]);
+
+        $banTrongsSorted = collect();
+
+        // --- CHIẾN THUẬT: TÌM BÀN PHÙ HỢP NHẤT (BEST FIT HIERARCHY) ---
+        
+        // Bước A: Kiểm tra Bàn Thường trước
+        if ($standardTables->isNotEmpty()) {
+            // Lấy danh sách các loại số ghế (VD: [2, 4, 6]) sắp xếp từ bé đến lớn
+            $seatTypes = $standardTables->pluck('so_ghe')->unique()->sort();
+            
+            foreach ($seatTypes as $seats) {
+                // Chỉ quan tâm nếu bàn đủ chỗ ngồi
+                if ($seats >= $tongKhach) {
+                    $tablesOfThisSize = $standardTables->where('so_ghe', $seats);
+                    
+                    if ($tablesOfThisSize->isNotEmpty()) {
+                        // TÌM THẤY! 
+                        // Trả về NGAY các bàn loại này (VD: chỉ trả về bàn 4 ghế nếu bàn 2 ghế đã hết)
+                        // và DỪNG LẠI (không hiển thị bàn to hơn nữa để tránh lãng phí)
+                        $banTrongsSorted = $tablesOfThisSize;
+                        goto finish; // Nhảy xuống bước trả về
+                    }
+                }
+            }
+        }
+
+        // Bước B: Nếu Bàn Thường hết sạch (hoặc ko có bàn nào đủ to), mới check Bàn Dự Phòng
+        if ($banTrongsSorted->isEmpty() && $backupTables->isNotEmpty()) {
+            $seatTypes = $backupTables->pluck('so_ghe')->unique()->sort();
+            
+            foreach ($seatTypes as $seats) {
+                if ($seats >= $tongKhach) {
+                    $tablesOfThisSize = $backupTables->where('so_ghe', $seats);
+                    if ($tablesOfThisSize->isNotEmpty()) {
+                        $banTrongsSorted = $tablesOfThisSize;
+                        goto finish;
+                    }
+                }
+            }
+        }
+
+        // Bước C: Nếu vẫn chưa tìm thấy (VD: Khách 20 người mà bàn to nhất chỉ 10 ghế)
+        // -> Hiển thị tất cả các bàn còn lại (Bàn to lên đầu) để nhân viên tự ghép bàn
+        if ($banTrongsSorted->isEmpty()) {
+             $banTrongsSorted = $allFreeTables->sortByDesc('so_ghe');
+        }
+
+        finish:
+        return ['tables' => $banTrongsSorted, 'tongKhach' => $tongKhach];
+    }
+
+    /**
+     * Xử lý Check-in: Phân công ngẫu nhiên NV ít việc nhất
+     */
+    public function processCheckIn(Request $request)
+    {
+        $request->validate([
+            'dat_ban_id' => 'required|exists:dat_ban,id',
+            'ban_id'     => 'required|exists:ban_an,id',
+        ]);
+
+        $datBan = DatBan::findOrFail($request->dat_ban_id);
+        $banMoi = BanAn::with('khuVuc')->findOrFail($request->ban_id);
+
+        if ($banMoi->trang_thai !== 'trong') {
+            return redirect()->route('nhanVien.ban-an.index')
+                ->with('error', 'Bàn ' . $banMoi->so_ban . ' vừa có người nhận rồi!');
+        }
+
+        // 1. Xử lý bàn cũ (nếu có)
+        if ($datBan->ban_id && $datBan->ban_id != $banMoi->id) {
+            BanAn::where('id', $datBan->ban_id)->update(['trang_thai' => 'trong']);
+        }
+
+        // ====================================================
+        // === LOGIC PHÂN CÔNG: NGẪU NHIÊN NGƯỜI ÍT BÀN NHẤT ===
+        // ====================================================
+        
+        $phucVuList = \App\Models\NhanVien::where('vai_tro', 'phuc_vu')
+            ->where('trang_thai', 1)
+            ->withCount(['datBans' => function($q) {
+                $q->where('trang_thai', 'khach_da_den');
+            }])
+            ->get();
+
+        $assignedNhanVien = null;
+        $messsageBonus = "";
+
+        if ($phucVuList->isEmpty()) {
+            $datBan->nhan_vien_id = Auth::id();
+            $messsageBonus = "Không tìm thấy NV Phục vụ. Gán cho bạn.";
+        } else {
+            $minBan = $phucVuList->min('dat_bans_count');
+            $ungVienTiemNang = $phucVuList->where('dat_bans_count', $minBan);
+
+            if ($ungVienTiemNang->isNotEmpty()) {
+                $assignedNhanVien = $ungVienTiemNang->random();
+                $datBan->nhan_vien_id = $assignedNhanVien->id;
+                $messsageBonus = "Đã phân công: " . $assignedNhanVien->ho_ten . " (Đang phục vụ: " . $minBan . " bàn)";
+            } else {
+                $datBan->nhan_vien_id = Auth::id();
+            }
+        }
+        // ====================================================
+
+        // 2. Update dữ liệu
+        $datBan->ban_id = $banMoi->id;
+        $datBan->trang_thai = 'khach_da_den';
+        $datBan->gio_den = Carbon::now();
+        $datBan->save();
+
+        $banMoi->update(['trang_thai' => 'dang_phuc_vu']);
+
+        return redirect()->route('nhanVien.ban-an.index')
+            ->with('success', "Check-in bàn {$banMoi->so_ban}. $messsageBonus");
+    }
+
     public function resetBan($id)
     {
         $ban = BanAn::findOrFail($id);
@@ -232,5 +284,41 @@ class NhanVienBanAnController extends Controller
         }
 
         return redirect()->back()->with('success', "Bàn {$ban->so_ban} đã được reset về trống!");
+    }
+
+    /**
+     * Cập nhật trạng thái hàng loạt cho TẤT CẢ các bàn
+     * Điều kiện: Chỉ update được những bàn đang 'trong' hoặc 'khong_su_dung'
+     */
+    public function updateBatchStatus(Request $request)
+    {
+        // Nhận dữ liệu là mảng các bàn cần đổi: [{id: 1, status: 'trong'}, {id: 2, status: 'khong_su_dung'}]
+        $request->validate([
+            'changes' => 'required|array',
+            'changes.*.id' => 'required|integer',
+            'changes.*.status' => 'required|in:trong,khong_su_dung',
+        ]);
+
+        try {
+            $count = 0;
+            foreach ($request->changes as $change) {
+                // Chỉ update những bàn đang KHÔNG có khách (để an toàn)
+                $updated = BanAn::where('id', $change['id'])
+                    ->whereIn('trang_thai', ['trong', 'khong_su_dung']) // Chỉ cho phép đổi nếu đang Trống hoặc Bảo trì
+                    ->update(['trang_thai' => $change['status']]);
+                
+                if ($updated) $count++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã cập nhật trạng thái cho {$count} bàn."
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 }

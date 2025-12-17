@@ -114,7 +114,6 @@
                                         <th>Loại món</th>
                                         <th>Giá</th>
                                         <th>Ảnh</th>
-                                        <th>Thời gian</th>
                                         <th>Trạng thái</th>
                                         <th style="width: 120px;">Thao tác</th>
                                     </tr>
@@ -150,7 +149,6 @@
                                                     <span class="text-muted fst-italic">N/A</span>
                                                 @endif
                                             </td>
-                                            <td>{{ $monAn->thoi_gian_che_bien }} phút</td>
                                             <td>
                                                 <span class="badge {{ $monAn->trang_thai_badge }}">
                                                     {{ $monAn->trang_thai_display }}

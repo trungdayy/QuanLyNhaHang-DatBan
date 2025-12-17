@@ -46,7 +46,8 @@ class NhanVienOrderMonController extends Controller
             if ($orders->has($ban->id)) {
                 $ban->trang_thai = 'dang_phuc_vu';
                 $order = $orders[$ban->id];
-                $soKhach = $order->datBan->so_khach ?? 1;
+                $soKhach = ($order->datBan->nguoi_lon ?? 0) + ($order->datBan->tre_em ?? 0);
+                if ($soKhach == 0) $soKhach = 1;
 
                 $soLuongMonTrongCombo = [];
                 if ($order->datBan->combo_id) {
@@ -59,7 +60,7 @@ class NhanVienOrderMonController extends Controller
                 foreach ($order->chiTietOrders as $ct) {
                     if ($ct->loai_mon === 'combo') {
                         $gioiHan = $soLuongMonTrongCombo[$ct->mon_an_id] ?? $ct->so_luong;
-                        $soLuongHienThi = min($soKhach, $gioiHan);
+                        $soLuongHienThi = $ct->so_luong;
                     } else {
                         $soLuongHienThi = $ct->so_luong;
                     }
@@ -119,7 +120,9 @@ class NhanVienOrderMonController extends Controller
         $order = OrderMon::with(['chiTietOrders.monAn', 'datBan'])->findOrFail($orderId);
         $ct = ChiTietOrder::findOrFail($ctId);
 
-        $soKhach = $order->datBan->so_khach ?? 1;
+        $soKhach = ($order->datBan->nguoi_lon ?? 0) + ($order->datBan->tre_em ?? 0);
+        if ($soKhach == 0) $soKhach = 1;
+
         $comboId = $order->datBan->combo_id ?? null;
 
         // Lấy giới hạn số lượng từng món trong combo
@@ -153,7 +156,30 @@ class NhanVienOrderMonController extends Controller
     public function create(Request $request)
     {
         $orderId = $request->query('order_id');
-        $order = OrderMon::with(['banAn', 'datBan.combos'])->findOrFail($orderId);
+        $order = OrderMon::with([
+            'banAn',
+            'datBan.combos.monTrongCombo.monAn',
+            'chiTietOrders.monAn'
+        ])->findOrFail($orderId);
+
+        // ✅ CHỈ SINH MÓN KHI CHƯA CÓ
+        // if ($order->chiTietOrders()->count() == 0) {
+
+        //     foreach ($order->datBan->combos as $combo) {
+
+        //         foreach ($combo->monTrongCombo as $mon) {
+
+        //             ChiTietOrder::create([
+        //                 'order_id' => $orderId,
+        //                 'mon_an_id' => $mon->mon_an_id,
+        //                 'so_luong'  => null,
+        //                 'loai_mon'  => 'combo',
+        //                 'trang_thai' => 'dang_che_bien',
+        //                 'deadline' => now()->addMinutes(15),
+        //             ]);
+        //         }
+        //     }
+        // }
 
         $monAns = MonAn::where('trang_thai', 'con')->get();
 
@@ -179,41 +205,46 @@ class NhanVienOrderMonController extends Controller
     // Xử lý lưu món mới vào database
     public function store(Request $request)
     {
-        $data = $request->all();
+        $orderId = $request->order_id;
+        $items   = $request->items;
 
-        // Nếu gửi theo AJAX
-        if (isset($data['items'])) {
-            foreach ($data['items'] as $item) {
+        foreach ($items as $item) {
+
+            if (($item['so_luong'] ?? 0) <= 0) continue;
+
+            // $existing = ChiTietOrder::where('order_id', $orderId)
+            //     ->where('mon_an_id', $item['mon_an_id'])
+            //     ->where('loai_mon', $item['is_combo'] ? 'combo' : 'goi_them')
+            //     ->first();
+
+            // if ($existing) {
+            //     if ($existing->loai_mon === 'combo') {
+            //         continue;
+            //     }
+
+            //     $existing->so_luong += $item['so_luong'];
+
+            //     if (!empty($item['ghi_chu'])) {
+            //         $existing->ghi_chu = $item['ghi_chu'];
+            //     }
+
+            //     $existing->save();
+            // } else {}
                 ChiTietOrder::create([
-                    'order_id'  => $data['order_id'],
+                    'order_id' => $orderId,
                     'mon_an_id' => $item['mon_an_id'],
-                    'so_luong'  => $item['so_luong'] ?? 1,
-                    'loai_mon'  => ($item['is_combo'] == 1) ? 'combo' : 'goi_them',
+                    'so_luong'  => $item['so_luong'],
                     'ghi_chu'   => $item['ghi_chu'] ?? null,
+                    'loai_mon'  => $item['is_combo'] ? 'combo' : 'goi_them',
                     'trang_thai' => 'cho_bep',
+                    'deadline'  => now()->addMinutes(15),
                 ]);
-            }
-        } else {
-            // Nếu gửi form thường
-            $request->validate([
-                'order_id' => 'required',
-                'mon_an_id' => 'required',
-                'so_luong' => 'required|integer|min:1'
-            ]);
 
-            ChiTietOrder::create([
-                'order_id'  => $request->order_id,
-                'mon_an_id' => $request->mon_an_id,
-                'so_luong'  => $request->so_luong,
-                'loai_mon'  => $request->is_combo == 1 ? 'combo' : 'goi_them',
-                'ghi_chu'   => $request->ghi_chu,
-                'trang_thai' => 'cho_bep',
-            ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã thêm món vào order!'
+            'message' => 'Đã cập nhật số lượng món thành công!'
         ]);
     }
 
@@ -265,32 +296,15 @@ class NhanVienOrderMonController extends Controller
                 ->with('warning', 'Vui lòng chọn combo trước khi vào chi tiết order!');
         }
 
-        // Đồng bộ các món combo vào chiTietOrders nếu chưa có
-        foreach ($datBan->combos as $combo) {
-            foreach ($combo->monTrongCombo as $item) {
-                $exists = $order->chiTietOrders
-                    ->where('mon_an_id', $item->mon_an_id)
-                    ->where('loai_mon', 'combo')
-                    ->first();
-
-                if (!$exists) {
-                    ChiTietOrder::create([
-                        'order_id' => $orderId,
-                        'mon_an_id' => $item->mon_an_id,
-                        'so_luong' => $combo->pivot->so_luong,
-                        'loai_mon' => 'combo',
-                        'trang_thai' => 'cho_bep',
-                    ]);
-                }
-            }
-        }
-
         $order->load('chiTietOrders.monAn');
         $cts = $order->chiTietOrders;
 
         $order->chiTietOrders->each(function ($ct) {
-            $ct->so_luong_hien_thi = $ct->so_luong;
+            $ct->so_luong_hien_thi = $ct->so_luong === null
+                ? 'Chưa chọn'
+                : $ct->so_luong;
         });
+
 
         return view('Shop.nhanVien.order.page', compact('order', 'cts'));
     }
@@ -333,9 +347,24 @@ class NhanVienOrderMonController extends Controller
     {
         $order = OrderMon::with('datBan')->findOrFail($orderId);
 
+        $nguoiLon = $order->datBan->nguoi_lon ?? 0;
+        $treEm = $order->datBan->tre_em ?? 0;
+        $soKhach = $nguoiLon + $treEm;
+
+        if ($soKhach == 0) $soKhach = 1;
+
+        $tongCombo = array_sum($request->combos ?? []);
+        if ($request->has('combos')) {
+            $tongCombo = array_sum($request->combos ?? []);
+        }
+
+        if ($tongCombo < $soKhach) {
+            return redirect()->back()
+                ->with('error', "Số combo không được ít hơn số khách! (Khách: $soKhach, Combo: $tongCombo)");
+        }
+
         $combosInput = [];
 
-        // Lặp qua combos gửi về
         if ($request->has('combos')) {
             foreach ($request->combos as $comboId => $qty) {
                 $qty = (int)$qty;
@@ -349,44 +378,19 @@ class NhanVienOrderMonController extends Controller
             return redirect()->back()->with('warning', 'Vui lòng chọn ít nhất 1 combo!');
         }
 
-        // Sync pivot table
+        // ✅ CHỈ SYNC COMBO
         $order->datBan->combos()->sync($combosInput);
 
-        // Xóa món combo cũ
-        ChiTietOrder::where('order_id', $orderId)
-            ->where('loai_mon', 'combo')
-            ->delete();
-
-        // Thêm món combo mới vào chi_tiet_order
-        $combos = $order->datBan->combos()->with('monTrongCombo')->get();
-        $chiTietToInsert = [];
-        foreach ($combos as $combo) {
-            $soLuongCombo = $combo->pivot->so_luong;
-
-            foreach ($combo->monTrongCombo as $item) {
-                $chiTietToInsert[] = [
-                    'order_id' => $orderId,
-                    'mon_an_id' => $item->mon_an_id,
-                    'so_luong' => $soLuongCombo,
-                    'loai_mon' => 'combo',
-                    'trang_thai' => 'cho_bep',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-        }
-
-        if (!empty($chiTietToInsert)) {
-            ChiTietOrder::insert($chiTietToInsert);
-        }
-
         return redirect()->route('nhanVien.order.page', $orderId)
-            ->with('success', 'Đã chọn combo cho khách!');
+            ->with('success', 'Đã lưu combo. Vui lòng bấm "Thêm món" để bắt đầu!');
     }
+
 
     protected function tinhTongTienOrder(OrderMon $order)
     {
-        $soKhach = $order->datBan->so_khach ?? 1;
+        $soKhach = ($order->datBan->nguoi_lon ?? 0) + ($order->datBan->tre_em ?? 0);
+        if ($soKhach == 0) $soKhach = 1;
+
         $comboId = $order->datBan->combo_id ?? null;
         $tongTien = 0;
         $tongMon = 0;
@@ -401,7 +405,7 @@ class NhanVienOrderMonController extends Controller
             if ($ct->loai_mon === 'combo') {
                 // số lượng hiển thị combo = số khách hoặc giới hạn món
                 $gioiHan = $soLuongMonTrongCombo[$ct->mon_an_id] ?? $ct->so_luong;
-                $soLuongHienThi = min($soKhach, $gioiHan);
+                $soLuongHienThi = $ct->so_luong;
                 $tongMon += $soLuongHienThi;
                 $tongTien += $soLuongHienThi * ($ct->monAn->gia ?? 0);
             } else {

@@ -1,461 +1,282 @@
 @extends('layouts.Shop.layout-nhanvien')
 
-@section('title', 'Danh sách bàn')
+@section('title', 'Order món')
 
 @section('content')
+{{-- 1. FILE ÂM THANH NỘI BỘ (Đã sửa theo file ting_ting.mp3 của bạn) --}}
+<audio id="notif-sound" preload="auto">
+    <source src="{{ asset('assets/audio/ting_ting.mp3') }}" type="audio/mpeg">
+</audio>
+
 <main class="app-content">
     <div class="container-xxl px-4">
         {{-- Flash message --}}
         @if(session('success'))
-        <div class="alert alert-success text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
-            {{ session('success') }}
+        <div class="alert alert-success text-center fw-semibold rounded-3 shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
         </div>
         @endif
 
         @if(session('warning'))
-        <div class="alert alert-warning text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
-            {{ session('warning') }}
+        <div class="alert alert-warning text-center fw-semibold rounded-3 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('warning') }}
         </div>
         @endif
 
         @if(session('error'))
-        <div class="alert alert-danger text-center fw-semibold rounded-3 shadow-sm mb-4" id="flashMsg">
-            {{ session('error') }}
+        <div class="alert alert-danger text-center fw-semibold rounded-3 shadow-sm mb-4">
+            <i class="bi bi-x-circle-fill me-2"></i> {{ session('error') }}
         </div>
         @endif
 
+        {{-- TIÊU ĐỀ & NÚT BẬT TIẾNG --}}
+        <div class="d-flex justify-content-between align-items-center mb-5 mt-3">
+            <div>
+                <h4 class="page-header-title m-0">Sơ đồ bàn ăn</h4>
+                <p class="text-muted small ms-3 mb-0 mt-1">Theo dõi trạng thái thực tế</p>
+            </div>
+            
+            {{-- NÚT BẬT/TẮT TIẾNG --}}
+            <div class="d-flex gap-2 align-items-center">
+                <button id="sound-toggle-btn" class="btn btn-white shadow-sm fw-bold border" style="min-width: 140px;">
+                    <i class="bi bi-volume-mute-fill me-1"></i> <span>Bật tiếng</span>
+                </button>
+                <span id="status-indicator" class="btn btn-white shadow-sm border fw-bold text-secondary disabled" style="cursor: default;">
+                    <i class="bi bi-arrow-repeat spin-slow me-1"></i> <span class="status-text">Đang tải...</span>
+                </span>
+            </div>
+        </div>
+
         {{-- Phân khu vực --}}
         @foreach($khuVucs as $khu)
-        <div class="mb-4">
-            <h3 class="fw-bold mb-3">
-                <i class="bi bi-building me-2"></i> {{ $khu->ten_khu_vuc }} (Tầng {{ $khu->tang }})
-            </h3>
-            <div class="row g-3 justify-content-start">
-                @foreach($bans->where('khu_vuc_id', $khu->id) as $ban)
-                @php
-                $order = $orders->has($ban->id) ? $orders[$ban->id] : null;
-                $datBanMoiNhat = \App\Models\DatBan::where('ban_id', $ban->id)->latest()->first();
-                if($ban->trang_thai == 'trong') {
-                $bgHeader = 'linear-gradient(135deg, #28a745, #7be495)';
-                $icon='bi-person-check';
-                } elseif($ban->trang_thai == 'dang_phuc_vu') {
-                $bgHeader='linear-gradient(135deg, #dc3545, #ff6b6b)';
-                $icon='bi-people-fill';
-                } elseif($ban->trang_thai == 'khong_su_dung') {
-                $bgHeader='linear-gradient(135deg, #6c757d, #adb5bd)'; // xám
-                $icon='bi-slash-circle';
-                } else {
-                $bgHeader='linear-gradient(135deg, #ffc107, #ffe58a)';
-                $icon='bi-tools';
-                }
+        <div class="card-zone mb-5">
+            <div class="card-zone-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-building me-2"></i> {{ $khu->ten_khu_vuc }}</span>
+                <span class="badge bg-white text-dark shadow-sm" style="opacity: 0.9;">Tầng {{ $khu->tang }}</span>
+            </div>
 
-                @endphp
+            <div class="card-body p-4 bg-light-subtle">
+                <div class="row g-3">
+                    @foreach($bans->where('khu_vuc_id', $khu->id) as $ban)
+                    @php
+                        $order = $orders->has($ban->id) ? $orders[$ban->id] : null;
+                        $datBanMoiNhat = \App\Models\DatBan::where('ban_id', $ban->id)->latest()->first();
+                        
+                        $cardClass = ''; $statusBadgeClass = ''; $statusText = ''; $iconClass = '';
+                        if($ban->trang_thai == 'khong_su_dung') {
+                            $cardClass = 'card-maintenance'; $statusBadgeClass = 'badge-maintenance'; $statusText = 'Bảo trì'; $iconClass = 'bi-slash-circle';
+                        } elseif(isset($datBanMoiNhat) && $datBanMoiNhat->trang_thai == 'da_xac_nhan') {
+                            $cardClass = 'card-reserved'; $statusBadgeClass = 'badge-reserved'; $statusText = 'Đã đặt'; $iconClass = 'bi-clock-history';
+                        } elseif(isset($datBanMoiNhat) && $datBanMoiNhat->trang_thai == 'khach_da_den') {
+                            $cardClass = 'card-active'; $statusBadgeClass = 'badge-active'; $statusText = $order ? 'Đang phục vụ' : 'Khách đã đến'; $iconClass = 'bi-people-fill';
+                        } else {
+                            $cardClass = ''; $statusBadgeClass = 'badge-free'; $statusText = 'Bàn trống'; $iconClass = 'bi-check-circle';
+                        }
+                    @endphp
 
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-12 d-flex">
-                    <div class="card table-card shadow-sm rounded-4 border-0 position-relative overflow-hidden flex-fill d-flex flex-column">
-                        <div class="table-card-header text-center text-white fw-bold py-2 rounded-top"
-                            style="background: {{ $bgHeader }};">
-                            <h5 class="mb-1"><i class="bi {{ $icon }}"></i> {{ $ban->so_ban }}</h5>
-                            <div class="mt-2 w-100 text-center">
-                                @php
-                                if($ban->trang_thai == 'khong_su_dung') {
-                                $trangThaiText = 'Bảo trì';
-                                $trangThaiClass = 'bg-dark text-white';
-                                } elseif(isset($datBanMoiNhat)) {
-                                switch($datBanMoiNhat->trang_thai) {
-                                case 'da_xac_nhan':
-                                $trangThaiText='Đã đặt';
-                                $trangThaiClass='bg-warning text-dark';
-                                break;
-                                case 'khach_da_den':
-                                $trangThaiText = $order ? 'Đang phục vụ':'Khách đã đến';
-                                $trangThaiClass = $order ? 'bg-success text-white':'bg-info text-white';
-                                break;
-                                default:
-                                $trangThaiText = 'Trống';
-                                $trangThaiClass = 'bg-secondary';
-                                break;
-                                }
-                                } else {
-                                $trangThaiText = 'Trống';
-                                $trangThaiClass = 'bg-secondary';
-                                }
-                                @endphp
-                                <span class="badge {{ $trangThaiClass }}">{{ $trangThaiText }}</span>
-
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-12 d-flex">
+                        <div class="table-card {{ $cardClass }} flex-fill d-flex flex-column">
+                            <i class="bi bi-disc table-icon-bg"></i>
+                            <div class="p-3 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2 position-relative" style="z-index: 2;">
+                                        <div class="table-number">{{ $ban->so_ban }}</div>
+                                        <div class="text-secondary fw-bold small">
+                                            <i class="bi bi-grid-3x3-gap-fill text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3" style="position: relative; z-index: 2;">
+                                        <span class="badge-custom {{ $statusBadgeClass }}">
+                                            <i class="bi {{ $iconClass }} me-1"></i> {{ $statusText }}
+                                        </span>
+                                    </div>
+                                    <div class="info-box" style="position: relative; z-index: 2;">
+                                        @if($order)
+                                            @if($order->datBan)
+                                                <div class="fw-bold text-dark text-truncate mb-1">{{ $order->datBan->ten_khach }}</div>
+                                            @endif
+                                            <div class="small text-muted"><i class="bi bi-receipt"></i> #{{ $order->id }}</div>
+                                            <div class="small text-muted"><i class="bi bi-basket3"></i> {{ $order->tong_mon }} món</div>
+                                        @elseif(isset($datBanMoiNhat) && $datBanMoiNhat->trang_thai == 'da_xac_nhan')
+                                            <div class="small fw-bold text-primary mb-1">SẮP ĐẾN:</div>
+                                            <div class="fw-bold text-dark text-truncate">{{ $datBanMoiNhat->ten_khach }}</div>
+                                            <div class="small text-danger mt-1">
+                                                <i class="bi bi-clock"></i> {{ \Carbon\Carbon::parse($datBanMoiNhat->gio_den)->format('H:i') }}
+                                            </div>
+                                        @else
+                                            <div class="text-muted small fst-italic">Sẵn sàng đón khách</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="mt-3 text-center" style="position: relative; z-index: 2;">
+                                    @if($order)
+                                        <a href="{{ route('nhanVien.order.page', $order->id) }}" class="btn-ocean">
+                                            <i class="bi bi-card-checklist"></i> Xem Order
+                                        </a>
+                                    @else
+                                        @if($ban->trang_thai != 'khong_su_dung' && (!isset($datBanMoiNhat) || $datBanMoiNhat->trang_thai != 'da_xac_nhan'))
+                                            <form action="{{ route('nhanVien.order.mo-order') }}" method="POST">
+                                                @csrf
+                                                <input type="hidden" name="ban_id" value="{{ $ban->id }}">
+                                                <button type="submit" class="btn-ocean-outline">
+                                                    <i class="bi bi-plus-lg"></i> Mở bàn
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endif
+                                </div>
                             </div>
                         </div>
-
-                        <div class="card-body d-flex flex-column align-items-center justify-content-center p-3">
-                            @if($order)
-                            <p class="mb-1 text-truncate"><i class="bi bi-receipt"></i> <b>Order: {{ $order->id }}</b></p>
-                            @if($order->datBan)
-                            <p class="mb-1"><i class="bi bi-person-fill"></i> {{ $order->datBan->ten_khach }}</p>
-                            <p class="mb-1"><i class="bi bi-telephone-fill"></i> {{ $order->datBan->sdt_khach }}</p>
-                            @endif
-                            <p class="mb-1"><i class="bi bi-basket3"></i> {{ $order->tong_mon }} món</p>
-
-                            <a href="{{ route('nhanVien.order.page', $order->id) }}"
-                                class="btn btn-warning btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center"
-                                style="width:50px; height:50px; padding:0;">
-                                <i class="bi bi-card-checklist fs-5"></i>
-                            </a>
-                            @else
-                            <form action="{{ route('nhanVien.order.mo-order') }}" method="POST" class="w-100 d-flex justify-content-center">
-                                @csrf
-                                <input type="hidden" name="ban_id" value="{{ $ban->id }}">
-                                <button type="submit"
-                                    class="btn btn-success btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center"
-                                    style="width:50px; height:50px;">
-                                    <i class="bi bi-plus-circle fs-5"></i>
-                                </button>
-                            </form>
-                            @endif
-                        </div>
                     </div>
+                    @endforeach
                 </div>
-                @endforeach
             </div>
         </div>
         @endforeach
+    </div>
 </main>
 
+{{-- TOAST THÔNG BÁO --}}
+<div id="custom-toast">
+    <i class="bi bi-bell-fill fs-4 bell-shake"></i>
+    <div class="text-start">
+        <strong class="d-block text-warning">BẾP VỪA LÊN MÓN!</strong>
+        <span id="toast-message" class="text-white small">Có món mới cần phục vụ.</span>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        const soundBtn = $('#sound-toggle-btn');
+        const audio = document.getElementById("notif-sound");
+        const statusIndicator = $('#status-indicator');
+        
+        let audioEnabled = false;
+        let lastCount = 0; 
+        let isFirstLoad = true;
+
+        // 1. XỬ LÝ NÚT BẬT TIẾNG
+        soundBtn.on('click', function() {
+            if (!audioEnabled) {
+                audio.play().then(() => {
+                    audio.pause(); audio.currentTime = 0;
+                    audioEnabled = true;
+                    soundBtn.addClass('active').html('<i class="bi bi-volume-up-fill me-1"></i> <span>Đã bật tiếng</span>');
+                    // Test thử 1 tiếng ting nhẹ để biết loa chạy
+                    setTimeout(() => audio.play(), 200); 
+                }).catch(err => alert("Vui lòng click lại để trình duyệt cho phép phát tiếng!"));
+            } else {
+                audioEnabled = false;
+                soundBtn.removeClass('active').html('<i class="bi bi-volume-mute-fill me-1"></i> <span>Bật tiếng</span>');
+            }
+        });
+
+        // 2. HIỆN THÔNG BÁO
+        function showNotification(count) {
+            if (audioEnabled) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log(e));
+            }
+            const toast = document.getElementById("custom-toast");
+            $('#toast-message').text(`Có ${count} món mới vừa xong!`);
+            toast.className = "show";
+            setTimeout(() => { toast.className = ""; }, 5000);
+        }
+
+        // 3. CHECK API TỪ TRANG HÀNG CHỜ
+        function checkFoodReady() {
+            statusIndicator.find('i').addClass('spin-fast');
+            
+            // Gọi vào API của trang "Hàng chờ" để đếm món
+            axios.get("{{ route('nhanVien.phuc-vu.dashboard_api') }}")
+                .then(res => {
+                    let currentList = res.data.monChoPhucVu || [];
+                    let currentCount = currentList.length;
+
+                    // Nếu số lượng tăng lên so với lần trước -> Có món mới
+                    if (!isFirstLoad && currentCount > lastCount) {
+                        let diff = currentCount - lastCount;
+                        showNotification(diff);
+                    }
+
+                    lastCount = currentCount;
+                    isFirstLoad = false;
+
+                    let now = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+                    statusIndicator.html(`<i class="bi bi-check2-circle text-success me-1"></i> <span class="small">${now}</span>`);
+                })
+                .catch(err => {
+                    console.log(err);
+                    statusIndicator.html('<i class="bi bi-exclamation-triangle text-danger"></i> Lỗi');
+                });
+        }
+
+        checkFoodReady();
+        setInterval(checkFoodReady, 5000);
+    });
+</script>
+
 <style>
-    /* =============================== */
-    /* GLOBAL & ANIMATION */
-    /* =============================== */
-
-    body {
-        /* Giữ nguyên màu nền body đẹp */
-        background: radial-gradient(circle at top right, #e3f2ff, #f7f9fc, #f1f5ff);
+    /* CSS CHO PHẦN THÔNG BÁO */
+    #sound-toggle-btn.active {
+        background-color: #198754 !important; color: #fff !important; border-color: #198754 !important;
     }
+    
+    .spin-slow { animation: spin 3s linear infinite; }
+    .spin-fast { animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    .app-content {
-        animation: fadeIn 0.6s ease-in-out;
+    /* TOAST */
+    #custom-toast {
+        visibility: hidden; min-width: 300px; 
+        background-color: #212529; color: #fff; 
+        border-radius: 50px; padding: 12px 25px;
+        position: fixed; z-index: 9999; left: 50%; bottom: 30px; 
+        transform: translateX(-50%); 
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        display: flex; align-items: center; gap: 15px; 
+        border: 2px solid #fea116;
     }
+    #custom-toast.show { visibility: visible; animation: fadeUp 0.5s forwards, fadeOut 0.5s 4.5s forwards; }
+    
+    @keyframes fadeUp { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    
+    .bell-shake { color: #fea116; animation: shake 0.5s infinite; }
+    @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(10deg); } 75% { transform: rotate(-10deg); } 100% { transform: rotate(0); } }
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(6px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* =============================== */
-    /* MINI DASHBOARD - GIỮ NGUYÊN MÀU TỪ BLADE */
-    /* =============================== */
-
-    .row.mb-4 .col {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .row.mb-4 .rounded-4 {
-        /* Loại bỏ các lớp background bị ghi đè để dùng màu từ style="" */
-        color: inherit;
-        /* Đảm bảo màu chữ tự động đổi tùy theo background */
-        border-radius: 18px !important;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(0, 0, 0, 0.04);
-        transition: all 0.25s ease;
-    }
-
-    /* Thêm màu chữ tương phản cho từng thẻ dashboard nếu màu nền quá sáng */
-    .row.mb-4 .col:nth-child(1) .rounded-4,
-    /* Tổng số bàn (Xanh lá) */
-    .row.mb-4 .col:nth-child(2) .rounded-4 {
-        /* Bàn trống (Xám) */
-        color: #333 !important;
-        /* Đặt màu chữ đậm để nổi bật trên nền nhạt */
-    }
-
-    .row.mb-4 .rounded-4:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-    }
-
-    .row.mb-4 h5 {
-        font-size: 1.4rem;
-        letter-spacing: 0.3px;
-    }
-
-    .row.mb-4 small {
-        opacity: 0.8;
-        font-size: 0.8rem;
-    }
-
-    /* =============================== */
-    /* TABLE CARD */
-    /* =============================== */
-
-    .table-card {
-        border-radius: 18px !important;
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        overflow: hidden;
-        transition: all 0.25s ease;
-        position: relative;
-        z-index: 1;
-        cursor: pointer;
-    }
-
-    .table-card:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.18);
-    }
-
-    /* Loại bỏ border gradient để không ghi đè lên hover glow */
-    /* .table-card::before { ... } */
-
-    /* =============================== */
-    /* TABLE CARD HEADER - GIỮ NGUYÊN MÀU TỪ BLADE */
-    /* =============================== */
-
-    .table-card-header {
-        position: relative;
-        border-bottom-left-radius: 18px;
-        border-bottom-right-radius: 18px;
-        padding: 14px 10px 10px;
-        z-index: 2;
-    }
-
-    /* Thêm lớp phủ mờ nhẹ cho header để hiệu ứng gradient đẹp hơn */
-    .table-card-header::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: rgba(255, 255, 255, 0.1);
-        mix-blend-mode: overlay;
-    }
-
-    .table-card-header h5 {
-        letter-spacing: 0.5px;
-    }
-
-    /* Hiệu ứng ánh sáng hover trên header */
-    .table-card-header::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.45), transparent);
-        transform: rotate(20deg);
-        opacity: 0;
-        transition: .6s;
-        pointer-events: none;
-    }
-
-    .table-card:hover .table-card-header::before {
-        opacity: 1;
-        top: 50%;
-        left: 50%;
-    }
-
-    /* =============================== */
-    /* BADGE */
-    /* =============================== */
-
-    .table-card-header .badge {
-        border-radius: 50px;
-        font-weight: 600;
-        padding: 5px 14px;
-        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.15);
-        font-size: 0.75rem;
-        /* Đặt lại font-size cho badge */
-    }
-
-    /* =============================== */
-    /* CARD BODY */
-    /* =============================== */
-
-    .card-body {
-        text-align: center;
-        padding: 1.5rem 1rem !important;
-        /* Căn chỉnh lại padding cho đẹp */
-        position: relative;
-        z-index: 5;
-    }
-
-    .card-body p {
-        font-size: 0.85rem;
-        opacity: 0.85;
-        margin-bottom: 0.25rem;
-    }
-
-    .card-body p i {
-        color: #0d6efd;
-    }
-
-    .card-body p b {
-        font-size: 0.9rem;
-    }
-
-    /* =============================== */
-    /* BUTTON (ACTION) */
-    /* =============================== */
-
-    .card-body .btn {
-        border-radius: 50px !important;
-        transition: all 0.25s cubic-bezier(.4, 1.8, .6, .9);
-        width: 50px;
-        height: 50px;
-        padding: 0;
-        border: none;
-        /* Loại bỏ border cho nút */
-
-        /* Đặt lại màu sắc nút để nó nổi bật, không dùng màu gradient bị ghi đè */
-        /* Nút mở Order (màu xanh lá) */
-        &.btn-success {
-            background: linear-gradient(135deg, #28a745, #157347) !important;
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.6) !important;
-            color: white;
-        }
-
-        /* Nút xem Order (màu vàng) */
-        &.btn-warning {
-            background: linear-gradient(135deg, #ffc107, #d49500) !important;
-            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.6) !important;
-            color: #333;
-        }
-    }
-
-    .card-body .btn:hover {
-        transform: scale(1.15) rotate(3deg);
-    }
-
-    .card-body .btn:active {
-        transform: scale(0.9);
-    }
-
-    /* =============================== */
-    /* GLOW BY STATUS (Hover Shadow) */
-    /* =============================== */
-
-    .table-card:has(.badge.bg-success):hover {
-        box-shadow: 0 14px 35px rgba(40, 167, 69, 0.3) !important;
-    }
-
-    .table-card:has(.badge.bg-warning):hover {
-        box-shadow: 0 14px 35px rgba(255, 193, 7, 0.4) !important;
-    }
-
-    .table-card:has(.badge.bg-info):hover {
-        box-shadow: 0 14px 35px rgba(23, 162, 184, 0.4) !important;
-    }
-
-    .table-card:has(.badge.bg-dark) {
-        opacity: 0.75;
-        filter: grayscale(50%);
-        /* Giảm nhẹ hiệu ứng xám */
-    }
-
-    /* =============================== */
-    /* NEW ORDER ANIMATION */
-    /* =============================== */
-
-    .table-card.new-order {
-        animation: pulseGlow 1.2s infinite alternate;
-    }
-
-    @keyframes pulseGlow {
-        from {
-            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
-        }
-
-        to {
-            box-shadow: 0 0 30px rgba(255, 193, 7, 0.9);
-        }
-    }
-
-    /* =============================== */
-    /* SECTION TITLE (H3) */
-    /* =============================== */
-
-    h3 {
-        position: relative;
-        display: inline-block;
-        background: linear-gradient(90deg, #333333, #666666);
-        /* Tông xám đen */
-        color: white;
-        padding: 8px 18px;
-        border-radius: 50px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, .2);
-        margin-bottom: 1.5rem !important;
-        /* Thêm khoảng cách dưới cho đẹp */
-        font-size: 1.35rem;
-    }
-
-    h3 i.bi {
-        color: #ffc107;
-        /* Đổi màu icon thành vàng nổi bật */
-    }
-
-    h3::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        height: 80%;
-        width: 8px;
-        border-radius: 50px;
-        background: #ffc107;
-        /* Màu trang trí ở đầu section */
-    }
-
-    /* =============================== */
-    /* RESPONSIVE GRID (Giữ nguyên) */
-    /* =============================== */
-
-    /* Responsive 6 cột */
-    @media (min-width: 1200px) {
-
-        /* LỚP XL-2 CÓ SẴN TRONG HTML */
-        .col-xl-2 {
-            flex: 0 0 16.666667%;
-            max-width: 16.666667%;
-        }
-    }
-
-    @media (min-width: 992px) and (max-width: 1199.98px) {
-        .col-xl-2 {
-            flex: 0 0 20%;
-            max-width: 20%;
-        }
-    }
-
-    @media (max-width: 991.98px) {
-        .col-lg-3 {
-            flex: 0 0 33.333333%;
-            max-width: 33.333333%;
-        }
-    }
-
-    @media (max-width: 767.98px) {
-
-        .col-md-4,
-        .col-lg-3 {
-            flex: 0 0 50%;
-            max-width: 50%;
-        }
-    }
-
-    @media (max-width: 575.98px) {
-
-        .col-sm-6,
-        .col-md-4,
-        .col-lg-3 {
-            flex: 0 0 100%;
-            max-width: 100%;
-        }
-    }
+    /* CSS GỐC CỦA BẠN */
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Nunito:wght@400;600;700&display=swap');
+    :root { --primary: #fea116; --primary-hover: #db8a10; --dark: #0f172b; --light: #F1F8FF; --text-main: #1e293b; --white: #ffffff; --radius: 8px; --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05); }
+    body { font-family: 'Nunito', sans-serif; background-color: var(--light); color: var(--text-main); }
+    .app-content { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .page-header-title { font-family: 'Heebo', sans-serif; font-weight: 800; color: var(--dark); text-transform: uppercase; position: relative; padding-left: 15px; font-size: 1.5rem; }
+    .page-header-title::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 70%; width: 5px; background-color: var(--primary); border-radius: 2px; }
+    .card-zone { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; border: none; }
+    .card-zone-header { background: var(--dark); color: var(--primary); padding: 12px 20px; font-family: 'Heebo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 3px solid var(--primary); }
+    .table-card { background: var(--white); border-radius: var(--radius); border: 1px solid #e2e8f0; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 2px 5px rgba(0,0,0,0.02); height: 100%; min-height: 180px; }
+    .table-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-color: var(--primary); }
+    .table-icon-bg { position: absolute; top: -15px; right: -15px; font-size: 5rem; color: rgba(254, 161, 22, 0.08); transform: rotate(20deg); pointer-events: none; }
+    .card-active { background: #fff8e6; border: 1px solid var(--primary); }
+    .card-active .table-number { color: #d97706; }
+    .card-reserved { background: #f0fdf4; border: 1px dashed #22c55e; }
+    .card-maintenance { background: #f1f5f9; border: 1px solid #cbd5e1; opacity: 0.8; }
+    .card-maintenance .table-number { color: #64748b; }
+    .table-number { font-family: 'Heebo', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--dark); line-height: 1; }
+    .info-box { min-height: 40px; }
+    .badge-custom { padding: 5px 10px; border-radius: 4px; font-weight: 700; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px; display: inline-block; }
+    .badge-free { background: #e2e8f0; color: #475569; }
+    .badge-active { background: var(--primary); color: #fff; }
+    .badge-reserved { background: #22c55e; color: #fff; }
+    .badge-maintenance { background: #64748b; color: #fff; }
+    .btn-ocean { background: var(--primary); color: #fff; border: none; border-radius: 4px; font-weight: 700; padding: 8px; width: 100%; display: block; text-align: center; text-decoration: none; transition: 0.2s; font-size: 0.9rem; }
+    .btn-ocean:hover { background: var(--primary-hover); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(254, 161, 22, 0.3); }
+    .btn-ocean-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); border-radius: 4px; font-weight: 700; padding: 6px; width: 100%; display: block; text-align: center; text-decoration: none; transition: 0.2s; font-size: 0.9rem; }
+    .btn-ocean-outline:hover { background: var(--primary); color: #fff; }
+    @media (max-width: 768px) { .table-number { font-size: 1.5rem; } .table-card { min-height: auto; } }
 </style>
 @endsection

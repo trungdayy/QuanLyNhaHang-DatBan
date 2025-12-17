@@ -20,13 +20,32 @@
             /* Cam (Chờ bếp) */
             --cook: #3b82f6;
             /* Xanh dương (Đang làm) */
-
-            /* MÀU MỚI (Giống Menu) */
+            
+            --serve: #34d399; /* MÀU MỚI: Xanh mint nhạt (Chờ phục vụ) */
             --done: #20d489;
             /* Xanh Mint (Đã xong) */
             --cancel: #ff4d4f;
             /* Đỏ tươi (Hủy) */
         }
+
+        /* BỔ SUNG CSS CHO TRẠNG THÁI CHỜ PHỤC VỤ (cho_cung_ung) */
+        .st-cho_cung_ung {
+            border-left-color: var(--serve); 
+            background: #f0fdf4; /* Tông màu xanh lá cây nhạt */
+            opacity: 0.9;
+        }
+        .txt-ready-serve {
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            background: rgba(52, 211, 153, 0.15); /* Màu nền xanh mint nhạt */
+            color: #059669; /* Màu chữ xanh đậm */
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        /* --- CÁC STYLE KHÁC GIỮ NGUYÊN --- */
 
         .app-content {
             background-color: var(--bg);
@@ -296,6 +315,7 @@
         }
 
         /* Trạng thái đã xong: Màu xanh mint nhạt, nhìn tươi */
+        /* Giữ nguyên st-da_len_mon cho các món đã bưng lên */
         .st-da_len_mon {
             border-left-color: var(--done);
             background: #f0fdf4;
@@ -379,9 +399,24 @@
                         <div class="t-body" data-table="{{ $soBan }}">
                             @foreach ($danhSachMon as $mon)
                                 @php
+                                    // Đảm bảo load lại quan hệ nếu bị mất
+                                    if (!$mon->relationLoaded('monAn')) {
+                                        $mon->load('monAn:id,ten_mon,hinh_anh,danh_muc_id,thoi_gian_che_bien');
+                                    }
                                     $monAn = $mon->monAn;
                                     $tenMon = optional($monAn)->ten_mon ?? 'Món không tồn tại';
-                                    $imgUrl = optional($monAn)->hinh_anh ? asset(optional($monAn)->hinh_anh) : null;
+                                    // Xử lý đường dẫn ảnh: kiểm tra nếu đã có đường dẫn đầy đủ hoặc cần thêm asset()
+                                    $hinhAnhPath = optional($monAn)->hinh_anh;
+                                    if ($hinhAnhPath) {
+                                        // Nếu đường dẫn không bắt đầu bằng http hoặc /, thì dùng asset()
+                                        if (!preg_match('/^(https?:\/\/|\/)/', $hinhAnhPath)) {
+                                            $imgUrl = asset($hinhAnhPath);
+                                        } else {
+                                            $imgUrl = $hinhAnhPath;
+                                        }
+                                    } else {
+                                        $imgUrl = null;
+                                    }
                                     $firstChar = mb_substr($tenMon, 0, 1, 'UTF-8');
                                     $fallback = 'https://placehold.co/100x100/png?text=' . urlencode($firstChar);
                                     $isNuoc = optional($monAn)->danh_muc_id == 14;
@@ -412,15 +447,21 @@
                                         <div style="flex:1;">
                                             <div class="d-name">{{ $tenMon }}</div>
                                             <div class="d-qty">SL: {{ $mon->so_luong }}</div>
-                                            {{-- Hiển thị thời gian chế biến dự kiến --}}
-                                            @if($monAn->thoi_gian_che_bien && !$isNuoc)
-                                                <small class="text-secondary ms-2" title="Thời gian dự kiến">
-                                                    <i class="fa-solid fa-hourglass-half"></i> {{ $monAn->thoi_gian_che_bien }} phút
+                                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; align-items: center;">
+                                                {{-- Hiển thị thời gian gọi món --}}
+                                                <small class="text-muted" title="Thời gian gọi món">
+                                                    <i class="fa-regular fa-clock"></i> Gọi lúc {{ $mon->created_at->format('H:i') }}
                                                 </small>
-                                            @endif
-                                            @if($isNuoc)
-                                                <small class="text-info ms-2" title="Đồ uống"><i class="fa-solid fa-glass-water"></i> Đồ Uống</small>
-                                            @endif
+                                                {{-- Hiển thị thời gian chế biến dự kiến --}}
+                                                @if($monAn->thoi_gian_che_bien && !$isNuoc)
+                                                    <small class="text-secondary" title="Thời gian dự kiến">
+                                                        <i class="fa-solid fa-hourglass-half"></i> {{ $monAn->thoi_gian_che_bien }} phút
+                                                    </small>
+                                                @endif
+                                                @if($isNuoc)
+                                                    <small class="text-info" title="Đồ uống"><i class="fa-solid fa-glass-water"></i> Đồ Uống</small>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
 
@@ -439,13 +480,20 @@
                                         @elseif ($mon->trang_thai == 'dang_che_bien')
                                             <button class="btn-sub" onclick="updateStatus({{ $mon->id }}, 'cho_bep')"
                                                 title="Quay lại"><i class="fa-solid fa-rotate-left"></i></button>
+                                            {{-- NÚT ĐÃ ĐƯỢC SỬA: CHUYỂN SANG TRẠNG THÁI CHỜ CUNG ỨNG --}}
                                             <button class="btn-act btn-done"
-                                                onclick="updateStatus({{ $mon->id }}, 'da_len_mon')"><i
-                                                    class="fa-solid fa-check"></i> Hoàn tất</button>
+                                                onclick="updateStatus({{ $mon->id }}, 'cho_cung_ung')"><i
+                                                    class="fa-solid fa-bell"></i> Hoàn tất (Chờ phục vụ)</button>
+                                        @elseif ($mon->trang_thai == 'cho_cung_ung')
+                                            {{-- NÚT ĐÃ ĐƯỢC BỔ SUNG: HIỂN THỊ CHỜ PHỤC VỤ --}}
+                                            <div class="txt-ready-serve" style="width: 100%;"><i class="fa-solid fa-bell-concierge"></i> Chờ phục vụ bưng</div>
+                                            <button class="btn-sub"
+                                                onclick="updateStatus({{ $mon->id }}, 'dang_che_bien')"
+                                                title="Hoàn tác"><i class="fa-solid fa-rotate-left"></i></button>
                                         @elseif ($mon->trang_thai == 'da_len_mon')
                                             <div class="txt-done"><i class="fa-solid fa-check-circle"></i> Đã xong</div>
                                             <button class="btn-sub"
-                                                onclick="updateStatus({{ $mon->id }}, 'dang_che_bien')"
+                                                onclick="updateStatus({{ $mon->id }}, 'cho_cung_ung')"
                                                 title="Hoàn tác"><i class="fa-solid fa-rotate-left"></i></button>
                                         @elseif ($mon->trang_thai == 'huy_mon')
                                             <div class="txt-cancel"><i class="fa-solid fa-ban"></i> Đã hủy</div>
@@ -497,7 +545,6 @@
                 .then(data => {
                     // Cập nhật trạng thái ngay lập tức mà không cần tải lại toàn bộ DOM
                     renderNewState(id, status, dishEl, actionEl);
-                    // Lưu ý: Vị trí món sẽ được sắp xếp lại đúng trong lần Auto Refresh tiếp theo (3s)
                 })
                 .catch(err => {
                     console.error(err);
@@ -512,15 +559,23 @@
             dishEl.style.opacity = '1';
             dishEl.style.pointerEvents = 'auto';
             let html = '';
+            
+            // Xử lý logic hiển thị nút hành động dựa trên trạng thái mới
             if (status === 'cho_bep') {
                 html =
                     `<button class="btn-sub" onclick="updateStatus(${id}, 'huy_mon')"><i class="fa-solid fa-xmark"></i></button><button class="btn-act btn-start" onclick="updateStatus(${id}, 'dang_che_bien')"><i class="fa-solid fa-fire-burner"></i> Chế biến</button>`;
             } else if (status === 'dang_che_bien') {
+                // SỬA: Chuyển sang nút Hoàn tất (cho_cung_ung)
                 html =
-                    `<button class="btn-sub" onclick="updateStatus(${id}, 'cho_bep')"><i class="fa-solid fa-rotate-left"></i></button><button class="btn-act btn-done" onclick="updateStatus(${id}, 'da_len_mon')"><i class="fa-solid fa-check"></i> Hoàn tất</button>`;
+                    `<button class="btn-sub" onclick="updateStatus(${id}, 'cho_bep')" title="Quay lại"><i class="fa-solid fa-rotate-left"></i></button><button class="btn-act btn-done" onclick="updateStatus(${id}, 'cho_cung_ung')"><i class="fa-solid fa-bell"></i> Hoàn tất (Chờ phục vụ)</button>`;
+            } else if (status === 'cho_cung_ung') {
+                // BỔ SUNG: Trạng thái chờ phục vụ
+                html =
+                    `<div class="txt-ready-serve" style="width: 100%;"><i class="fa-solid fa-bell-concierge"></i> Chờ phục vụ bưng</div><button class="btn-sub" onclick="updateStatus(${id}, 'dang_che_bien')" title="Hoàn tác"><i class="fa-solid fa-rotate-left"></i></button>`;
             } else if (status === 'da_len_mon') {
+                // SỬA: Hoàn tác về trạng thái chờ phục vụ (cho_cung_ung)
                 html =
-                    `<div class="txt-done"><i class="fa-solid fa-check-circle"></i> Đã xong</div><button class="btn-sub" onclick="updateStatus(${id}, 'dang_che_bien')"><i class="fa-solid fa-rotate-left"></i></button>`;
+                    `<div class="txt-done"><i class="fa-solid fa-check-circle"></i> Đã xong</div><button class="btn-sub" onclick="updateStatus(${id}, 'cho_cung_ung')" title="Hoàn tác"><i class="fa-solid fa-rotate-left"></i></button>`;
             } else if (status === 'huy_mon') {
                 html = `<div class="txt-cancel"><i class="fa-solid fa-ban"></i> Đã hủy</div>`;
             }

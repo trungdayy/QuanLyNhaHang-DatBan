@@ -15,6 +15,7 @@ use App\Models\MonAn;
 use App\Models\ComboBuffet;
 use App\Models\BanAn;
 use App\Models\ChiTietDatBan;
+use App\Models\ThongBao; // <-- [MỚI] Import Model ThongBao
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
@@ -400,8 +401,8 @@ class OrderController extends Controller
         $chiTietMonAn = ChiTietOrder::whereHas('orderMon', function ($query) use ($datBanId) {
             $query->where('dat_ban_id', $datBanId);
         })
-            // [QUAN TRỌNG] Thêm thoi_gian_che_bien vào đây
-            ->with('monAn:id,ten_mon,hinh_anh,thoi_gian_che_bien')
+            // [QUAN TRỌNG] Thêm thoi_gian_che_bien và gia vào đây
+            ->with('monAn:id,ten_mon,hinh_anh,thoi_gian_che_bien,gia')
             ->select('id', 'mon_an_id', 'so_luong', 'trang_thai', 'loai_mon', 'created_at', 'ghi_chu')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -444,5 +445,53 @@ class OrderController extends Controller
         $selectedBan = $banAns->find($selectedBanId);
 
         return view('shop.oderqr.list', compact('banAns', 'selectedBan'));
+    }
+    
+    // [MỚI] Hàm xử lý yêu cầu Gọi phục vụ từ khách
+    public function callStaff(Request $request)
+    {
+        // 1. Validate dữ liệu gửi lên
+        $request->validate([
+            'dat_ban_id' => 'required|exists:dat_ban,id'
+        ]);
+
+        // 2. Lấy thông tin bàn để biết số bàn
+        $datBan = DatBan::with('banAn')->find($request->dat_ban_id);
+        
+        if (!$datBan) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Không tìm thấy thông tin bàn!'
+            ], 404);
+        }
+
+        // 3. Chống spam: Kiểm tra xem bàn này vừa gọi trong 2 phút trước chưa?
+        $soBan = $datBan->banAn ? $datBan->banAn->so_ban : '???';
+
+        $vuaGoiXong = ThongBao::where('dat_ban_id', $datBan->id)
+                    ->where('loai', 'goi_phuc_vu')
+                    ->where('da_xem', false)
+                    ->where('created_at', '>=', now()->subMinutes(2))
+                    ->exists();
+
+        if ($vuaGoiXong) {
+            return response()->json([
+                'success' => true, // Vẫn báo success cho khách yên tâm
+                'message' => "Bạn đã gọi nhân viên rồi (Bàn $soBan), chúng tôi đang đến ạ!"
+            ]);
+        }
+
+        // 4. Tạo thông báo mới lưu vào DB
+        ThongBao::create([
+            'loai' => 'goi_phuc_vu',
+            'noi_dung' => "🔔 Bàn $soBan đang gọi phục vụ!",
+            'dat_ban_id' => $datBan->id,
+            'da_xem' => false
+        ]);
+
+        return response()->json([
+            'success' => true, 
+            'message' => 'Đã gửi yêu cầu thành công! Vui lòng đợi trong giây lát.'
+        ]);
     }
 }

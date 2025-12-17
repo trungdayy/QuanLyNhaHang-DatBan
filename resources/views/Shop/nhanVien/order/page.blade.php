@@ -29,7 +29,11 @@
         color: var(--text-main);
     }
 
-    h2, h3, h5, strong, .font-heading {
+    h2,
+    h3,
+    h5,
+    strong,
+    .font-heading {
         font-family: 'Heebo', sans-serif;
     }
 
@@ -371,9 +375,6 @@
                 </h3>
             </div>
             <div class="d-flex gap-2">
-                <button id="btnSendKitchen" class="btn-custom btn-add">
-                    <i class="fa-solid fa-fire"></i> Gửi bếp
-                </button>
                 <a href="{{ route('nhanVien.chi-tiet-order.create', ['order_id' => $order->id]) }}" class="btn-custom btn-add">
                     <i class="fa-solid fa-plus"></i> Thêm món
                 </a>
@@ -402,7 +403,15 @@
                                 @if($order->datBan->combos->isEmpty())
                                 Gọi món lẻ
                                 @else
-                                {{ $order->datBan->combos->pluck('ten_combo')->join(' , ') }}
+                                @php
+                                $comboText = $order->datBan->combos->map(function($combo) {
+                                $qty = $combo->pivot->so_luong ?? 1;
+                                return $combo->ten_combo . ($qty > 1 ? " x{$qty}" : "");
+                                })->join(' , ');
+                                @endphp
+
+                                {{ $comboText }}
+
                                 @endif
                             </span>
                         </div>
@@ -478,10 +487,13 @@
                                         <div style="font-weight: 700; color: var(--dark);">{{ $ct->monAn->ten_mon }}</div>
                                     </td>
                                     <td class="text-center">
-                                        <span style="font-family:'Heebo'; font-weight:800; font-size:1rem; color: var(--primary);">
-                                            x{{ $ct->so_luong_hien_thi ?? ($ct->so_luong ?? 0) }}
-                                        </span>
+                                        @if($ct->so_luong_hien_thi === 'Chưa chọn')
+                                        <span class="badge bg-secondary">Chưa chọn</span>
+                                        @else
+                                        x{{ $ct->so_luong_hien_thi }}
+                                        @endif
                                     </td>
+
                                     <td>
                                         @if($ct->ghi_chu)
                                         <small class="text-muted fst-italic"><i class="fa-regular fa-comment-dots"></i> {{ $ct->ghi_chu }}</small>
@@ -490,10 +502,8 @@
                                         @endif
                                     </td>
 
-                                    {{-- [SỬA LỖI] KIỂM TRA NULL DEADLINE --}}
                                     @php
-                                        // Kiểm tra nếu deadline có giá trị thì lấy timestamp, nếu không gán = 0
-                                        $deadline = $ct->deadline ? $ct->deadline->timestamp * 1000 : 0;
+                                    $deadline = $ct->deadline->timestamp * 1000; // JS timestamp
                                     @endphp
 
                                     <td class="text-center">
@@ -525,12 +535,7 @@
                                                 class="countdown"
                                                 data-deadline="{{ $deadline }}"
                                                 data-ten-mon="{{ $ct->monAn->ten_mon }}">
-                                                {{-- Nếu chưa có deadline ($deadline == 0) thì hiển thị 'Chưa gửi' --}}
-                                                @if($deadline > 0)
-                                                    ⏳ --:--
-                                                @else
-                                                    ⏸ Chưa gửi
-                                                @endif
+                                                ⏳ --:--
                                             </small>
 
                                             @endif
@@ -563,47 +568,36 @@
     </div>
 
     <script>
-        function showDelayAlert(text) {
-            let box = document.getElementById("delayAlert");
-            let textBox = document.getElementById("delayText");
-            let sound = document.getElementById("delaySound");
-
-            if (!box) return;
-
-            textBox.innerHTML = text;
-            box.classList.add("show");
-
-            // 👉 PHÁT ÂM THANH
-            if (sound) {
-                sound.currentTime = 0;
-                sound.play().catch(() => {});
-            }
-
-            setTimeout(() => {
-                box.classList.remove("show");
-            }, 4000);
-        }
-
         document.addEventListener("DOMContentLoaded", function() {
+
+            function showDelayAlert(text) {
+                let box = document.getElementById("delayAlert");
+                let textBox = document.getElementById("delayText");
+                let sound = document.getElementById("delaySound");
+                if (!box) return;
+
+                textBox.innerHTML = text;
+                box.classList.add("show");
+
+                if (sound) {
+                    sound.currentTime = 0;
+                    sound.play().catch(() => {});
+                }
+
+                setTimeout(() => box.classList.remove("show"), 4000);
+            }
 
             function updateCountdown() {
                 document.querySelectorAll(".countdown").forEach(el => {
 
                     let deadline = parseInt(el.dataset.deadline);
-
-                    // [SỬA LỖI] Nếu deadline = 0 hoặc NaN thì bỏ qua, không tính toán
-                    if (!deadline || deadline === 0) {
-                        return;
-                    }
-
-                    let now = new Date().getTime();
+                    let now = Date.now();
                     let diff = deadline - now;
 
                     if (diff <= 0) {
 
-                        if (!el.dataset.alerted) { // CHỈ 1 LẦN
-                            let tenMon = el.dataset.tenMon || "Không rõ";
-                            showDelayAlert("⚠ Trễ món: " + tenMon);
+                        if (!el.dataset.alerted) {
+                            showDelayAlert("⚠ Trễ món: " + el.dataset.tenMon);
                             el.dataset.alerted = "1";
                         }
 
@@ -627,96 +621,14 @@
                     el.innerHTML = `⏳ ${minutes}:${seconds.toString().padStart(2,'0')}`;
                 });
             }
-        });
-        document.addEventListener("DOMContentLoaded", function() {
 
-            const ORDER_ID = {{ $order->id }}; // Sửa cú pháp blade
-            const STORAGE_KEY = "kitchen_sent_" + ORDER_ID;
-            const TIME_PER_DISH = 15 * 60 * 1000; // 15 phút
+            // ✅ CHẠY NGAY KHI LOAD PAGE
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
 
-            let sentItems = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-
-            function saveStorage() {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(sentItems));
-            }
-
-            // 👉 Khi bấm GỬI BẾP
-            document.getElementById("btnSendKitchen").addEventListener("click", function() {
-
-                document.querySelectorAll("tr[data-id]").forEach(row => {
-
-                    let id = row.dataset.id;
-
-                    // ✅ Chỉ set countdown cho món chưa gửi
-                    if (!sentItems[id]) {
-                        sentItems[id] = Date.now() + TIME_PER_DISH;
-                    }
-                });
-
-                saveStorage();
-                startCountdown();
-                alert("✅ Đã gửi món mới xuống bếp!");
-            });
-
-            function startCountdown() {
-
-                setInterval(() => {
-
-                    document.querySelectorAll(".countdown").forEach(el => {
-
-                        let row = el.closest("tr");
-                        let id = row.dataset.id;
-                        
-                        // Ưu tiên deadline từ Server (data-deadline) trước
-                        let serverDeadline = parseInt(el.dataset.deadline);
-                        let deadline = 0;
-
-                        if (serverDeadline > 0) {
-                            deadline = serverDeadline;
-                        } else if (sentItems[id]) {
-                            // Nếu server chưa có (vì chưa reload trang), lấy từ localStorage
-                            deadline = sentItems[id];
-                        } else {
-                            // 👉 Nếu món CHƯA gửi thì không đếm
-                            el.innerHTML = "⏸ Chưa gửi";
-                            el.classList.remove("warning", "danger");
-                            return;
-                        }
-
-                        let diff = deadline - Date.now();
-
-                        if (diff <= 0) {
-
-                            if (!el.dataset.alerted) {
-                                showDelayAlert("⚠ Trễ món: " + el.dataset.tenMon);
-                                el.dataset.alerted = 1;
-                            }
-
-                            el.innerHTML = "⚠ Trễ món";
-                            el.classList.add("danger");
-                            row.classList.add("tre-mon");
-                            return;
-                        }
-
-                        let minutes = Math.floor(diff / 60000);
-                        let seconds = Math.floor((diff % 60000) / 1000);
-
-                        el.classList.remove("warning", "danger");
-
-                        if (minutes <= 2) el.classList.add("danger");
-                        else if (minutes <= 5) el.classList.add("warning");
-
-                        el.innerHTML = `⏳ ${minutes}:${seconds.toString().padStart(2,'0')}`;
-
-                    });
-
-                }, 1000);
-            }
-
-            // ✅ Khi load trang → auto chạy lại những món đang đếm
-            startCountdown();
         });
     </script>
+
 
     <div id="delayAlert" class="delay-alert">
         <i class="fa-solid fa-triangle-exclamation"></i>

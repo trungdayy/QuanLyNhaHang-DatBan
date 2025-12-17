@@ -237,6 +237,10 @@
                                             @php
                                                 $isPhuHop = $ban->so_ghe >= $tongKhach;
                                                 $recommended = $index === 0 && $isPhuHop; // Bàn đầu tiên của list sorted là best fit
+                                                
+                                                // Kiểm tra khu vực để gắn nhãn
+                                                $isBackup = in_array($ban->khu_vuc_id, [5, 9]); // 5: Kho, 9: SOS
+                                                $khuVucLabel = $isBackup ? '<span class="text-danger fw-bold me-1">[DỰ PHÒNG]</span>' : '';
                                             @endphp
 
                                             {{-- Radio Input ẩn --}}
@@ -258,7 +262,7 @@
                                                     {{-- Thông tin --}}
                                                     <div>
                                                         <div class="table-name">
-                                                            Bàn số {{ $ban->so_ban }}
+                                                            {!! $khuVucLabel !!} Bàn số {{ $ban->so_ban }}
                                                             @if($recommended) 
                                                                 <span class="badge bg-primary ms-1" style="font-size: 0.6rem; vertical-align: middle;">GỢI Ý</span> 
                                                             @endif

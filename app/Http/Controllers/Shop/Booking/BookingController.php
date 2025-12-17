@@ -4,38 +4,55 @@ namespace App\Http\Controllers\Shop\Booking;
 
 use App\Http\Controllers\Controller;
 use App\Models\DatBan;
-use App\Models\ChiTietDatBan; // Import model mới
+use App\Models\ChiTietDatBan; // Đảm bảo Model này map đúng với bảng trong DB
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // Import DB để dùng Transaction
-use Illuminate\Support\Facades\Log; // Import Log facade
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\BookingAvailabilityService;
 
 class BookingController extends Controller
 {
-    // Trong BookingController.php
+    protected $bookingService;
+
+    public function __construct(BookingAvailabilityService $bookingService)
+    {
+        $this->bookingService = $bookingService;
+    }
 
     public function index(Request $request)
     {
+        // 1. Tự động dọn dẹp đơn quá hạn (Tạm chấp nhận để ở đây)
+        DatBan::whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan'])
+            ->where('gio_den', '<', now()->subMinutes(15))
+            ->update([
+                'trang_thai' => 'huy',
+                'ghi_chu' => DB::raw("CONCAT(COALESCE(ghi_chu, ''), ' | [System] Hủy do khách trễ 15p')")
+            ]);
+
+        // 2. Lấy thông tin đơn vừa đặt
+        $newBooking = null;
+        if (session('new_booking_id')) {
+            $newBooking = DatBan::with(['chiTietDatBan.comboBuffet', 'chiTietDatBan.monAn'])
+                ->find(session('new_booking_id'));
+        }
+
+        // 3. Lịch sử đặt bàn
         $sdt = $request->sdt;
         $datBans = collect([]);
 
         if ($sdt) {
-            // Lấy đơn hàng trong 10 ngày gần nhất
             $datBans = DatBan::where('sdt_khach', $sdt)
                 ->where('created_at', '>=', now()->subDays(10))
-                ->with(['chiTietDatBan.comboBuffet']) // Eager load để tối ưu
+                ->with(['chiTietDatBan.comboBuffet'])
                 ->orderByDesc('created_at')
                 ->get();
         }
 
-        // [MỚI] Nếu là AJAX request -> Chỉ trả về view danh sách (Partial View)
         if ($request->ajax()) {
-            // Tạo một file view mới tên là: resources/views/restaurants/booking/_history_list.blade.php
-            // File này chỉ chứa vòng lặp foreach hiển thị danh sách
             return view('restaurants.booking._history_list', compact('datBans', 'sdt'))->render();
         }
 
-        return view('restaurants.booking.index', compact('datBans', 'sdt'));
+        return view('restaurants.booking.index', compact('datBans', 'sdt', 'newBooking'));
     }
 
     public function create()
@@ -45,69 +62,44 @@ class BookingController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validate dữ liệu
-        $request->validate([
-            'ten_khach'   => 'required|string|max:255',
-            'sdt_khach'   => 'required|string|max:20',
-            'gio_den'     => 'required|date',
-            'nguoi_lon'   => 'required|integer|min:1',
-            'tre_em'      => 'nullable|integer|min:0',
-            'cart_data'   => 'nullable|string', // Dữ liệu giỏ hàng dạng JSON string
-        ]);
+        $this->mergeDateTime($request); // Gộp ngày giờ
+        $this->validateBooking($request); // Validate chung
 
-        // Sử dụng Transaction để đảm bảo cả 2 bảng đều lưu thành công
+        // 1. Kiểm tra bàn trống
+        // Trong hàm store() và update()
+        $tongKhach = $request->nguoi_lon + ($request->tre_em ?? 0);
+        $check = $this->bookingService->checkAvailability($tongKhach, $request->gio_den);
+        if (!$check['status']) {
+            return back()->with('error', $check['message'])->withInput();
+        }
+
         DB::beginTransaction();
-
         try {
-            // 2. Tạo đơn đặt bàn (Bảng dat_ban)
+            // 2. Tạo đơn
             $datBan = DatBan::create([
-                'ma_dat_ban'      => 'DB-' . strtoupper(Str::random(6)), // Tự sinh mã
+                'ma_dat_ban'      => 'DB-' . strtoupper(Str::random(6)),
                 'ten_khach'       => $request->ten_khach,
                 'sdt_khach'       => $request->sdt_khach,
                 'gio_den'         => $request->gio_den,
                 'nguoi_lon'       => $request->nguoi_lon,
                 'tre_em'          => $request->tre_em ?? 0,
-                'trang_thai'      => 'cho_xac_nhan', // Mặc định
+                'trang_thai'      => 'cho_xac_nhan',
                 'la_dat_online'   => true,
                 'ghi_chu'         => $request->ghi_chu,
+                'thoi_luong_phut' => 120,
             ]);
 
-            // 3. Xử lý lưu Combo (Bảng dat_ban_combo)
-            if ($request->has('cart_data') && !empty($request->cart_data)) {
-                $cartItems = json_decode($request->cart_data, true); // Decode JSON
+            // 3. Lưu món/combo (Dùng hàm riêng để không lặp code)
+            $this->syncBookingDetails($datBan, $request->cart_data);
 
-                if (is_array($cartItems)) {
-                    foreach ($cartItems as $item) {
-                        // KIỂM TRA QUAN TRỌNG:
-                        // Chỉ lưu nếu item có key bắt đầu bằng "combo_"
-                        if (isset($item['key']) && strpos($item['key'], 'combo_') === 0) {
-
-                            // Lấy ID thật của Combo (bỏ prefix 'combo_')
-                            $realComboId = str_replace('combo_', '', $item['key']);
-
-                            // Đảm bảo ID tồn tại mới lưu
-                            if ($realComboId) {
-                                ChiTietDatBan::create([
-                                    'dat_ban_id' => $datBan->id,
-                                    'combo_id'   => $realComboId, // ID này buộc phải có trong bảng combo_buffet
-                                    'so_luong'   => $item['quantity'] ?? 1,
-                                ]);
-                            }
-                        }
-                        // Nếu là 'mon_...' thì bỏ qua, không lưu vào bảng dat_ban_combo
-                        // để tránh lỗi Foreign Key Constraint (1452).
-                    }
-                }
-            }
-
-            DB::commit(); // Lưu tất cả nếu không lỗi
+            DB::commit();
 
             return redirect()->route('booking.index', ['sdt' => $request->sdt_khach])
-                ->with('success', 'Đặt bàn thành công! Mã đơn: ' . $datBan->ma_dat_ban);
+                ->with('new_booking_id', $datBan->id)
+                ->with('clear_cart', true);
         } catch (\Exception $e) {
-            DB::rollBack(); // Hoàn tác nếu có lỗi
-            // Log lỗi ra để debug nếu cần: Log::error($e->getMessage());
-            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage())->withInput();
+            DB::rollBack();
+            return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -119,21 +111,24 @@ class BookingController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 1. Validate
-        $request->validate([
-            'ten_khach'   => 'required|string|max:255',
-            'sdt_khach'   => 'required|string|max:20',
-            'gio_den'     => 'required|date',
-            'nguoi_lon'   => 'required|integer|min:1',
-            'tre_em'      => 'nullable|integer|min:0',
-            'cart_data'   => 'nullable|string', // Chấp nhận chuỗi JSON
-        ]);
+        $this->mergeDateTime($request);
+        $this->validateBooking($request);
+
+        $datBan = DatBan::findOrFail($id);
+
+        // [QUAN TRỌNG] Kiểm tra bàn trống lại khi Update
+        // Chỉ kiểm tra nếu khách thay đổi số người hoặc giờ đến
+        $isChanged = ($datBan->nguoi_lon != $request->nguoi_lon) || ($datBan->gio_den != $request->gio_den);
+
+        if ($isChanged) {
+            $check = $this->bookingService->checkAvailability($request->nguoi_lon, $request->gio_den);
+            if (!$check['status']) {
+                return back()->with('error', $check['message'])->withInput();
+            }
+        }
 
         DB::beginTransaction();
         try {
-            $datBan = DatBan::findOrFail($id);
-
-            // 2. Cập nhật thông tin chung
             $datBan->update([
                 'ten_khach'   => $request->ten_khach,
                 'sdt_khach'   => $request->sdt_khach,
@@ -142,49 +137,101 @@ class BookingController extends Controller
                 'tre_em'      => $request->tre_em,
             ]);
 
-            // 3. Xử lý cập nhật món (QUAN TRỌNG)
-            // Kiểm tra xem form có gửi dữ liệu giỏ hàng lên không
+            // Xóa chi tiết cũ và thêm mới (Dùng lại hàm sync)
             if ($request->has('cart_data')) {
-
-                // BƯỚC 1: Xóa sạch chi tiết cũ của đơn này trước
-                // (Để đảm bảo nếu khách xóa bớt món trên giao diện thì trong DB cũng mất)
+                // Lưu ý: Đảm bảo model ChiTietDatBan đúng quan hệ
                 ChiTietDatBan::where('dat_ban_id', $datBan->id)->delete();
-
-                // BƯỚC 2: Thêm lại danh sách mới (nếu có)
-                $cartItems = json_decode($request->cart_data, true);
-
-                if (is_array($cartItems) && count($cartItems) > 0) {
-                    foreach ($cartItems as $item) {
-                        // Logic phải giống hệt hàm store: Chỉ xử lý nếu là COMBO
-                        if (isset($item['key']) && strpos($item['key'], 'combo_') === 0) {
-
-                            // Lấy ID chuẩn (Xóa chữ 'combo_' đi)
-                            $realComboId = str_replace('combo_', '', $item['key']);
-
-                            ChiTietDatBan::create([
-                                'dat_ban_id' => $datBan->id,
-                                'combo_id'   => $realComboId,
-                                'so_luong'   => $item['quantity'] ?? 1,
-                            ]);
-                        }
-                        // Nếu bạn có bảng DatBanMonAn (cho món lẻ), thì thêm elseif check 'mon_' ở đây
-                    }
-                }
+                $this->syncBookingDetails($datBan, $request->cart_data);
             }
 
             DB::commit();
-
-            // Redirect về trang danh sách kèm thông báo
-            return redirect()->route('booking.index')
-                ->with('success', 'Cập nhật đơn hàng thành công!');
+            return redirect()->route('booking.index')->with('success', 'Cập nhật thành công!');
         } catch (\Exception $e) {
-            DB::rollBack(); 
+            DB::rollBack();
             return back()->with('error', 'Lỗi cập nhật: ' . $e->getMessage())->withInput();
         }
     }
+
     public function destroy($id)
     {
         DatBan::destroy($id);
         return redirect()->route('booking.index')->with('success', 'Xoá đặt bàn thành công!');
+    }
+
+    // ==========================================================
+    // CÁC HÀM PHỤ TRỢ (HELPER FUNCTIONS) - GIÚP CODE GỌN HƠN
+    // ==========================================================
+
+    private function mergeDateTime(Request $request)
+    {
+        if ($request->has(['booking_date', 'booking_time'])) {
+            $request->merge([
+                'gio_den' => $request->booking_date . ' ' . $request->booking_time
+            ]);
+        }
+    }
+
+    private function validateBooking(Request $request)
+    {
+        $rules = [
+            'ten_khach'    => 'required|string|max:255',
+            'sdt_khach'    => ['required', 'string', 'min:10', 'max:10', 'regex:/^(03|05|07|08|09)+([0-9]{8})$/'],
+            'booking_date' => 'required|date',
+            'booking_time' => 'required',
+            'gio_den'      => 'required|date|after:now',
+            'nguoi_lon'    => 'required|integer|min:1',
+            'tre_em'       => 'nullable|integer|min:0',
+        ];
+        $request->validate($rules, [
+            'sdt_khach.regex' => 'Số điện thoại không hợp lệ.',
+            'gio_den.after'   => 'Thời gian đặt phải ở tương lai.',
+        ]);
+
+        // Validate Combo
+        if ($request->filled('cart_data')) {
+            $cartItems = json_decode($request->cart_data, true);
+            $totalCombos = 0;
+            if (is_array($cartItems)) {
+                foreach ($cartItems as $item) {
+                    if (isset($item['key']) && str_starts_with($item['key'], 'combo_')) {
+                        $totalCombos += ($item['quantity'] ?? 0);
+                    }
+                }
+            }
+            if ($totalCombos > 0 && $totalCombos < $request->nguoi_lon) {
+                // Throw Validation Exception để Laravel tự redirect back kèm lỗi
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'cart_data' => "Quy định: Số suất Combo ($totalCombos) phải đủ cho số người lớn ($request->nguoi_lon)."
+                ]);
+            }
+        }
+    }
+
+    private function syncBookingDetails($datBan, $cartJson)
+    {
+        if (empty($cartJson)) return;
+
+        $cartItems = json_decode($cartJson, true);
+        if (!is_array($cartItems)) return;
+
+        foreach ($cartItems as $item) {
+            $qty = $item['quantity'] ?? 1;
+            $key = $item['key'] ?? '';
+
+            // Tách Combo và Món
+            if (str_starts_with($key, 'combo_')) {
+                ChiTietDatBan::create([
+                    'dat_ban_id' => $datBan->id,
+                    'combo_id'   => str_replace('combo_', '', $key),
+                    'so_luong'   => $qty,
+                ]);
+            } elseif (str_starts_with($key, 'mon_')) {
+                ChiTietDatBan::create([
+                    'dat_ban_id' => $datBan->id,
+                    'mon_an_id'  => str_replace('mon_', '', $key),
+                    'so_luong'   => $qty,
+                ]);
+            }
+        }
     }
 }

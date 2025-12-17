@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Controllers
+// Controllers (Đảm bảo tất cả các Controller cần thiết được import)
 use App\Http\Controllers\Shop\HomeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\SanPhamController;
@@ -13,7 +13,7 @@ use App\Http\Controllers\Admin\KhuVucController;
 use App\Http\Controllers\Admin\BanAnController;
 use App\Http\Controllers\Admin\DanhMucController;
 use App\Http\Controllers\Admin\ComboBuffetController;
-use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LoginController; // Controller Auth
 use App\Http\Controllers\Admin\DatBanController;
 use App\Http\Controllers\Admin\ChiTietOrderController;
 use App\Http\Controllers\Admin\OrderMonController;
@@ -29,6 +29,8 @@ use App\Http\Controllers\Shop\NhanVien\ThanhToanController;
 use App\Http\Controllers\Shop\Oderqr\OrderController;
 use App\Http\Controllers\Shop\Booking\BookingController;
 use App\Http\Controllers\Admin\DanhGiaController;
+use App\Http\Controllers\Shop\NhanVien\WaiterController;
+
 
 
 // ==========================================================
@@ -43,7 +45,7 @@ Route::prefix('/')->group(function () {
         Route::get('/dich-vu', 'service')->name('service');
         Route::get('/thuc-don', 'menu')->name('menu');
         Route::get('/lien-he', 'contact')->name('contact');
-        Route::post('/lien-he', 'sendContact')->name('contact.send');
+        Route::post('/lien-he', 'sendContact')->name('contact.send'); // Route GỬI form
         Route::get('/doi-ngu', 'team')->name('team');
         Route::get('/danh-gia', 'testimonial')->name('testimonial');
     });
@@ -64,14 +66,14 @@ Route::prefix('/')->group(function () {
         Route::post('verify', [OtpController::class, 'verifyOtp'])->name('otp.verify');
     });
 
-    // Thanh toán trực tuyến (Booking Client)
+    // Thanh toán trực tuyến (Sau khi xác thực OTP)
     Route::get('booking/{booking_id}/payment-method', [BookingController::class, 'paymentMethod'])->name('booking.payment_method');
     Route::get('booking/{booking_id}/pay-cash', [BookingController::class, 'payCash'])->name('booking.pay_cash');
     Route::get('booking/{booking_id}/pay-os', [BookingController::class, 'payOS'])->name('booking.pay_os');
     Route::get('booking/{booking_id}/pay-vnpay', [BookingController::class, 'payVNPay'])->name('booking.pay_vnpay');
     Route::get('booking/{booking_id}/pay-vietqr', [BookingController::class, 'payVietQR'])->name('booking.pay_vietqr');
 
-    // Callback PayOS (Booking Client)
+    // Callback PayOS
     Route::get('payment/cancel', [BookingController::class, 'cancel'])->name('booking.pay-os.cancel');
     Route::get('payment/success', [BookingController::class, 'success'])->name('booking.pay-os.success');
 });
@@ -82,6 +84,7 @@ Route::prefix('/')->group(function () {
 // Không yêu cầu đăng nhập
 // ==========================================================
 Route::prefix('oderqr')->group(function () {
+
     Route::get('select-combo/{qrKey}', [OrderController::class, 'showComboSelectionPage'])->name('oderqr.select_combo');
     Route::post('start-order', [OrderController::class, 'startOrder'])->name('oderqr.start_order');
     Route::get('menu/{qrKey}', [OrderController::class, 'showGoiMonPage'])->name('oderqr.menu');
@@ -93,7 +96,7 @@ Route::prefix('oderqr')->group(function () {
     Route::post('call-staff', [OrderController::class, 'callStaff'])->name('oderqr.call_staff');
 });
 
-// Route truy cập nhanh demo
+// Route truy cập nhanh dùng cho demo
 Route::get('/tong', function () {
     return view('quick-access');
 });
@@ -119,12 +122,16 @@ Route::get('/test-debug', function () {
 
 
 // ==========================================================
-// ===== 3. AUTH ROUTES (ĐĂNG NHẬP / ĐĂNG XUẤT) =====
+// ===== 3. AUTH ROUTES (ĐĂNG NHẬP / ĐĂNG XUẤT/ĐĂNG KÍ) =====
 // ==========================================================
 
+
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+
 Route::post('login', [LoginController::class, 'login']);
+
 Route::post('/register-nhanvien', [LoginController::class, 'storeNhanVien'])->name('register.store');
+
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
 
@@ -152,8 +159,13 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
 
     // Quản lý Đánh giá
     Route::controller(DanhGiaController::class)->prefix('danh-gia')->name('danh-gia.')->group(function () {
+        // Danh sách đánh giá: admin.danh-gia.index
         Route::get('/', 'index')->name('index');
+
+        // Duyệt/Ẩn đánh giá: admin.danh-gia.status
         Route::get('/status/{id}/{status}', 'updateStatus')->name('status');
+
+        // Xóa đánh giá: admin.danh-gia.destroy
         Route::delete('/{id}', 'destroy')->name('destroy');
     });
 
@@ -223,7 +235,27 @@ Route::middleware(['auth', 'role:phuc_vu,le_tan'])->prefix('nhanVien')->name('nh
         Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
         Route::get('check-notifications', [NhanVienBanAnController::class, 'checkNotifications'])->name('check_notif');
         Route::post('complete-support', [NhanVienBanAnController::class, 'completeSupport'])->name('complete_support');
+
+        // [QUAN TRỌNG] Route cho tính năng cập nhật trạng thái hàng loạt mới thêm
+        Route::post('/update-batch', [NhanVienBanAnController::class, 'updateBatchStatus'])->name('update_batch');
     });
+
+    // --- BỔ SUNG: HÀNG CHỜ PHỤC VỤ (Waiter Logic) ---
+    // Controller: App\Http\Controllers\Shop\NhanVien\WaiterController
+    Route::prefix('phuc-vu')->name('phuc-vu.')->controller(WaiterController::class)->group(function () {
+        // Trang hiển thị danh sách món ăn đã xong (Bếp đã làm xong)
+        Route::get('/dashboard', 'dashboard')->name('dashboard');
+
+        // API để nhân viên xác nhận đã bưng món (chuyển trạng thái sang 'da_len_mon')
+        Route::post('/confirm-served/{id}', 'xacNhanDaBung')->name('confirm_served');
+
+        // API tự động cập nhật món ăn & thông báo
+        Route::get('/dashboard-api', 'getFoodQueueJson')->name('dashboard_api');
+
+        // [MỚI] API đánh dấu thông báo đã xem (Bị thiếu Route này)
+        Route::post('/mark-notif-read', 'markNotifRead')->name('mark_read');
+    });
+    // --------------------------------------------------
 
     // Đặt bàn cho nhân viên (Tạo booking tại quầy)
     Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
@@ -246,18 +278,34 @@ Route::middleware(['auth', 'role:phuc_vu,le_tan'])->prefix('nhanVien')->name('nh
     Route::put('chi-tiet-order/{ctId}', [NhanVienOrderMonController::class, 'update'])->name('chi-tiet-order.update');
     Route::delete('/chi-tiet-order/{id}', [NhanVienOrderMonController::class, 'destroy'])->name('chi-tiet-order.destroy');
 
-    // Thanh toán (Đã cập nhật sang PayOS)
+    // // Thanh toán (Đã cập nhật sang PayOS)
+    // Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
+    //     Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
+    //     Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
+    //     Route::get('/order/{orderId}', 'thanhToan')->name('order');
+    //     Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
+    //     Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
+    //     Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
+
+    //     // PAYOS ROUTES (Thay thế VNPAY)
+    //     Route::post('/payos-payment/{banId}', 'createPayOSPayment')->name('payos.payment');
+    //     Route::get('/payos/callback/{banId}', 'handlePayOSCallback')->name('payos.callback');
+    // });
+    // Thanh toán
     Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
+        // thanh toán từ danh sách bàn
         Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
         Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
+        Route::post('/ban/{banId}/thanh-toan-sau', 'luuThanhToanSau')->name('luu-ban-sau');
+        // thanh toán từ bên order món
         Route::get('/order/{orderId}', 'thanhToan')->name('order');
         Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
+        // hóa đơn và in
         Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
         Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
-
-        // PAYOS ROUTES (Thay thế VNPAY)
-        Route::post('/payos-payment/{banId}', 'createPayOSPayment')->name('payos.payment');
-        Route::get('/payos/callback/{banId}', 'handlePayOSCallback')->name('payos.callback');
+        // thanh toán vnpay
+        Route::post('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
+        Route::get('/vnpay/callback', 'vnpayCallback')->name('vnpay.callback');
     });
 });
 

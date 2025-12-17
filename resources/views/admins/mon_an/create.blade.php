@@ -17,7 +17,7 @@
         <div class="col-md-12">
             <div class="tile">
                 <h3 class="tile-title">Tạo mới món ăn</h3>
-                
+
                 {{-- Đảm bảo Form có method="POST" và enctype="multipart/form-data" --}}
                 <form action="{{ route('admin.san-pham.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
@@ -41,7 +41,7 @@
                                     <input type="text" class="form-control" name="ten_mon"
                                         value="{{ old('ten_mon') }}" required>
                                 </div>
-                                
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
@@ -50,14 +50,14 @@
                                                 value="{{ old('gia') }}" required>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    {{-- <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Thời gian chế biến (phút) <span
                                                     class="text-danger">*</span></label>
                                             <input type="number" class="form-control" min="1" name="thoi_gian_che_bien"
                                                 value="{{ old('thoi_gian_che_bien') }}" required>
                                         </div>
-                                    </div>
+                                    </div> --}}
                                 </div>
 
                                 <div class="mb-3">
@@ -83,17 +83,34 @@
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Loại món</label>
+
+                                            @php
+                                            $loaiMonDB = [
+                                            'Sống',
+                                            'Chín',
+                                            'Nướng',
+                                            'Xào / Luộc',
+                                            'Bánh ngọt',
+                                            'Trái cây',
+                                            'Nước có ga',
+                                            'Nước không ga',
+                                            'Trà / Cà phê',
+                                            ];
+                                            @endphp
+
                                             <select name="loai_mon" class="form-control">
-                                                <option value="">-- Chọn loại món --</option>
-                                                <option value="Khai vị" {{ old('loai_mon') == 'Khai vị' ? 'selected' : '' }}>Khai vị</option>
-                                                <option value="Món chính" {{ old('loai_mon') == 'Món chính' ? 'selected' : '' }}>Món chính</option>
-                                                <option value="Tráng miệng" {{ old('loai_mon') == 'Tráng miệng' ? 'selected' : '' }}>Tráng miệng</option>
-                                                <option value="Đồ uống" {{ old('loai_mon') == 'Đồ uống' ? 'selected' : '' }}>Đồ uống</option>
+                                                <option value="">— Chọn loại món —</option>
+                                                @foreach($loaiMonDB as $loai)
+                                                <option value="{{ $loai }}"
+                                                    {{ old('loai_mon', $mon_an->loai_mon ?? '') == $loai ? 'selected' : '' }}>
+                                                    {{ $loai }}
+                                                </option>
+                                                @endforeach
                                             </select>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
                                     <div class="d-block mt-2">
@@ -127,7 +144,7 @@
                                             style="max-height: 200px; object-fit: cover;">
                                     </div>
                                 </div>
-                                
+
                                 {{-- START: Thêm trường Thư viện ảnh --}}
                                 <hr>
                                 <div class="mb-3">
@@ -136,7 +153,7 @@
                                         onchange="previewGallery(event)">
                                     <small class="form-text text-muted">Có thể chọn nhiều ảnh.</small>
                                 </div>
-                                
+
                                 {{-- Khu vực hiển thị preview ảnh phụ --}}
                                 <div class="d-flex flex-wrap gap-2 mt-2 border p-2 rounded" id="gallery_preview">
                                     <span class="text-muted small">Ảnh sẽ hiển thị ở đây.</span>
@@ -181,7 +198,7 @@
     function previewGallery(event) {
         const previewContainer = document.getElementById('gallery_preview');
         // Xóa tất cả các ảnh preview cũ
-        previewContainer.innerHTML = ''; 
+        previewContainer.innerHTML = '';
 
         const files = event.target.files;
 
@@ -193,7 +210,7 @@
         // Lặp qua tất cả các file được chọn và tạo thẻ <img>
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            
+
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             img.classList.add('img-thumbnail'); // Dùng class Bootstrap để làm thumbnail
