@@ -577,7 +577,13 @@
 
                 {{-- Nút in hóa đơn --}}
                 <div class="d-flex justify-content-center gap-3 mt-4">
-                    <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-secondary btn-lg">Quay lại</a>
+                    @php
+                        $user = Auth::user();
+                        $backRoute = ($user && $user->vai_tro === 'le_tan') 
+                            ? route('nhanVien.ban-an.index') 
+                            : route('nhanVien.order.index');
+                    @endphp
+                    <a href="{{ $backRoute }}" class="btn btn-secondary btn-lg">Quay lại</a>
                     <a href="{{ route('nhanVien.thanh-toan.in-hoa-don', $hoaDon->id) }}" target="_blank" class="btn btn-primary btn-lg">In hóa đơn</a>
                 </div>
             </div>

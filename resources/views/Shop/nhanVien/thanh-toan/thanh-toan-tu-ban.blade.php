@@ -576,7 +576,13 @@
 
                                     {{-- Nút xác nhận --}}
                                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                        <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-secondary btn-lg px-5">
+                                        @php
+                                            $user = Auth::user();
+                                            $backRoute = ($user && $user->vai_tro === 'le_tan') 
+                                                ? route('nhanVien.ban-an.index') 
+                                                : route('nhanVien.order.index');
+                                        @endphp
+                                        <a href="{{ $backRoute }}" class="btn btn-secondary btn-lg px-5">
                                             <i class="bi bi-arrow-left me-2"></i>Quay lại
                                         </a>
                                         <button type="button" class="btn btn-warning btn-lg px-5" id="btnThanhToanSau" onclick="xacNhanThanhToanSau()">

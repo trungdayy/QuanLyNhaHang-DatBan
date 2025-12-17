@@ -60,7 +60,7 @@
                 @php
                     $user = Auth::user();
                     $isLeTan = $user && $user->vai_tro === 'le_tan';
-                    $logoLink = $isLeTan ? route('nhanVien.datban.index') : route('nhanVien.ban-an.index');
+                    $logoLink = $isLeTan ? route('nhanVien.ban-an.index') : route('nhanVien.order.index');
                 @endphp
                 <a href="{{ $logoLink }}" class="navbar-brand p-0">
                     <h1 class="text-primary m-0"><i class="fa fa-utensils me-3"></i>Buffet Ocean</h1>
@@ -77,20 +77,20 @@
                             $isLeTan = $user && $user->vai_tro === 'le_tan';
                         @endphp
                         
-                        @if(!$isLeTan)
-                            {{-- Menu cho nhân viên phục vụ --}}
+                        @if($isLeTan)
+                            {{-- Menu cho lễ tân - Quản lý bàn ăn và Đặt bàn --}}
                             <a href="{{ route('nhanVien.ban-an.index') }}"
                                 class="nav-item nav-link {{ request()->routeIs('nhanVien.ban-an.*') ? 'active' : '' }}">Bàn ăn</a>
                             
+                            <a href="{{ route('nhanVien.datban.index') }}"
+                                class="nav-item nav-link {{ request()->routeIs('nhanVien.datban.*') ? 'active' : '' }}">Đặt bàn</a>
+                        @else
+                            {{-- Menu cho nhân viên phục vụ - Order và Hàng chờ phục vụ --}}
                             <a href="{{ route('nhanVien.order.index') }}"
                                 class="nav-item nav-link {{ request()->routeIs('nhanVien.order.*') ? 'active' : '' }}">Order</a>
 
                             <a href="{{ route('nhanVien.phuc-vu.dashboard') }}"
                                 class="nav-item nav-link {{ request()->routeIs('nhanVien.phuc-vu.dashboard') ? 'active' : '' }}">Hàng Chờ Phục Vụ</a>
-                        @else
-                            {{-- Menu cho lễ tân - chỉ có Đặt bàn --}}
-                            <a href="{{ route('nhanVien.datban.index') }}"
-                                class="nav-item nav-link {{ request()->routeIs('nhanVien.datban.*') ? 'active' : '' }}">Đặt bàn</a>
                         @endif
                     </div>
 
