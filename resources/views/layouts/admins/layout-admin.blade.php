@@ -42,7 +42,7 @@
     </header>
     <div class="app-sidebar__overlay" data-toggle="sidebar"></div>
     <aside class="app-sidebar">
-        <div class="app-sidebar__user"><img class="app-sidebar__user-avatar" src="/images/hay.jpg" width="50px"
+        <div class="app-sidebar__user"><img class="app-sidebar__user-avatar" src="http://127.0.0.1:8000/assets/img/hero.png" width="50px"
                 alt="User Image">
             <div>
                 <p class="app-sidebar__user-name"><b>Ocean Buffet</b></p>

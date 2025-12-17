@@ -30,9 +30,7 @@ class KhuVucController extends Controller
             // 2. Lấy tất cả bàn ăn để tính toán trạng thái
             $banAns = BanAn::all();
 
-            // =================================================================
             // 💡 LOGIC TÍNH TOÁN TRẠNG THÁI & TỰ SỬA LỖI (COPY TỪ BanAnController)
-            // =================================================================
             $timezone = 'Asia/Ho_Chi_Minh';
             $now = Carbon::now($timezone);
             $limitTime = $now->copy()->addMinutes(30);
@@ -85,7 +83,6 @@ class KhuVucController extends Controller
                 $ban->booking_info = $thongTinBooking;
                 return $ban;
             });
-            // =================================================================
 
         } catch (QueryException $e) {
             $errorMessage = "Lỗi Database: " . $e->getMessage();

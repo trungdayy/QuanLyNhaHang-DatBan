@@ -33,9 +33,7 @@ class BanAnController extends Controller
             $banAns = $query->orderBy('so_ban', 'asc')->get();
             $khuVucs = KhuVuc::orderBy('tang')->get();
 
-            // =================================================================
             // 💡 LOGIC TÍNH TOÁN TRẠNG THÁI THỰC TẾ (QUAN TRỌNG)
-            // =================================================================
             $timezone = 'Asia/Ho_Chi_Minh';
             $now = Carbon::now($timezone);
             $limitTime = $now->copy()->addMinutes(30); // Check đơn đặt trong 30 phút tới
@@ -98,7 +96,6 @@ class BanAnController extends Controller
 
                 return $ban;
             });
-            // =================================================================
 
             return view('admins.khu-vuc-ban-an', compact('banAns', 'khuVucs'));
 

@@ -23,11 +23,15 @@ class NVDatBanController extends Controller
      */
     public function index(Request $r)
     {
-        // ... (Logic index giữ nguyên như cũ) ...
-        $query = DatBan::with(['banAn', 'nhanVien', 'chiTietDatBan.comboBuffet', 'chiTietDatBan.monAn', 'orderMon']);
+        $query = DatBan::with([
+            'banAn',
+            'nhanVien',
+            'chiTietDatBan.combo',
+            'orderMon'
+        ]);
 
         if ($r->trang_thai) $query->where('trang_thai', $r->trang_thai);
-        
+
         if ($r->ban) {
             $query->whereHas('banAn', function ($q) use ($r) {
                 $q->where('so_ban', 'like', "%{$r->ban}%");
@@ -42,7 +46,7 @@ class NVDatBanController extends Controller
         }
 
         if ($r->ma) $query->where('ma_dat_ban', 'like', '%' . $r->ma . '%');
-        
+
         if ($r->la_dat_online !== null && $r->la_dat_online !== '') {
             $query->where('la_dat_online', $r->la_dat_online);
         }
@@ -53,7 +57,6 @@ class NVDatBanController extends Controller
         }
         return view('shop.nhanvien.datban.index', compact('ds'));
     }
-
     /**
      * Hiển thị form tạo mới đặt bàn.
      */

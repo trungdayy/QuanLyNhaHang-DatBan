@@ -29,7 +29,7 @@ use App\Http\Controllers\Shop\NhanVien\ThanhToanController;
 use App\Http\Controllers\Shop\Oderqr\OrderController;
 use App\Http\Controllers\Shop\Booking\BookingController;
 use App\Http\Controllers\Admin\DanhGiaController;
-use App\Http\Controllers\Shop\NhanVien\WaiterController; 
+use App\Http\Controllers\Shop\NhanVien\WaiterController;
 
 
 
@@ -221,7 +221,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
     });
 });
 
-// 4.2.1. NHÓM LỄ TÂN (Vai trò: le_tan) - Quản lý bàn ăn, đặt bàn và thanh toán
+// 4.2.1. NHÓM LỄ TÂN (Vai trò: le_tan) - Quản lý bàn ăn và đặt bàn
 Route::middleware(['auth', 'role:le_tan'])->prefix('nhanVien')->name('nhanVien.')->group(function () {
     // Quản lý bàn ăn - CHỈ LỄ TÂN
     Route::prefix('ban-an')->name('ban-an.')->group(function () {
@@ -235,6 +235,34 @@ Route::middleware(['auth', 'role:le_tan'])->prefix('nhanVien')->name('nhanVien.'
         // [QUAN TRỌNG] Route cho tính năng cập nhật trạng thái hàng loạt mới thêm
         Route::post('/update-batch', [NhanVienBanAnController::class, 'updateBatchStatus'])->name('update_batch');
     });
+
+    // Thanh toán
+    Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
+
+        // 1. Thanh toán từ danh sách bàn & Order
+        Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
+        Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
+
+        // Quan trọng: Route này dùng cho nút "Thanh toán sau"
+        Route::post('/ban/{banId}/thanh-toan-sau', 'luuThanhToanSau')->name('luu-ban-sau');
+
+        // 2. Thanh toán từ Order (nếu có dùng)
+        Route::get('/order/{orderId}', 'thanhToan')->name('order');
+        Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
+
+        // 3. Hóa đơn & In
+        Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
+        Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
+
+        // 4. Thanh toán VNPAY
+        Route::post('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
+        Route::get('/vnpay/callback', 'vnpayCallback')->name('vnpay.callback');
+
+        // 5. Thanh toán PAYOS (Mới thêm)
+        // Lưu ý: Tên route là 'payos.create' để khớp với code trong View lúc nãy
+        Route::post('/payos-payment/{banId}', 'createPayOSPayment')->name('payos.create');
+        Route::get('/payos/callback/{banId}', 'handlePayOSCallback')->name('payos.callback');
+    });
     
     // Đặt bàn cho nhân viên (Tạo booking tại quầy) - CHỈ LỄ TÂN
     Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
@@ -242,26 +270,9 @@ Route::middleware(['auth', 'role:le_tan'])->prefix('nhanVien')->name('nhanVien.'
     Route::post('/dat-ban/store', [NVDatBanController::class, 'store'])->name('datban.store');
     Route::post('/dat-ban/{datBan}/thay-doi-trang-thai', [NVDatBanController::class, 'thayDoiTrangThai'])->name('datban.thaydoitrangthai');
     Route::get('/dat-ban/check-ban-trong', [NVDatBanController::class, 'ajaxCheckBanTrong'])->name('datban.check_ban');
-    
-    // Thanh toán - CHỈ LỄ TÂN
-    Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
-        // thanh toán từ danh sách bàn
-        Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
-        Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
-        Route::post('/ban/{banId}/thanh-toan-sau', 'luuThanhToanSau')->name('luu-ban-sau');
-        // thanh toán từ bên order món
-        Route::get('/order/{orderId}', 'thanhToan')->name('order');
-        Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
-        // hóa đơn và in
-        Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
-        Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
-        // thanh toán vnpay
-        Route::post('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');
-        Route::get('/vnpay/callback', 'vnpayCallback')->name('vnpay.callback');
-    });
 });
 
-// 4.2.2. NHÓM PHỤC VỤ (Vai trò: phuc_vu) - Order, Hàng chờ phục vụ
+// 4.2.2. NHÓM PHỤC VỤ (Vai trò: phuc_vu) - Order, Thanh toán, Hàng chờ phục vụ
 Route::middleware(['auth', 'role:phuc_vu'])->prefix('nhanVien')->name('nhanVien.')->group(function () {
 
    // --- BỔ SUNG: HÀNG CHỜ PHỤC VỤ (Waiter Logic) ---
@@ -294,6 +305,8 @@ Route::prefix('phuc-vu')->name('phuc-vu.')->controller(WaiterController::class)-
     Route::post('/chi-tiet-order', [NhanVienOrderMonController::class, 'store'])->name('chi-tiet-order.store');
     Route::put('chi-tiet-order/{ctId}', [NhanVienOrderMonController::class, 'update'])->name('chi-tiet-order.update');
     Route::delete('/chi-tiet-order/{id}', [NhanVienOrderMonController::class, 'destroy'])->name('chi-tiet-order.destroy');
+
+    
 });
 
 

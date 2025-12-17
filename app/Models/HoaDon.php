@@ -7,18 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 class HoaDon extends Model
 {
     // Bảng trong DB
-    protected $table = 'hoa_don';
+    protected $table = 'hoa_don'; // Lưu ý: Đảm bảo tên bảng trong DB đúng là 'hoa_don' (số ít) hay 'hoa_dons' (số nhiều)
 
     // Các trường được phép gán hàng loạt
     protected $fillable = [
         'dat_ban_id',
-        'voucher_id', // Thêm voucher_id vào fillable
+        'voucher_id',
         'tong_tien',
         'tien_giam',
         'phu_thu',
         'da_thanh_toan',
         'phuong_thuc_tt',
         'ma_hoa_don',
+        'trang_thai', // <--- ĐÃ THÊM DÒNG QUAN TRỌNG NÀY
     ];
 
     /**
@@ -47,22 +48,19 @@ class HoaDon extends Model
 
     /**
      * Tính tiền phải thanh toán cuối cùng
-     * Công thức: Tổng tiền - Tiền giảm (Voucher) - Tiền cọc + Phụ thu
      */
     public function tinhDaThanhToan(): float
     {
-        // Sử dụng các thuộc tính (cột) đã được lưu của Model
         $tongTien = $this->tong_tien ?? 0;
         $tienGiam = $this->tien_giam ?? 0;
         $phuThu = $this->phu_thu ?? 0;
         $tienCoc = $this->datBan->tien_coc ?? 0;
 
-        // Công thức: Tổng tiền - Voucher - Tiền cọc + Phụ thu
         $phaiThanhToan = $tongTien - $tienGiam - $tienCoc + $phuThu;
-        
-        return max(0, $phaiThanhToan); // Không được âm
+
+        return max(0, $phaiThanhToan);
     }
-    
+
     /**
      * Tính tiền trả lại cho khách
      */

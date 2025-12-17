@@ -22,9 +22,7 @@ class DanhMuc extends Model
         return $this->hasMany(MonAn::class, 'danh_muc_id');
     }
 
-    // ==========================================================
     // BẠN CẦN THÊM 2 HÀM NÀY VÀO ĐỂ LÀM ĐẸP GIAO DIỆN
-    // ==========================================================
 
     /**
      * Accessor: Tự động dịch 'hien_thi' sang Tiếng Việt
