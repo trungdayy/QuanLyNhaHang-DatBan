@@ -25,8 +25,12 @@ class LoginController extends Controller
                     return redirect()->route('admin.dashboard');
                 case 'bep':
                     return redirect()->route('bep.dashboard');
-                default: // phuc_vu hoặc le_tan
-                    return redirect()->route('nhanVien.ban-an.index'); 
+                case 'le_tan':
+                    return redirect()->route('nhanVien.ban-an.index');
+                case 'phuc_vu':
+                    return redirect()->route('nhanVien.order.index');
+                default:
+                    return redirect()->route('login');
             }
         }
         
@@ -72,8 +76,9 @@ class LoginController extends Controller
                 case 'bep':
                     return redirect()->route('bep.dashboard');
                 case 'phuc_vu':
+                    return redirect()->route('nhanVien.order.index'); // Phục vụ không có trang quản lý bàn
                 case 'le_tan':
-                    return redirect()->route('nhanVien.ban-an.index'); 
+                    return redirect()->route('nhanVien.ban-an.index'); // Lễ tân có trang quản lý bàn ăn
                 default:
                     Auth::logout();
                     return back()->withErrors(['email' => 'Vai trò không hợp lệ.']);

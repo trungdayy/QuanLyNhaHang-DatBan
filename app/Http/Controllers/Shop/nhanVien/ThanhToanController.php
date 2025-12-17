@@ -1124,14 +1124,17 @@ class ThanhToanController extends Controller
 
         // Tính tổng số lượng đã order cho từng món (cả combo và goi_them)
         // Bỏ qua món đã hủy và món đang chờ bếp
+        // QUAN TRỌNG: Bao gồm món có trạng thái da_len_mon (đã lên món), dang_che_bien (đang nấu) và cho_cung_ung (chờ cung ứng - đã nấu xong, chờ nhân viên xác nhận)
         $tongSoLuongMon = [];
         foreach ($datBan->orderMon as $order) {
             foreach ($order->chiTietOrders as $ct) {
+                // Chỉ tính món đã lên (da_len_mon), đang nấu (dang_che_bien) và chờ cung ứng (cho_cung_ung), bỏ qua món đã hủy và chờ bếp
                 if ($ct->trang_thai != 'huy_mon' && $ct->trang_thai != 'cho_bep') {
                     $monAnId = $ct->mon_an_id;
                     if (!isset($tongSoLuongMon[$monAnId])) {
                         $tongSoLuongMon[$monAnId] = 0;
                     }
+                    $tongSoLuongMon[$monAnId] += $ct->so_luong;
                 }
             }
         }
@@ -1152,13 +1155,15 @@ class ThanhToanController extends Controller
         $daPhanBoVuot = [];
 
         // Tính tiền cho từng món (bỏ qua món đã hủy và món đang chờ bếp)
+        // QUAN TRỌNG: Bao gồm món có trạng thái da_len_mon (đã lên món), dang_che_bien (đang nấu) và cho_cung_ung (chờ cung ứng - đã nấu xong, chờ nhân viên xác nhận)
         foreach ($datBan->orderMon as $order) {
             foreach ($order->chiTietOrders as $ct) {
+                // Chỉ tính món đã lên (da_len_mon), đang nấu (dang_che_bien) và chờ cung ứng (cho_cung_ung), bỏ qua món đã hủy và chờ bếp
                 if ($ct->trang_thai != 'huy_mon' && $ct->trang_thai != 'cho_bep') {
                     $monAnId = $ct->mon_an_id;
 
                     if ($ct->loai_mon == 'goi_them') {
-                        // Món gọi thêm: tính tiền bình thường
+                        // Món gọi thêm: tính tiền bình thường (bao gồm cả món da_len_mon, dang_che_bien và cho_cung_ung)
                         $tongTienMonGoiThem += ($ct->monAn->gia ?? 0) * $ct->so_luong;
                     } elseif ($ct->loai_mon == 'combo') {
                         // Món combo: tính tiền theo giới hạn

@@ -50,6 +50,24 @@
         .modal-header-custom { padding: 15px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
         .modal-body-custom { padding: 20px; overflow-y: auto; }
         .menu-list-item { display: flex; gap: 12px; padding: 10px; border: 1px solid #f1f5f9; border-radius: 8px; margin-bottom: 8px; align-items: center; }
+        
+        /* Warning Message */
+        #warning-message { 
+            border-left: 4px solid #f59e0b; 
+            background-color: #fef3c7; 
+            color: #92400e;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 
     <main class="app-content container-xxl py-4 px-4">
@@ -167,6 +185,12 @@
                 <div id="cart-summary-text" class="text-muted small"></div>
             </div>
 
+            {{-- Thông báo cảnh báo --}}
+            <div class="mt-3 alert alert-warning d-none" id="warning-message" role="alert">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                <strong>Cảnh báo:</strong> Số lượng combo hiện tại <span id="current-combo-count">0</span> ít hơn số khách (<span id="min-combo-count">{{ $order->datBan ? ($order->datBan->nguoi_lon + $order->datBan->tre_em) : 1 }}</span> người). Vui lòng chọn thêm combo!
+            </div>
+
             <button type="submit" class="btn-confirm mt-4">
                 <i class="fa-solid fa-check-circle"></i> Xác nhận & Lưu Combo
             </button>
@@ -249,10 +273,14 @@
             });
 
             // --- 3. TÍNH TỔNG TIỀN & LOGIC KHÓA ---
+            const warningMessage = document.getElementById('warning-message');
+            const currentComboCount = document.getElementById('current-combo-count');
+
             function calculateTotal() {
                 let total = 0;
                 let selectedPrice = null;
                 let items = [];
+                let totalQty = 0;
 
                 document.querySelectorAll('.combo-qty').forEach(input => {
                     const qty = parseInt(input.value) || 0;
@@ -260,6 +288,8 @@
                     const card = input.closest('.combo-card');
                     const badgeAmount = card.querySelector('.badge-amount');
                     const basePrice = parseInt(badgeAmount.dataset.basePrice);
+
+                    totalQty += qty; // Tổng số lượng combo
 
                     if (qty > 0) {
                         total += qty * price;
@@ -283,6 +313,14 @@
                     cartSummaryText.innerHTML = items.join(', ');
                 } else {
                     cartPreviewBox.classList.add('d-none');
+                }
+
+                // Kiểm tra và hiển thị cảnh báo nếu số lượng combo < số người
+                if (totalQty < orderMinCombo) {
+                    warningMessage.classList.remove('d-none');
+                    currentComboCount.textContent = totalQty;
+                } else {
+                    warningMessage.classList.add('d-none');
                 }
 
                 // Khóa các combo khác giá
