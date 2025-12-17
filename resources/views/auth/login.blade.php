@@ -280,6 +280,35 @@
             margin: 0;
         }
         
+        /* Nút quay lại */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 153, 0, 0.1);
+            border: 1px solid rgba(255, 153, 0, 0.3);
+            color: #FF9900;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .back-button:hover {
+            background: rgba(255, 153, 0, 0.2);
+            border-color: #FF9900;
+            transform: translateX(-3px);
+        }
+        
+        .back-button i {
+            font-size: 14px;
+        }
 
         /* --- RESPONSIVE --- */
         @media(max-width:900px){
@@ -329,12 +358,22 @@
             form {
                 max-width: 100%;
             }
+            .back-button {
+                top: 10px;
+                left: 10px;
+                padding: 8px 16px;
+                font-size: 13px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="container" id="main-container">
+        <a href="{{ route('home') }}" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+            <span>Quay lại</span>
+        </a>
         <div class="login-wrapper">
             {{-- Branding Section (Left) --}}
             <div class="branding-section">
