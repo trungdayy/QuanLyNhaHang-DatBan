@@ -130,8 +130,6 @@ Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 
 Route::post('login', [LoginController::class, 'login']);
 
-Route::post('/register-nhanvien', [LoginController::class, 'storeNhanVien'])->name('register.store');
-
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
 
@@ -223,22 +221,31 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
     });
 });
 
-// 4.2. NHÓM NHÂN VIÊN (Vai trò: phuc_vu, le_tan)
-Route::middleware(['auth', 'role:phuc_vu,le_tan'])->prefix('nhanVien')->name('nhanVien.')->group(function () {
-
-// Quản lý bàn
-Route::prefix('ban-an')->name('ban-an.')->group(function () {
-    Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
-    Route::post('/check-in-walkin', [NhanVienBanAnController::class, 'checkInWalkIn'])->name('check-in-walkin');
-    Route::get('/check-in-dattruoc/{id}', [NhanVienBanAnController::class, 'showCheckInForm'])->name('show-checkin-dattruoc');
-    Route::post('/process-check-in', [NhanVienBanAnController::class, 'processCheckIn'])->name('process-checkin');
-    Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
-    Route::get('check-notifications', [NhanVienBanAnController::class, 'checkNotifications'])->name('check_notif');
-    Route::post('complete-support', [NhanVienBanAnController::class, 'completeSupport'])->name('complete_support');
-
-    // [QUAN TRỌNG] Route cho tính năng cập nhật trạng thái hàng loạt mới thêm
-    Route::post('/update-batch', [NhanVienBanAnController::class, 'updateBatchStatus'])->name('update_batch');
+// 4.2.1. NHÓM LỄ TÂN (Vai trò: le_tan) - Quản lý bàn ăn và đặt bàn
+Route::middleware(['auth', 'role:le_tan'])->prefix('nhanVien')->name('nhanVien.')->group(function () {
+    // Quản lý bàn ăn - CHỈ LỄ TÂN
+    Route::prefix('ban-an')->name('ban-an.')->group(function () {
+        Route::get('/', [NhanVienBanAnController::class, 'index'])->name('index');
+        Route::post('/check-in-walkin', [NhanVienBanAnController::class, 'checkInWalkIn'])->name('check-in-walkin');
+        Route::get('/check-in-dattruoc/{id}', [NhanVienBanAnController::class, 'showCheckInForm'])->name('show-checkin-dattruoc');
+        Route::post('/process-check-in', [NhanVienBanAnController::class, 'processCheckIn'])->name('process-checkin');
+        Route::post('/reset/{id}', [NhanVienBanAnController::class, 'resetBan'])->name('reset-ban');
+        Route::get('check-notifications', [NhanVienBanAnController::class, 'checkNotifications'])->name('check_notif');
+        Route::post('complete-support', [NhanVienBanAnController::class, 'completeSupport'])->name('complete_support');
+        // [QUAN TRỌNG] Route cho tính năng cập nhật trạng thái hàng loạt mới thêm
+        Route::post('/update-batch', [NhanVienBanAnController::class, 'updateBatchStatus'])->name('update_batch');
+    });
+    
+    // Đặt bàn cho nhân viên (Tạo booking tại quầy) - CHỈ LỄ TÂN
+    Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
+    Route::get('/dat-ban/create', [NVDatBanController::class, 'create'])->name('datban.create');
+    Route::post('/dat-ban/store', [NVDatBanController::class, 'store'])->name('datban.store');
+    Route::post('/dat-ban/{datBan}/thay-doi-trang-thai', [NVDatBanController::class, 'thayDoiTrangThai'])->name('datban.thaydoitrangthai');
+    Route::get('/dat-ban/check-ban-trong', [NVDatBanController::class, 'ajaxCheckBanTrong'])->name('datban.check_ban');
 });
+
+// 4.2.2. NHÓM PHỤC VỤ (Vai trò: phuc_vu) - Order, Thanh toán, Hàng chờ phục vụ
+Route::middleware(['auth', 'role:phuc_vu'])->prefix('nhanVien')->name('nhanVien.')->group(function () {
 
    // --- BỔ SUNG: HÀNG CHỜ PHỤC VỤ (Waiter Logic) ---
 // Controller: App\Http\Controllers\Shop\NhanVien\WaiterController
@@ -257,13 +264,6 @@ Route::prefix('phuc-vu')->name('phuc-vu.')->controller(WaiterController::class)-
 });
 // --------------------------------------------------
 
-    // Đặt bàn cho nhân viên (Tạo booking tại quầy)
-    Route::get('/dat-ban', [NVDatBanController::class, 'index'])->name('datban.index');
-    Route::get('/dat-ban/create', [NVDatBanController::class, 'create'])->name('datban.create');
-    Route::post('/dat-ban/store', [NVDatBanController::class, 'store'])->name('datban.store');
-    Route::post('/dat-ban/{datBan}/thay-doi-trang-thai', [NVDatBanController::class, 'thayDoiTrangThai'])->name('datban.thaydoitrangthai');
-    Route::get('/dat-ban/check-ban-trong', [NVDatBanController::class, 'ajaxCheckBanTrong'])->name('datban.check_ban');
-
     // Gọi món (Tạo order và thêm món)
     Route::get('/order', [NhanVienOrderMonController::class, 'index'])->name('order.index');
     Route::post('/order/mo-order', [NhanVienOrderMonController::class, 'moOrder'])->name('order.mo-order');
@@ -278,19 +278,6 @@ Route::prefix('phuc-vu')->name('phuc-vu.')->controller(WaiterController::class)-
     Route::put('chi-tiet-order/{ctId}', [NhanVienOrderMonController::class, 'update'])->name('chi-tiet-order.update');
     Route::delete('/chi-tiet-order/{id}', [NhanVienOrderMonController::class, 'destroy'])->name('chi-tiet-order.destroy');
 
-    // // Thanh toán (Đã cập nhật sang PayOS)
-    // Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
-    //     Route::get('/ban/{banId}', 'thanhToanTuBan')->name('ban');
-    //     Route::post('/ban/{banId}', 'luuThanhToanTuBan')->name('luu-ban');
-    //     Route::get('/order/{orderId}', 'thanhToan')->name('order');
-    //     Route::post('/order/{orderId}', 'luuThanhToan')->name('luu');
-    //     Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
-    //     Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
-
-    //     // PAYOS ROUTES (Thay thế VNPAY)
-    //     Route::post('/payos-payment/{banId}', 'createPayOSPayment')->name('payos.payment');
-    //     Route::get('/payos/callback/{banId}', 'handlePayOSCallback')->name('payos.callback');
-    // });
     // Thanh toán
     Route::prefix('thanh-toan')->name('thanh-toan.')->controller(ThanhToanController::class)->group(function () {
         // thanh toán từ danh sách bàn
