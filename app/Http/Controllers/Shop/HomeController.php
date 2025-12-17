@@ -25,12 +25,11 @@ class HomeController extends Controller
             ->limit(10)
             ->get();
 
-        // Lấy TẤT CẢ combo đang mở bán
-        $combos = ComboBuffet::with('danhSachMon') 
+        // Code mới đã sửa
+        $combos = ComboBuffet::with('monAn') // <--- Sửa ở đây
             ->where('trang_thai', 'dang_ban')
-            ->orderBy('gia_co_ban', 'asc') 
+            ->orderBy('gia_co_ban', 'asc')
             ->get();
-
         // Lấy danh sách khu vực
         $khuVucs = KhuVuc::all();
 

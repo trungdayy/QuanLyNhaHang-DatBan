@@ -1,6 +1,4 @@
-# ============================
 #        APP CONFIG
-# ============================
 APP_NAME=DATN_Buffet_Ocean
 APP_ENV=local
 APP_KEY=base64:gvmm/g7KVFeVJsYcHF3nFzLjSO4W2T7rfjGrjwex5FA=
@@ -22,9 +20,7 @@ LOG_STACK=single
 LOG_DEPRECATIONS_CHANNEL=null
 LOG_LEVEL=debug
 
-# ============================
 #        DATABASE CONFIG
-# ============================
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3307
@@ -32,34 +28,26 @@ DB_DATABASE=buffet_ocean
 DB_USERNAME=root
 DB_PASSWORD=hanhdzso1tg
 
-# ============================
 #        SESSION CONFIG
-# ============================
 SESSION_DRIVER=database
 SESSION_LIFETIME=120
 SESSION_ENCRYPT=false
 SESSION_PATH=/
 SESSION_DOMAIN=null
 
-# ============================
 #       CACHE & QUEUE
-# ============================
 CACHE_STORE=database
 MEMCACHED_HOST=127.0.0.1
 
 QUEUE_CONNECTION=database
 
-# ============================
 #        REDIS CONFIG
-# ============================
 REDIS_CLIENT=phpredis
 REDIS_HOST=127.0.0.1
 REDIS_PASSWORD=null
 REDIS_PORT=6379
 
-# ============================
 #        MAIL CONFIG
-# ============================
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
@@ -69,9 +57,7 @@ MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=hanhsociu555@gmail.com
 MAIL_FROM_NAME="Nha hang Buffet Ocean"
 
-# ============================
 #        MOMO SANDBOX CONFIG
-# ============================
 MOMO_PARTNER_CODE=MOMOTEST123
 MOMO_ACCESS_KEY=F8BBA842ECF85
 MOMO_SECRET_KEY=K951B6PE1waDMi640xX08PD3vg6EkVlz
@@ -79,16 +65,12 @@ MOMO_ENDPOINT=https://test-payment.momo.vn/v2/gateway/api/create
 MOMO_RETURN_URL=http://localhost:8000/booking/momo-return   # Dùng ngrok thì đổi https://abcd1234.ngrok.io/booking/momo-return
 MOMO_NOTIFY_URL=http://localhost:8000/booking/momo-notify    # Dùng ngrok thì đổi https://abcd1234.ngrok.io/booking/momo-notify
 
-# ============================
 #        AWS CONFIG
-# ============================
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_DEFAULT_REGION=us-east-1
 AWS_BUCKET=
 AWS_USE_PATH_STYLE_ENDPOINT=false
 
-# ============================
 #        VITE CONFIG
-# ============================
 VITE_APP_NAME=DATN_Buffet_Ocean

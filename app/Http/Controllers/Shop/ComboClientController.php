@@ -12,13 +12,14 @@ class ComboClientController extends Controller
     /** Danh sách combo */
     public function index()
     {
-        $danhMucs = DanhMuc::with(['monAn' => function ($q) {
-            $q->where('trang_thai', 'con');
-        }])->get();
+        // 1. Lấy danh sách Combo đang bán, sắp xếp theo giá tăng dần
+        $combos = ComboBuffet::where('trang_thai', 'dang_ban')
+            ->orderBy('gia_co_ban', 'asc')
+            ->get();
 
-        return view('restaurants.combos._form', compact('danhMucs'));
+        // 2. Trả về View và truyền biến $combos sang
+        return view('restaurants.combos._form', compact('combos'));
     }
-
 
     public function menu()
     {
@@ -33,9 +34,9 @@ class ComboClientController extends Controller
     public function show($id)
     {
         $combo = ComboBuffet::with([
-            'danhSachMon',
-            'danhSachMon.thuVienAnh',   // ← Load thư viện ảnh cho món
-            'danhSachMon.danhMuc'        // ← Load danh mục món
+            'monAn',                 // <--- Sửa danhSachMon thành monAn
+            'monAn.thuVienAnh',      // <--- Sửa tiếp ở đây
+            'monAn.danhMuc',
         ])
             ->where('id', $id)
             ->where('trang_thai', 'dang_ban')

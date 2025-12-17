@@ -3,25 +3,30 @@
 {{-- ============================================================= --}}
 <style>
     /* Form Styles */
-    .form-floating .form-control, 
-    .form-floating .form-select { 
-        border-radius: 12px; 
-        border: 1px solid #e0e0e0; 
-        height: 60px !important; /* Tăng chiều cao để chữ thoáng hơn */
-        padding-top: 1.8rem;     /* Đẩy nội dung xuống dưới nhãn */
+    .form-floating .form-control,
+    .form-floating .form-select {
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        height: 60px !important;
+        /* Tăng chiều cao để chữ thoáng hơn */
+        padding-top: 1.8rem;
+        /* Đẩy nội dung xuống dưới nhãn */
         padding-bottom: 0.5rem;
         font-size: 1rem;
         font-weight: 600;
         color: #0F172B;
-        box-shadow: none !important; /* Bỏ shadow mặc định */
+        box-shadow: none !important;
+        /* Bỏ shadow mặc định */
         transition: border-color 0.2s;
     }
 
     /* Hiệu ứng khi focus (bấm vào) */
-    .form-floating .form-control:focus, 
-    .form-floating .form-select:focus { 
-        border: 2px solid #FEA116; /* Viền cam đậm hơn */
-        padding-top: 1.8rem;       /* Giữ nguyên vị trí chữ */
+    .form-floating .form-control:focus,
+    .form-floating .form-select:focus {
+        border: 2px solid #FEA116;
+        /* Viền cam đậm hơn */
+        padding-top: 1.8rem;
+        /* Giữ nguyên vị trí chữ */
     }
 
     /* Căn chỉnh Nhãn (Label) */
@@ -35,24 +40,41 @@
 
     /* Căn chỉnh Icon trong nhãn để thẳng hàng dọc */
     .form-floating label i {
-        width: 24px;       /* Cố định chiều rộng icon */
-        text-align: center; 
+        width: 24px;
+        /* Cố định chiều rộng icon */
+        text-align: center;
         margin-right: 8px;
         color: #FEA116;
     }
-    
+
     /* Cart Styles (Giữ nguyên) */
-    .cart-item-card { transition: all 0.2s; border: 1px solid #f0f0f0; }
-    .cart-item-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); border-color: #ffe0b2; }
-    
-    /* Buttons (Giữ nguyên) */
-    .btn-gradient-submit { 
-        background: linear-gradient(45deg, #FEA116, #FF8E53); 
-        border: none; color: white; font-weight: 700; 
-        text-transform: uppercase; box-shadow: 0 4px 15px rgba(254, 161, 22, 0.4); 
-        transition: all 0.3s; 
+    .cart-item-card {
+        transition: all 0.2s;
+        border: 1px solid #f0f0f0;
     }
-    .btn-gradient-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(254, 161, 22, 0.6); color: white; }
+
+    .cart-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        border-color: #ffe0b2;
+    }
+
+    /* Buttons (Giữ nguyên) */
+    .btn-gradient-submit {
+        background: linear-gradient(45deg, #FEA116, #FF8E53);
+        border: none;
+        color: white;
+        font-weight: 700;
+        text-transform: uppercase;
+        box-shadow: 0 4px 15px rgba(254, 161, 22, 0.4);
+        transition: all 0.3s;
+    }
+
+    .btn-gradient-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(254, 161, 22, 0.6);
+        color: white;
+    }
 </style>
 
 {{-- ============================================================= --}}
@@ -62,7 +84,7 @@
     @csrf
     {{-- Xử lý Method PUT cho trang Sửa --}}
     @if (isset($method) && ($method === 'PUT' || $method === 'PATCH'))
-        @method($method)
+    @method($method)
     @endif
 
     {{-- Input ẩn chứa dữ liệu giỏ hàng --}}
@@ -70,7 +92,8 @@
 
     <div class="row g-4">
         <div class="col-12 text-center mb-2">
-            <h4 class="text-uppercase fw-bold" style="color: #0F172B;">{{ isset($datBan) ? 'Cập Nhật Đặt Bàn' : 'Thông Tin Đặt Bàn' }}</h4>
+            <h4 class="text-uppercase fw-bold" style="color: #0F172B;">
+                {{ isset($datBan) ? 'Cập Nhật Đặt Bàn' : 'Thông Tin Đặt Bàn' }}</h4>
             <div style="width: 50px; height: 3px; background: #FEA116; margin: 0 auto;"></div>
         </div>
 
@@ -87,51 +110,56 @@
             <div class="form-floating">
                 <input type="text" name="sdt_khach" class="form-control fw-bold text-dark" id="floatSdt"
                     placeholder="Số điện thoại" value="{{ old('sdt_khach', $datBan->sdt_khach ?? '') }}" required>
-                <label for="floatSdt" class="text-muted"><i class="fa fa-phone text-primary me-2"></i>Số điện thoại</label>
+                <label for="floatSdt" class="text-muted"><i class="fa fa-phone text-primary me-2"></i>Số điện
+                    thoại</label>
             </div>
         </div>
 
-{{-- 2. THỜI GIAN --}}
-                            <div class="col-md-4">
-                                <div class="form-floating">
-                                    <input type="date" name="booking_date" class="form-control" id="bookingDate"
-                                        value="{{ old('booking_date', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('Y-m-d') : now()->format('Y-m-d')) }}"
-                                        required>
-                                    <label for="bookingDate"><i class="fa fa-calendar-alt"></i>Ngày đến</label>
-                                </div>
-                            </div>
+        {{-- 2. THỜI GIAN --}}
+        <div class="col-md-4">
+            <div class="form-floating">
+                <input type="date" name="booking_date" class="form-control" id="bookingDate"
+                    value="{{ old('booking_date', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('Y-m-d') : now()->format('Y-m-d')) }}"
+                    required>
+                <label for="bookingDate"><i class="fa fa-calendar-alt"></i>Ngày đến</label>
+            </div>
+        </div>
 
-                            <div class="col-md-4">
-                                <div class="form-floating">
-                                    <select name="ca_dat" class="form-select" id="bookingShiftSelect" required>
-                                        <option value="trua" {{ (old('ca_dat') == 'trua' || (isset($datBan) && \Carbon\Carbon::parse($datBan->gio_den)->hour < 15)) ? 'selected' : '' }}>
-                                            Trưa (10:30 - 14:00)
-                                        </option>
-                                        <option value="toi" {{ (old('ca_dat') == 'toi' || (isset($datBan) && \Carbon\Carbon::parse($datBan->gio_den)->hour >= 15)) ? 'selected' : '' }}>
-                                            Tối (17:00 - 22:00)
-                                        </option>
-                                    </select>
-                                    <label for="bookingShiftSelect"><i class="fa fa-sun"></i>Chọn Ca</label>
-                                </div>
-                            </div>
+        <div class="col-md-4">
+            <div class="form-floating">
+                <select name="ca_dat" class="form-select" id="bookingShiftSelect" required>
+                    <option value="trua"
+                        {{ (old('ca_dat') == 'trua' || (isset($datBan) && \Carbon\Carbon::parse($datBan->gio_den)->hour < 15)) ? 'selected' : '' }}>
+                        Trưa (10:30 - 14:00)
+                    </option>
+                    <option value="toi"
+                        {{ (old('ca_dat') == 'toi' || (isset($datBan) && \Carbon\Carbon::parse($datBan->gio_den)->hour >= 15)) ? 'selected' : '' }}>
+                        Tối (17:00 - 22:00)
+                    </option>
+                </select>
+                <label for="bookingShiftSelect"><i class="fa fa-sun"></i>Chọn Ca</label>
+            </div>
+        </div>
 
-                            <div class="col-md-4">
-                                <div class="form-floating">
-                                    <select name="booking_time" class="form-select" id="bookingTimeSelect" required
-                                        data-selected="{{ old('booking_time', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('H:i') : '') }}">
-                                        <option value="">-- Chọn giờ --</option>
-                                    </select>
-                                    <label for="bookingTimeSelect"><i class="fa fa-clock"></i>Khung giờ</label>
-                                </div>
-                            </div>
+        <div class="col-md-4">
+            <div class="form-floating">
+                <select name="booking_time" class="form-select" id="bookingTimeSelect" required
+                    data-selected="{{ old('booking_time', isset($datBan->gio_den) ? \Carbon\Carbon::parse($datBan->gio_den)->format('H:i') : '') }}">
+                    <option value="">-- Chọn giờ --</option>
+                </select>
+                <label for="bookingTimeSelect"><i class="fa fa-clock"></i>Khung giờ</label>
+            </div>
+        </div>
 
         {{-- 3. SỐ NGƯỜI --}}
         <div class="col-md-6">
             <div class="bg-light rounded-3 p-2 border">
                 <label class="small fw-bold text-muted ps-2 mb-1">Người lớn</label>
                 <div class="input-group">
-                    <span class="input-group-text bg-transparent border-0"><i class="fa fa-users text-primary fs-5"></i></span>
-                    <input type="number" name="nguoi_lon" class="form-control border-0 bg-transparent fw-bold fs-5 text-dark"
+                    <span class="input-group-text bg-transparent border-0"><i
+                            class="fa fa-users text-primary fs-5"></i></span>
+                    <input type="number" name="nguoi_lon"
+                        class="form-control border-0 bg-transparent fw-bold fs-5 text-dark"
                         value="{{ old('nguoi_lon', $datBan->nguoi_lon ?? 1) }}" min="1" required>
                 </div>
             </div>
@@ -141,8 +169,10 @@
             <div class="bg-light rounded-3 p-2 border">
                 <label class="small fw-bold text-muted ps-2 mb-1">Trẻ em</label>
                 <div class="input-group">
-                    <span class="input-group-text bg-transparent border-0"><i class="fa fa-child text-primary fs-5"></i></span>
-                    <input type="number" name="tre_em" class="form-control border-0 bg-transparent fw-bold fs-5 text-dark"
+                    <span class="input-group-text bg-transparent border-0"><i
+                            class="fa fa-child text-primary fs-5"></i></span>
+                    <input type="number" name="tre_em"
+                        class="form-control border-0 bg-transparent fw-bold fs-5 text-dark"
                         value="{{ old('tre_em', $datBan->tre_em ?? 0) }}" min="0">
                 </div>
             </div>
@@ -168,12 +198,15 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check mb-0">
-                                <input class="form-check-input" type="checkbox" id="selectAllCart" style="cursor: pointer;">
-                                <label class="form-check-label small fw-bold text-muted cursor-pointer" for="selectAllCart">
+                                <input class="form-check-input" type="checkbox" id="selectAllCart"
+                                    style="cursor: pointer;">
+                                <label class="form-check-label small fw-bold text-muted cursor-pointer"
+                                    for="selectAllCart">
                                     Tất cả
                                 </label>
                             </div>
-                            <button type="button" id="btnBulkDelete" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold d-none animate__animated animate__fadeIn">
+                            <button type="button" id="btnBulkDelete"
+                                class="btn btn-sm btn-danger rounded-pill px-3 fw-bold d-none animate__animated animate__fadeIn">
                                 <i class="fa fa-trash me-1"></i> Xóa (<span id="countDelete">0</span>)
                             </button>
                         </div>
@@ -189,14 +222,17 @@
         {{-- 5. GHI CHÚ --}}
         <div class="col-12">
             <div class="form-floating">
-                <textarea class="form-control" name="ghi_chu" id="floatNote" placeholder="Ghi chú" style="height: 100px;">{{ old('ghi_chu', $datBan->ghi_chu ?? '') }}</textarea>
-                <label for="floatNote" class="text-muted"><i class="fa fa-sticky-note text-primary me-2"></i>Ghi chú thêm</label>
+                <textarea class="form-control" name="ghi_chu" id="floatNote" placeholder="Ghi chú"
+                    style="height: 100px;">{{ old('ghi_chu', $datBan->ghi_chu ?? '') }}</textarea>
+                <label for="floatNote" class="text-muted"><i class="fa fa-sticky-note text-primary me-2"></i>Ghi chú
+                    thêm</label>
             </div>
         </div>
 
         {{-- 6. NÚT SUBMIT --}}
         <div class="col-12 mt-4 mb-3">
-            <button type="submit" class="btn btn-primary-custom w-100 py-3 rounded-pill btn-gradient-submit" id="btnSubmitBooking">
+            <button type="submit" class="btn btn-primary-custom w-100 py-3 rounded-pill btn-gradient-submit"
+                id="btnSubmitBooking">
                 <i class="fa fa-paper-plane me-2"></i> {{ isset($datBan) ? 'LƯU CẬP NHẬT' : 'XÁC NHẬN ĐẶT BÀN' }}
             </button>
         </div>
