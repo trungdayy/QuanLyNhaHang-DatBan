@@ -234,14 +234,14 @@ public function ajaxCheckBanTrong(Request $request)
             'ban_id' => [
                 'required',
                 'exists:ban_an,id',
-                // Chỉ cho phép chọn bàn đang 'trong' trong database
-                // (Logic kiểm tra xung đột lịch chi tiết sẽ được xử lý ở bước sau)
-                Rule::exists('ban_an', 'id')->where('trang_thai', 'trong'),
+                // Chỉ chặn bàn bị khóa (khong_su_dung)
+                // Logic kiểm tra xung đột lịch và trạng thái bàn sẽ được xử lý ở bước sau
+                Rule::exists('ban_an', 'id')->where('trang_thai', '!=', 'khong_su_dung'),
             ],
             'gio_den' => 'required|date',
         ], [
             'ban_id.required' => 'Vui lòng chọn bàn.',
-            'ban_id.exists' => 'Bàn được chọn không tồn tại hoặc không còn trống.',
+            'ban_id.exists' => 'Bàn được chọn không tồn tại hoặc đang bị khóa.',
         ]);
 
         $tongKhach = $request->nguoi_lon + $request->tre_em;
@@ -254,8 +254,20 @@ public function ajaxCheckBanTrong(Request $request)
         }
 
         $banAn = BanAn::find($request->ban_id);
+        
+        // Kiểm tra bàn có tồn tại không
+        if (!$banAn) {
+            return back()->withInput()->with('error', "Bàn được chọn không tồn tại.");
+        }
+        
+        // Kiểm tra bàn có bị khóa không
+        if ($banAn->trang_thai === 'khong_su_dung') {
+            return back()->withInput()->with('error', "Bàn này đang bị khóa, không thể sử dụng.");
+        }
+        
+        // Kiểm tra số ghế
         if ($banAn->so_ghe < $tongKhach) {
-            return back()->withInput()->with('error', "Bàn này không đủ ghế.");
+            return back()->withInput()->with('error', "Bàn này không đủ ghế. Bàn có {$banAn->so_ghe} ghế nhưng cần {$tongKhach} ghế.");
         }
 
         // Tính thời lượng mong muốn (Mặc định 120p)

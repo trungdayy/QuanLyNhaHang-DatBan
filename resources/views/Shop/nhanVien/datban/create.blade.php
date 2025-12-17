@@ -70,13 +70,13 @@
         <div class="card-body p-0">
             {{-- ERROR ALERTS --}}
             @if(session('error') || $errors->any())
-            <div class="p-3 bg-danger bg-opacity-10 border-bottom border-danger border-opacity-25">
+            <div class="p-3" style="background-color: #dc2626; border-bottom: 2px solid #b91c1c;">
                 @if(session('error'))
-                <div class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> {{ session('error') }}</div>
+                <div class="text-white fw-bold" style="color: #ffffff !important;"><i class="fa-solid fa-triangle-exclamation me-2"></i> {{ session('error') }}</div>
                 @endif
                 @if($errors->any())
-                <ul class="mb-0 text-danger small ps-4 mt-1">
-                    @foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach
+                <ul class="mb-0 small ps-4 mt-1" style="color: #ffffff !important;">
+                    @foreach($errors->all() as $e) <li style="color: #ffffff !important;">{{ $e }}</li> @endforeach
                 </ul>
                 @endif
             </div>
@@ -407,6 +407,11 @@
                 defOpt.selected = true;
                 selBan.appendChild(defOpt);
 
+                let soKhach = soKhachVal;
+                let bestBanId = null;
+                let bestBanGhe = Infinity;
+                let bestBanIsFree = false;
+
                 data.forEach(ban => {
                     let opt = document.createElement('option');
                     opt.value = ban.id;
@@ -424,13 +429,45 @@
                         opt.setAttribute('data-limited', 'true'); 
                     }
 
+                    // Lưu thông tin bàn vào option để dùng cho auto-select
+                    opt.setAttribute('data-so-ghe', ban.so_ghe);
+                    opt.setAttribute('data-trang-thai', ban.trang_thai);
+
                     if (OLD_BAN_ID == ban.id) {
                         opt.selected = true;
                         // Trigger event change thủ công nếu cần để hiện warning
                         if (ban.trang_thai !== 'free') document.getElementById('msgBanLimited').classList.remove('d-none');
                     }
                     selBan.appendChild(opt);
+
+                    // Logic tự động chọn bàn phù hợp nhất
+                    // Chỉ xét bàn có số ghế >= số khách
+                    if (ban.so_ghe >= soKhach) {
+                        let isFree = (ban.trang_thai === 'free');
+                        let soGhe = ban.so_ghe;
+                        
+                        // Ưu tiên: 1) Bàn free hơn limited, 2) Số ghế gần nhất với số khách
+                        if (!bestBanId || 
+                            (isFree && !bestBanIsFree) || // Ưu tiên free
+                            (isFree === bestBanIsFree && soGhe < bestBanGhe)) { // Cùng loại thì chọn số ghế nhỏ hơn
+                            bestBanId = ban.id;
+                            bestBanGhe = soGhe;
+                            bestBanIsFree = isFree;
+                        }
+                    }
                 });
+
+                // Tự động chọn bàn phù hợp nhất (nếu không có OLD_BAN_ID)
+                if (!OLD_BAN_ID && bestBanId) {
+                    selBan.value = bestBanId;
+                    // Trigger change event để hiển thị warning nếu là bàn limited
+                    let selectedOpt = selBan.options[selBan.selectedIndex];
+                    if (selectedOpt && selectedOpt.getAttribute('data-limited') === 'true') {
+                        document.getElementById('msgBanLimited').classList.remove('d-none');
+                    } else {
+                        document.getElementById('msgBanLimited').classList.add('d-none');
+                    }
+                }
             })
             .catch(err => {
                 console.error(err);
