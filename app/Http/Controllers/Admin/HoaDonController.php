@@ -135,65 +135,60 @@ class HoaDonController extends Controller
 
     public function edit($id)
     {
-        // Đã sửa: 'datBan.comboBuffet' -> 'datBan.combos'
-        $hoaDon = HoaDon::with('datBan.banAn', 'datBan.combos', 'voucher')->findOrFail($id);
+        $hoaDon = HoaDon::with([
+            'datBan.banAn.khuVuc',
+            'datBan.chiTietDatBan.combo',
+            'datBan.orderMon.chiTietOrders.monAn',
+            'voucher',
+            'chiTietHoaDon'
+        ])->findOrFail($id);
         
-        $vouchers = Voucher::where('trang_thai', 'dang_ap_dung')
-            ->where('ngay_ket_thuc', '>=', now())
-            ->whereRaw('so_luong > so_luong_da_dung')
-            ->get();
-        
-        return view('admins.hoa-don.edit', compact('hoaDon', 'vouchers'));
+        return view('admins.hoa-don.edit', compact('hoaDon'));
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
             'phuong_thuc_tt' => 'required|string',
-            'phu_thu' => 'nullable|numeric|min:0',
-            'voucher_id' => 'nullable|exists:vouchers,id'
+            'trang_thai' => 'required|in:da_thanh_toan,chua_thanh_toan',
+            'tien_khach_dua' => 'nullable|numeric|min:0'
         ]);
 
-        $hoaDon = HoaDon::with('voucher')->findOrFail($id);
+        $hoaDon = HoaDon::with(['chiTietHoaDon', 'datBan'])->findOrFail($id);
         
-        $oldVoucher = $hoaDon->voucher;
-        $newVoucher = $request->voucher_id ? Voucher::find($request->voucher_id) : null;
+        // Lấy thông tin từ chi_tiet_hoa_don nếu có
+        $chiTiet = $hoaDon->chiTietHoaDon;
+        $tongTienComboMon = $chiTiet->tong_tien_combo_mon ?? $hoaDon->tong_tien ?? 0;
+        $tienGiamVoucher = $chiTiet->tien_giam_voucher ?? $hoaDon->tien_giam ?? 0;
+        $tienCoc = $chiTiet->tien_coc ?? $hoaDon->datBan->tien_coc ?? 0;
+        $tongPhuThu = $chiTiet->tong_phu_thu ?? $hoaDon->phu_thu ?? 0;
         
-        $phuThu = (float) ($request->phu_thu ?? 0);
-        $tongTienGoc = $hoaDon->tong_tien;
-        // Cần eager load datBan trong edit để tránh N+1, nhưng lấy ở đây để tính toán
-        $datBan = $hoaDon->datBan;
-        $tienCoc = (float) ($datBan->tien_coc ?? 0);
-
-        $tienGiam = 0;
-        if ($newVoucher) {
-            if ($newVoucher->loai_giam == 'phan_tram') {
-                $tienGiam = $tongTienGoc * ($newVoucher->gia_tri / 100);
-                if ($newVoucher->gia_tri_toi_da && $tienGiam > $newVoucher->gia_tri_toi_da) {
-                    $tienGiam = $newVoucher->gia_tri_toi_da;
-                }
-            } else {
-                $tienGiam = $newVoucher->gia_tri;
-            }
-            if ($tienGiam > $tongTienGoc) $tienGiam = $tongTienGoc;
+        $phaiThanhToan = $tongTienComboMon - $tienGiamVoucher - $tienCoc + $tongPhuThu;
+        if ($phaiThanhToan < 0) $phaiThanhToan = 0;
+        
+        // Xử lý tiền khách đưa và tiền trả lại
+        $tienKhachDua = 0;
+        $tienTraLai = 0;
+        
+        if ($request->phuong_thuc_tt == 'tien_mat' && $request->filled('tien_khach_dua')) {
+            $tienKhachDua = (float) $request->tien_khach_dua;
+            $tienTraLai = max(0, $tienKhachDua - $phaiThanhToan);
         }
-
-        $daThanhToanMoi = $tongTienGoc - $tienGiam + $phuThu - $tienCoc;
-        if ($daThanhToanMoi < 0) $daThanhToanMoi = 0;
-
+        
+        // Cập nhật hóa đơn
         $hoaDon->update([
-            'voucher_id' => $newVoucher ? $newVoucher->id : null,
-            'tien_giam' => $tienGiam,
-            'phu_thu' => $phuThu,
-            'da_thanh_toan' => $daThanhToanMoi,
             'phuong_thuc_tt' => $request->phuong_thuc_tt,
+            'trang_thai' => $request->trang_thai,
+            'da_thanh_toan' => $phaiThanhToan,
         ]);
-
-        if ($oldVoucher && (!$newVoucher || $oldVoucher->id != $newVoucher->id)) {
-            $oldVoucher->decrement('so_luong_da_dung');
-        }
-        if ($newVoucher && (!$oldVoucher || $oldVoucher->id != $newVoucher->id)) {
-            $newVoucher->increment('so_luong_da_dung');
+        
+        // Cập nhật chi tiết hóa đơn nếu có
+        if ($chiTiet) {
+            $chiTiet->update([
+                'phuong_thuc_tt' => $request->phuong_thuc_tt,
+                'tien_khach_dua' => $tienKhachDua,
+                'tien_tra_lai' => $tienTraLai,
+            ]);
         }
 
         return redirect()->route('admin.hoa-don.index')

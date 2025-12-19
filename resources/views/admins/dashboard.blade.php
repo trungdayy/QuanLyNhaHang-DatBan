@@ -315,9 +315,11 @@
                                         <td>{{ $don->datBan->ten_khach ?? 'Ẩn' }}</td>
                                         <td>{{ number_format($don->tong_tien) }} đ</td>
                                         <td>
-                                            <span class="badge {{ ($don->da_thanh_toan ?? 0) > 0 ? 'bg-success' : 'bg-warning' }}">
-                                                {{ ($don->da_thanh_toan ?? 0) > 0 ? 'Đã thanh toán' : 'Chưa thanh toán' }}
-                                            </span>
+                                            @if($don->trang_thai == 'da_thanh_toan')
+                                                <span class="badge bg-success">Đã thanh toán</span>
+                                            @else
+                                                <span class="badge bg-warning">Chưa thanh toán</span>
+                                            @endif
                                         </td>
                                         <td>
                                             @if($don->phuong_thuc_tt == 'tien_mat')
@@ -328,8 +330,10 @@
                                                 <span class="badge bg-info">Thẻ ATM</span>
                                             @elseif($don->phuong_thuc_tt == 'vnpay')
                                                 <span class="badge bg-warning">VNPay</span>
+                                            @elseif($don->phuong_thuc_tt == 'chua_thanh_toan' || !$don->phuong_thuc_tt)
+                                                <span class="badge bg-dark">Chưa thanh toán</span>
                                             @else
-                                                <span class="badge bg-dark">{{ $don->phuong_thuc_tt ?? '---' }}</span>
+                                                <span class="badge bg-dark">{{ $don->phuong_thuc_tt }}</span>
                                             @endif
                                         </td>
                                         <td>{{ \Carbon\Carbon::parse($don->created_at)->format('d/m/Y') }}</td>

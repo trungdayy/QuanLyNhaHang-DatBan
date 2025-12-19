@@ -244,7 +244,7 @@
         return nguoiLon + treEm;
     }
 
-    // Hàm tự động cập nhật số lượng combo tối thiểu (CHỈ KHI NGƯỜI DÙNG ĐÃ CHỌN COMBO)
+    // Hàm tự động cập nhật số lượng combo tối thiểu và min attribute
     function autoUpdateComboQuantity() {
         let tongKhach = getTongKhach();
         if (tongKhach < 1) return; // Không có khách thì không làm gì
@@ -259,8 +259,9 @@
                 let input = item.querySelector('.input-qty');
                 if (input) {
                     let currentVal = parseInt(input.value) || 0;
-                    // CHỈ tự động tăng nếu người dùng ĐÃ CHỌN combo (số lượng > 0)
-                    // Tránh tự động set combo khi người dùng chưa chọn
+                    // Cập nhật min attribute
+                    input.setAttribute('min', tongKhach);
+                    // Nếu combo đã được chọn (số lượng > 0) và < tổng khách, tự động tăng lên
                     if (currentVal > 0 && currentVal < tongKhach) {
                         input.value = tongKhach;
                     }
@@ -297,7 +298,7 @@
                 comboWrapper.classList.remove('d-none');
                 msgChonGia.classList.add('d-none');
 
-                // Bước 3: Chỉ hiện combo đúng giá
+                // Bước 3: Chỉ hiện combo đúng giá và tự động set số lượng
                 let tongKhach = getTongKhach();
                 let firstVisibleCombo = null;
                 
@@ -310,11 +311,21 @@
                         if (!firstVisibleCombo) {
                             firstVisibleCombo = item;
                         }
+                        // Cập nhật min attribute cho tất cả combo được hiển thị
+                        let input = item.querySelector('.input-qty');
+                        if (input && tongKhach > 0) {
+                            input.setAttribute('min', tongKhach);
+                        }
                     }
                 });
 
-                // Bước 4: KHÔNG tự động đặt số lượng - để người dùng tự chọn
-                // (Đã bỏ logic tự động set để tránh thêm combo không mong muốn vào cart)
+                // Bước 4: Tự động đặt số lượng combo đầu tiên = số người (tối thiểu mỗi người 1 combo)
+                if (firstVisibleCombo && tongKhach > 0) {
+                    let firstInput = firstVisibleCombo.querySelector('.input-qty');
+                    if (firstInput) {
+                        firstInput.value = tongKhach;
+                    }
+                }
             }
         });
     }
@@ -334,26 +345,26 @@
             let btn = e.target.closest('.btn-minus');
             let input = btn.parentElement.querySelector('.input-qty');
             let currentVal = parseInt(input.value) || 0;
-            // Chỉ cho phép giảm nếu vẫn >= tổng số khách
-            if (currentVal > tongKhach) {
+            let minVal = parseInt(input.getAttribute('min')) || 0;
+            // Chỉ cho phép giảm nếu vẫn >= min (tổng số khách)
+            if (currentVal > minVal) {
                 input.value = currentVal - 1;
-            } else if (currentVal === tongKhach && tongKhach > 0) {
+            } else {
                 // Nếu đang ở mức tối thiểu, không cho giảm
-                // Có thể hiển thị thông báo hoặc không làm gì
                 return;
             }
         }
     });
 
-    // Ngăn người dùng nhập số lượng < tổng khách
+    // Ngăn người dùng nhập số lượng < min (tổng khách)
     document.addEventListener('input', function(e) {
         if (e.target.classList.contains('input-qty')) {
-            let tongKhach = getTongKhach();
+            let minVal = parseInt(e.target.getAttribute('min')) || 0;
             let inputVal = parseInt(e.target.value) || 0;
             
-            // Nếu nhập số < tổng khách, tự động đặt về tổng khách
-            if (inputVal < tongKhach && tongKhach > 0) {
-                e.target.value = tongKhach;
+            // Nếu nhập số < min, tự động đặt về min
+            if (inputVal < minVal && minVal > 0) {
+                e.target.value = minVal;
             }
         }
     });

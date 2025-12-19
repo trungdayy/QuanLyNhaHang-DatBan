@@ -59,6 +59,7 @@
                     <th>Tổng tiền món</th>
                     <th>Voucher</th>
                     <th>Tiền giảm</th>
+                    <th>Thực thu</th>
                     <th>Trạng thái</th>
                     <th>Phương thức</th>
                     <th>Ngày tạo</th>
@@ -100,16 +101,13 @@
                     
                     <td class="text-end text-success">{{ number_format($hd->tien_giam ?? 0) }}₫</td>
                     
+                    <td class="text-end fw-bold text-primary">{{ number_format($phaiThanhToan) }}₫</td>
+                    
                     <td>
-                        @php
-                            // Sử dụng dữ liệu đã lưu để kiểm tra trạng thái
-                            $daThanhToan = $hd->da_thanh_toan ?? 0;
-                            $isDaThanhToan = $daThanhToan >= $phaiThanhToan;
-                        @endphp
-                        @if($isDaThanhToan)
+                        @if($hd->trang_thai == 'da_thanh_toan')
                             <span class="badge bg-success">Đã thanh toán</span>
                         @else
-                            <span class="badge bg-danger">Chưa đủ</span>
+                            <span class="badge bg-warning">Chưa thanh toán</span>
                         @endif
                     </td>
 
@@ -117,9 +115,15 @@
                         @if($hd->phuong_thuc_tt == 'tien_mat')
                             <span class="badge bg-primary" data-bs-toggle="tooltip" title="Thanh toán tiền mặt">Tiền mặt</span>
                         @elseif($hd->phuong_thuc_tt == 'chuyen_khoan')
-                                <span class="badge bg-secondary" data-bs-toggle="tooltip" title="Thanh toán QR / Chuyển khoản">Chuyển khoản</span>
+                            <span class="badge bg-secondary" data-bs-toggle="tooltip" title="Thanh toán QR / Chuyển khoản">Chuyển khoản</span>
+                        @elseif($hd->phuong_thuc_tt == 'the_ATM')
+                            <span class="badge bg-info" data-bs-toggle="tooltip" title="Thanh toán bằng thẻ ATM">Thẻ ATM</span>
+                        @elseif($hd->phuong_thuc_tt == 'vnpay')
+                            <span class="badge bg-warning" data-bs-toggle="tooltip" title="Thanh toán qua VNPay">VNPay</span>
+                        @elseif($hd->phuong_thuc_tt == 'chua_thanh_toan' || !$hd->phuong_thuc_tt)
+                            <span class="badge bg-dark" data-bs-toggle="tooltip" title="Chưa thanh toán">Chưa thanh toán</span>
                         @else
-                                <span class="badge bg-dark" data-bs-toggle="tooltip" title="{{ $hd->phuong_thuc_tt }}">{{ $hd->phuong_thuc_tt }}</span>
+                            <span class="badge bg-dark" data-bs-toggle="tooltip" title="{{ $hd->phuong_thuc_tt }}">{{ $hd->phuong_thuc_tt }}</span>
                         @endif
                     </td>
 
@@ -130,19 +134,12 @@
                             title="Xem chi tiết">
                             <i class="fa fa-eye"></i>
                         </a>
+                        @if($hd->trang_thai != 'da_thanh_toan')
                         <a href="{{ route('admin.hoa-don.edit', $hd->id) }}" class="btn btn-warning btn-sm mb-1"
                             title="Sửa hóa đơn">
                             <i class="fa fa-edit"></i>
                         </a>
-                        <form action="{{ route('admin.hoa-don.destroy', $hd->id) }}" method="POST"
-                            style="display:inline-block;">
-                            @csrf
-                            @method('DELETE')
-                            <button onclick="return confirm('Bạn có chắc muốn xóa?')" class="btn btn-danger btn-sm mb-1"
-                                title="Xóa hóa đơn">
-                                <i class="fa fa-trash"></i>
-                            </button>
-                        </form>
+                        @endif
                     </td>
                 </tr>
                 @endforeach
