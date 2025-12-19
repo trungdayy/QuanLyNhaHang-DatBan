@@ -389,17 +389,83 @@ class DashboardController extends Controller
         }
 
         // ------------------ 3. BIỂU ĐỒ KHUNG GIỜ ĐẶT BÀN ------------------
-        // ------------------ 3. BIỂU ĐỒ KHUNG GIỜ ĐẶT BÀN ------------------
+        // Tạo danh sách khung giờ theo ca trưa/tối, cách nhau 30 phút
+        $timeSlots = [];
+        
+        // Ca trưa: 10:30 -> 14:00 (cách nhau 30 phút)
+        for ($h = 10; $h <= 14; $h++) {
+            $minutes = ($h == 10) ? [30] : (($h == 14) ? [0] : [0, 30]);
+            foreach ($minutes as $m) {
+                $timeString = sprintf('%02d:%02d', $h, $m);
+                $timeSlots[$timeString] = 0;
+            }
+        }
+        
+        // Ca tối: 17:00 -> 22:00 (cách nhau 30 phút)
+        for ($h = 17; $h <= 22; $h++) {
+            $minutes = ($h == 22) ? [0] : [0, 30];
+            foreach ($minutes as $m) {
+                $timeString = sprintf('%02d:%02d', $h, $m);
+                $timeSlots[$timeString] = 0;
+            }
+        }
+        
+        // Query dữ liệu đặt bàn và làm tròn về khung giờ 30 phút bằng SQL
         $hourlyQuery = DB::table('dat_ban');
         if ($dateFrom && $dateTo) {
             $hourlyQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
         }
-        $hourlyData = $hourlyQuery
-            ->selectRaw('HOUR(gio_den) as hour, COUNT(*) as count')
-            ->whereBetween(DB::raw('HOUR(gio_den)'), [10, 22])
-            ->groupBy('hour')
-            ->orderBy('hour')
-            ->pluck('count', 'hour');
+        
+        // Làm tròn phút về 0 hoặc 30 theo đúng khung giờ
+        // Phút < 30: làm tròn về :00
+        // Phút >= 30: làm tròn về :30
+        $rawData = $hourlyQuery
+            ->selectRaw('
+                CONCAT(
+                    LPAD(HOUR(gio_den), 2, "0"), ":",
+                    LPAD(
+                        CASE 
+                            WHEN MINUTE(gio_den) < 30 THEN 0
+                            ELSE 30
+                        END, 2, "0"
+                    )
+                ) as time_slot,
+                COUNT(*) as count
+            ')
+            ->where(function($q) {
+                // Ca trưa: 10:30 - 14:00
+                $q->where(function($q1) {
+                    $q1->where(DB::raw('HOUR(gio_den)'), 10)
+                       ->where(DB::raw('MINUTE(gio_den)'), '>=', 30);
+                })
+                ->orWhere(function($q1) {
+                    $q1->whereBetween(DB::raw('HOUR(gio_den)'), [11, 13]);
+                })
+                ->orWhere(function($q1) {
+                    $q1->where(DB::raw('HOUR(gio_den)'), 14)
+                       ->where(DB::raw('MINUTE(gio_den)'), '<=', 0);
+                })
+                // Ca tối: 17:00 - 22:00
+                ->orWhere(function($q1) {
+                    $q1->whereBetween(DB::raw('HOUR(gio_den)'), [17, 21]);
+                })
+                ->orWhere(function($q1) {
+                    $q1->where(DB::raw('HOUR(gio_den)'), 22)
+                       ->where(DB::raw('MINUTE(gio_den)'), '<=', 0);
+                });
+            })
+            ->groupBy('time_slot')
+            ->orderBy('time_slot')
+            ->pluck('count', 'time_slot');
+        
+        // Gán dữ liệu vào các khung giờ đã định nghĩa
+        foreach ($rawData as $timeSlot => $count) {
+            if (isset($timeSlots[$timeSlot])) {
+                $timeSlots[$timeSlot] = $count;
+            }
+        }
+        
+        $hourlyData = $timeSlots;
 
         // ------------------ 4. BIỂU ĐỒ NGÀY TRONG TUẦN ------------------
         $weekdayQuery = DB::table('dat_ban');

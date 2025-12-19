@@ -594,15 +594,29 @@
                 });
 
                 if (hourChart) hourChart.destroy();
+                // Tạo labels từ keys của hourlyData (đã được sắp xếp từ server)
+                const hourlyLabels = Object.keys(res.hourlyData);
+                const hourlyValues = Object.values(res.hourlyData);
+                
                 hourChart = new Chart(document.getElementById('hourChart'), {
                     type: 'bar',
                     data: {
-                        labels: Array.from({length:13},(_,i)=>`${i+10}h`),
+                        labels: hourlyLabels,
                         datasets: [{
                             label: 'Số lượt đặt',
-                            data: Object.values(res.hourlyData),
+                            data: hourlyValues,
                             backgroundColor: '#36A2EB'
                         }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
                     }
                 });
 
