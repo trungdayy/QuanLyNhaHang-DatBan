@@ -312,7 +312,7 @@
                         <div class="text-center py-5">
                             <i class="fa fa-shopping-basket fa-3x text-black-50 opacity-25 mb-3"></i>
                             <p class="text-muted mb-3 fw-bold">Giỏ hàng đang trống</p>
-                            <a href="/" class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold">
+                            <a href="{{ route('menu') }}" class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold">
                                 <i class="fa fa-arrow-left me-1"></i> Quay lại chọn món
                             </a>
                         </div>`;

@@ -245,6 +245,10 @@
             border-left: 4px solid #3b82f6;
         }
 
+        .status-card.ready {
+            border-left: 4px solid #f59e0b;
+        }
+
         .status-card.completed {
             border-left: 4px solid #22c55e;
             opacity: 0.8;
@@ -310,6 +314,12 @@
             background: #eff6ff;
             color: #1d4ed8;
             border: 1px solid #dbeafe;
+        }
+
+        .ready .badge-status {
+            background: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fde68a;
         }
 
         .completed .badge-status {
@@ -1744,9 +1754,30 @@
                     document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
                 });
             }
-            loadSessionInfo();
-            setInterval(loadOrderStatus, 5000);
+            loadSessionInfo().then(() => {
+                // Load trạng thái ngay sau khi có DAT_BAN_ID
+                if (DAT_BAN_ID) {
+                    loadOrderStatus();
+                }
+            });
+            
+            // Auto-refresh trạng thái mỗi 3 giây
+            setInterval(() => {
+                if (DAT_BAN_ID && !document.hidden) {
+                    loadOrderStatus();
+                }
+            }, 3000);
+            
+            // Cập nhật timer mỗi giây
             setInterval(updateTimers, 1000);
+            
+            // Tự động cập nhật khi trang trở lại active
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && DAT_BAN_ID) {
+                    loadOrderStatus();
+                }
+            });
+            
             toggleScrollTopButton(); // Kiểm tra nút cuộn lần đầu
         });
 
@@ -2244,25 +2275,53 @@
                         ic: 'clock'
                     };
                     let canCancel = false;
-                    if (i.trang_thai === 'dang_che_bien') s = {
-                        cls: 'cooking',
-                        txt: 'Đang nấu',
-                        ic: 'fire-burner'
-                    };
-                    else if (i.trang_thai === 'da_len_mon') s = {
-                        cls: 'completed',
-                        txt: 'Đã lên',
-                        ic: 'check'
-                    };
-                    else if (i.trang_thai === 'huy_mon') s = {
-                        cls: 'cancelled',
-                        txt: 'Đã hủy',
-                        ic: 'xmark'
-                    };
-                    else canCancel = true;
+                    
+                    // Xử lý các trạng thái
+                    if (i.trang_thai === 'cho_bep') {
+                        s = {
+                            cls: 'pending',
+                            txt: 'Chờ bếp',
+                            ic: 'clock'
+                        };
+                        canCancel = true; // Cho phép hủy khi chờ bếp
+                    }
+                    else if (i.trang_thai === 'dang_che_bien') {
+                        s = {
+                            cls: 'cooking',
+                            txt: 'Đang chế biến',
+                            ic: 'fire-burner'
+                        };
+                        canCancel = false;
+                    }
+                    else if (i.trang_thai === 'cho_cung_ung') {
+                        s = {
+                            cls: 'ready',
+                            txt: 'Chờ phục vụ',
+                            ic: 'bell'
+                        };
+                        canCancel = false;
+                    }
+                    else if (i.trang_thai === 'da_len_mon') {
+                        s = {
+                            cls: 'completed',
+                            txt: 'Đã lên',
+                            ic: 'check'
+                        };
+                        canCancel = false;
+                    }
+                    else if (i.trang_thai === 'huy_mon') {
+                        s = {
+                            cls: 'cancelled',
+                            txt: 'Đã hủy',
+                            ic: 'xmark'
+                        };
+                        canCancel = false;
+                    }
+                    
                     const prepTimeMin = i.mon_an.thoi_gian_che_bien || 15;
                     const targetTime = new Date(i.created_at).getTime() + (prepTimeMin * 60000);
-                    const showTimer = (i.trang_thai !== 'huy_mon' && i.trang_thai !== 'da_len_mon');
+                    // Hiển thị timer cho các trạng thái: cho_bep, dang_che_bien, cho_cung_ung
+                    const showTimer = (i.trang_thai === 'cho_bep' || i.trang_thai === 'dang_che_bien' || i.trang_thai === 'cho_cung_ung');
                     const timerHtml = showTimer ?
                         `<div class="timer-badge" data-target="${targetTime}"><i class="fa-solid fa-hourglass-half"></i> <span>--:--</span></div>` :
                         '';

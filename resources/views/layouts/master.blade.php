@@ -47,5 +47,24 @@
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+
+    <a href="https://m.me/106494249165168?text=Tôi%20muốn%20đặt%20bàn%20buffet"
+    target="_blank"
+    style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        background: #0084ff;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 999px;
+        font-weight: 600;
+        box-shadow: 0 8px 20px rgba(0,0,0,.25);
+        text-decoration: none;
+    ">
+    💬 Chat tư vấn
+    </a>
+
 </body>
 </html>

@@ -295,46 +295,46 @@
                 {{-- BẢNG 3 --}}
                 <div class="col-md-12">
                     <div class="title">
-                        <h3 class="tile-title">Trạng thái thanh toán (Đơn hàng mới nhất)</h3>
+                        <h3 class="tile-title">Hóa đơn chưa thanh toán</h3>
                         <div style="overflow-x:auto;">
                             <table class="table">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>ID</th>
+                                        <th>Mã hóa đơn</th>
                                         <th>Tên khách</th>
                                         <th>Tổng tiền</th>
-                                        <th>Trạng thái</th>
-                                        <th>Phương thức TT</th>
+                                        <th>Thực thu</th>
                                         <th>Ngày</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($donHangMoi as $don)
+                                    @forelse ($donHangMoi as $don)
+                                    @php
+                                        $chiTiet = $don->chiTietHoaDon;
+                                        $tongTienComboMon = $chiTiet->tong_tien_combo_mon ?? $don->tong_tien ?? 0;
+                                        $tienGiamVoucher = $chiTiet->tien_giam_voucher ?? $don->tien_giam ?? 0;
+                                        $tienCoc = $chiTiet->tien_coc ?? $don->datBan->tien_coc ?? 0;
+                                        $tongPhuThu = $chiTiet->tong_phu_thu ?? $don->phu_thu ?? 0;
+                                        $phaiThanhToan = $chiTiet->phai_thanh_toan ?? null;
+                                        if($phaiThanhToan === null) {
+                                            $phaiThanhToan = $tongTienComboMon - $tienGiamVoucher - $tienCoc + $tongPhuThu;
+                                            if($phaiThanhToan < 0) $phaiThanhToan = 0;
+                                        }
+                                    @endphp
                                     <tr>
                                         <td>{{ $don->id }}</td>
+                                        <td><span class="badge bg-info">{{ $don->ma_hoa_don }}</span></td>
                                         <td>{{ $don->datBan->ten_khach ?? 'Ẩn' }}</td>
-                                        <td>{{ number_format($don->tong_tien) }} đ</td>
-                                        <td>
-                                            <span class="badge {{ ($don->da_thanh_toan ?? 0) > 0 ? 'bg-success' : 'bg-warning' }}">
-                                                {{ ($don->da_thanh_toan ?? 0) > 0 ? 'Đã thanh toán' : 'Chưa thanh toán' }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            @if($don->phuong_thuc_tt == 'tien_mat')
-                                                <span class="badge bg-primary">Tiền mặt</span>
-                                            @elseif($don->phuong_thuc_tt == 'chuyen_khoan')
-                                                <span class="badge bg-secondary">Chuyển khoản</span>
-                                            @elseif($don->phuong_thuc_tt == 'the_ATM')
-                                                <span class="badge bg-info">Thẻ ATM</span>
-                                            @elseif($don->phuong_thuc_tt == 'vnpay')
-                                                <span class="badge bg-warning">VNPay</span>
-                                            @else
-                                                <span class="badge bg-dark">{{ $don->phuong_thuc_tt ?? '---' }}</span>
-                                            @endif
-                                        </td>
+                                        <td>{{ number_format($tongTienComboMon) }} đ</td>
+                                        <td class="fw-bold text-primary">{{ number_format($phaiThanhToan) }} đ</td>
                                         <td>{{ \Carbon\Carbon::parse($don->created_at)->format('d/m/Y') }}</td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">Không có hóa đơn chưa thanh toán</td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -590,15 +590,29 @@
                 });
 
                 if (hourChart) hourChart.destroy();
+                // Tạo labels từ keys của hourlyData (đã được sắp xếp từ server)
+                const hourlyLabels = Object.keys(res.hourlyData);
+                const hourlyValues = Object.values(res.hourlyData);
+                
                 hourChart = new Chart(document.getElementById('hourChart'), {
                     type: 'bar',
                     data: {
-                        labels: Array.from({length:13},(_,i)=>`${i+10}h`),
+                        labels: hourlyLabels,
                         datasets: [{
                             label: 'Số lượt đặt',
-                            data: Object.values(res.hourlyData),
+                            data: hourlyValues,
                             backgroundColor: '#36A2EB'
                         }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
                     }
                 });
 

@@ -46,6 +46,7 @@
                 <div class="col-md-6 text-center text-md-end">
                     <div class="footer-menu">
                         <a href="{{ route('home') }}">Trang chủ</a>
+                        <a href="{{ route('login') }}">Đăng nhập</a>
                         <a href="">Cookies</a>
                         <a href="">Trợ giúp</a>
                         <a href="">FAQs</a>

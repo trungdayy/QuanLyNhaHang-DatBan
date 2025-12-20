@@ -29,6 +29,10 @@ class WaiterController extends Controller
             ->whereHas('orderMon.datBan', function($q) use ($nhanVienId) {
                 // $q->where('nhan_vien_id', $nhanVienId); 
             })
+            ->whereDoesntHave('orderMon.datBan.hoaDon', function($q) {
+                // Loại bỏ các món từ bàn đã thanh toán
+                $q->where('trang_thai', 'da_thanh_toan');
+            })
             ->with(['monAn:id,ten_mon,hinh_anh', 'orderMon.banAn:id,so_ban'])
             ->latest() 
             ->get();
@@ -47,6 +51,10 @@ class WaiterController extends Controller
         $monChoPhucVu = ChiTietOrder::where('trang_thai', 'cho_cung_ung')
             ->whereHas('orderMon.datBan', function($q) use ($nhanVienId) {
                 // $q->where('nhan_vien_id', $nhanVienId);
+            })
+            ->whereDoesntHave('orderMon.datBan.hoaDon', function($q) {
+                // Loại bỏ các món từ bàn đã thanh toán
+                $q->where('trang_thai', 'da_thanh_toan');
             })
             ->with(['monAn:id,ten_mon,hinh_anh', 'orderMon.banAn:id,so_ban'])
             ->latest() 
