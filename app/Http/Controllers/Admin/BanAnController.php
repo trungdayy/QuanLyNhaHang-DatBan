@@ -252,6 +252,46 @@ class BanAnController extends Controller
     }
 
     /**
+     * Toggle trạng thái bàn (Tắt/Mở)
+     * Tắt: đổi trạng thái thành khong_su_dung (chỉ khi bàn đang trong)
+     * Bật: đổi trạng thái thành trong (khi bàn đang khong_su_dung)
+     * Không cho tắt nếu bàn đang dang_phuc_vu
+     */
+    public function toggleStatus($id)
+    {
+        try {
+            $banAn = BanAn::findOrFail($id);
+            $trangThaiHienTai = trim(strtolower($banAn->trang_thai));
+
+            // Kiểm tra nếu bàn đang phục vụ - không cho tắt
+            if ($trangThaiHienTai === 'dang_phuc_vu') {
+                return back()->with('error', '❌ Bàn đang phục vụ, không thể tắt.');
+            }
+
+            // Kiểm tra nếu bàn đã đặt - không cho tắt
+            if ($trangThaiHienTai === 'da_dat') {
+                return back()->with('error', '❌ Bàn đã được đặt, không thể tắt.');
+            }
+
+            // Toggle trạng thái
+            if ($trangThaiHienTai === 'khong_su_dung') {
+                // Bật: chuyển từ khong_su_dung sang trong
+                $banAn->update(['trang_thai' => 'trong']);
+                return back()->with('success', "✅ Đã bật bàn {$banAn->so_ban}.");
+            } elseif ($trangThaiHienTai === 'trong') {
+                // Tắt: chuyển từ trong sang khong_su_dung
+                $banAn->update(['trang_thai' => 'khong_su_dung']);
+                return back()->with('success', "🔒 Đã tắt bàn {$banAn->so_ban}.");
+            } else {
+                return back()->with('error', '❌ Trạng thái bàn không hợp lệ để thực hiện thao tác này.');
+            }
+        } catch (\Exception $e) {
+            Log::error("Lỗi toggle trạng thái bàn: " . $e->getMessage());
+            return back()->with('error', 'Lỗi hệ thống.');
+        }
+    }
+
+    /**
      * AJAX: Tìm bàn trống theo giờ (Đã fix logic chặn chặt chẽ)
      */
     public function ajaxGetAvailableTables(Request $request)

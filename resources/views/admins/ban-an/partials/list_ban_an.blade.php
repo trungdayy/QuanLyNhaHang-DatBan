@@ -40,9 +40,26 @@
                                 <button type="submit" class="btn btn-xs btn-outline-info" title="Tạo lại QR"><i class="fas fa-qrcode"></i></button>
                             </form>
                             <a href="{{ route('admin.ban-an.edit', $ban->id) }}" class="btn btn-xs btn-outline-warning" title="Sửa bàn"><i class="fas fa-edit"></i></a>
-                            <form style="display:inline;" method="POST" action="{{ route('admin.ban-an.destroy', $ban->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa Bàn {{ $ban->so_ban }}?');">
+                            @php
+                                $trangThaiNormalized = trim(strtolower($ban->trang_thai));
+                                $isDisabled = ($trangThaiNormalized === 'dang_phuc_vu' || $trangThaiNormalized === 'da_dat');
+                                $isOff = ($trangThaiNormalized === 'khong_su_dung');
+                            @endphp
+                            <form style="display:inline;" method="POST" action="{{ route('admin.ban-an.toggle-status', $ban->id) }}">
                                 @csrf
-                                <button type="submit" class="btn btn-xs btn-outline-danger" title="Xóa bàn"><i class="fas fa-trash-alt"></i></button>
+                                @if($isOff)
+                                    {{-- Nút Bật (khi bàn đang tắt) --}}
+                                    <button type="submit" class="btn btn-xs btn-outline-success" title="Bật bàn">
+                                        <i class="fas fa-power-off"></i>
+                                    </button>
+                                @else
+                                    {{-- Nút Tắt (khi bàn đang trống) --}}
+                                    <button type="submit" class="btn btn-xs btn-outline-secondary {{ $isDisabled ? 'disabled' : '' }}" 
+                                            title="{{ $isDisabled ? 'Bàn đang phục vụ/đã đặt, không thể tắt' : 'Tắt bàn' }}"
+                                            {{ $isDisabled ? 'disabled' : '' }}>
+                                        <i class="fas fa-power-off"></i>
+                                    </button>
+                                @endif
                             </form>
                         </div>
                     </div>
