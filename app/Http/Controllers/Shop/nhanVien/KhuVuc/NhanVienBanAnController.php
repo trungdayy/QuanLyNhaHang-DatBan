@@ -15,7 +15,7 @@ class NhanVienBanAnController extends Controller
     /**
      * Hiển thị sơ đồ bàn theo khu vực + danh sách khách đặt trước trong ngày
      */
-    public function index(Request $request)
+public function index(Request $request)
     {
         $autoCancelAfter = 30; // phút
 
@@ -40,36 +40,35 @@ class NhanVienBanAnController extends Controller
         // 2. Lấy khu vực + bàn
         $khuVucs = \App\Models\KhuVuc::with('banAns')->get();
 
-        // 3. Lấy danh sách đơn (LOGIC MỚI: THEO CA LÀM VIỆC)
+        // 3. Lấy danh sách đơn (LOGIC ĐÃ SỬA: TÁCH BIỆT BOOKING VÀ KHÁCH ĐANG NGỒI)
         $now = Carbon::now();
         
-        // Tự động xác định Ca Trưa hay Ca Tối dựa trên giờ hiện tại (mốc 16:00)
+        // Xác định khung giờ hiển thị cho khách ĐẶT TRƯỚC (Sidebar)
         if ($now->hour < 16) {
-            // CA TRƯA: Lấy từ đầu ngày đến 16:00
-            // (Mặc dù ca là 10:30-14:00 nhưng lấy rộng ra để không sót đơn sớm/muộn)
-            $timeStart = $now->copy()->startOfDay(); 
-            $timeEnd   = $now->copy()->setHour(16)->setMinute(0)->setSecond(0);
+            // CA TRƯA: Xem đơn đặt từ đầu ngày đến 17:00
+            $bookingStart = $now->copy()->startOfDay(); 
+            $bookingEnd   = $now->copy()->setHour(17)->setMinute(0);
         } else {
-            // CA TỐI: Lấy từ 16:00 đến hết ngày
-            // (Ca tối thường bắt đầu đón khách từ 17:00 nhưng nhân viên cần xem trước từ 16:00)
-            $timeStart = $now->copy()->setHour(16)->setMinute(0)->setSecond(0);
-            $timeEnd   = $now->copy()->endOfDay();
+            // CA TỐI: Xem đơn đặt từ 15:00 trở đi (gối đầu 1 tiếng để chuẩn bị)
+            $bookingStart = $now->copy()->setHour(15)->setMinute(0);
+            $bookingEnd   = $now->copy()->endOfDay();
         }
 
         $datBansQuery = DatBan::with(['banAn', 'nhanVien']) 
-            ->where(function ($q) use ($timeStart, $timeEnd) {
-                // Lấy các đơn 'đã xác nhận' nằm trong khung giờ của Ca đó
+            ->where(function ($q) use ($bookingStart, $bookingEnd) {
+                // LOGIC 1: Khách ĐẶT TRƯỚC -> Áp dụng khung giờ ca
                 $q->where('trang_thai', 'da_xac_nhan')
-                  ->whereBetween('gio_den', [$timeStart, $timeEnd]);
+                  ->whereBetween('gio_den', [$bookingStart, $bookingEnd]);
             })
-            ->orWhere(function ($q) use ($timeStart, $timeEnd) {
-                // Lấy thêm cả các đơn 'đang ăn' (khach_da_den) thuộc ca đó 
-                // để nhân viên theo dõi được tình hình thực tế
+            ->orWhere(function ($q) {
+                // LOGIC 2: Khách ĐANG NGỒI -> Lấy hết trong ngày (bất kể giờ đến)
+                // Để đảm bảo khách đến từ ca sáng vẫn hiện trên sơ đồ ca tối
                 $q->where('trang_thai', 'khach_da_den')
-                  ->whereBetween('gio_den', [$timeStart, $timeEnd]);
+                  ->whereDate('gio_den', Carbon::today());
             })
-            ->orderBy('gio_den', 'asc'); // Sắp xếp đơn đến trước lên đầu
+            ->orderBy('gio_den', 'asc');
 
+        // Tìm kiếm (Áp dụng cho cả 2 nhóm trên)
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $datBansQuery->where(function($q) use ($search) {
@@ -81,13 +80,22 @@ class NhanVienBanAnController extends Controller
     
         $datBans = $datBansQuery->get();
 
-        // 4. Gắn thông tin khách đang ngồi vào bàn
+        // 4. Gắn thông tin khách đang ngồi vào bàn (Logic hiển thị Map)
         foreach ($khuVucs as $khu) {
             foreach ($khu->banAns as $ban) {
+                // Lấy đúng khách đang ngồi tại bàn này (ưu tiên khách da_den)
                 $khach = $datBans->where('ban_id', $ban->id)
                                  ->where('trang_thai', 'khach_da_den')
                                  ->first();
-                if ($khach) {
+                
+                // Nếu không có khách đang ngồi, check xem có đơn đặt trước sắp đến không
+                if (!$khach) {
+                     $khach = $datBans->where('ban_id', $ban->id)
+                                      ->where('trang_thai', 'da_xac_nhan')
+                                      ->first();
+                }
+
+                if ($khach && $khach->trang_thai == 'khach_da_den') {
                     $ban->khach_dang_ngoi = $khach->ten_khach;
                     $ban->gio_bat_dau = $khach->gio_den;
                 } else {
@@ -97,7 +105,7 @@ class NhanVienBanAnController extends Controller
             }
         }
 
-        // 5. LOGIC CHO MODAL CHECK-IN (Tái sử dụng logic hiển thị)
+        // 5. LOGIC CHO MODAL CHECK-IN
         $checkInBooking = null;
         $banTrongsSorted = collect(); 
         $tongKhachCheckIn = 0;
@@ -105,7 +113,6 @@ class NhanVienBanAnController extends Controller
         if ($request->has('checkin_id')) {
             $checkInBooking = DatBan::find($request->checkin_id);
             if ($checkInBooking) {
-                // Gọi hàm nội bộ để lấy danh sách bàn phù hợp
                 $result = $this->getSuitableTables($checkInBooking);
                 $banTrongsSorted = $result['tables'];
                 $tongKhachCheckIn = $result['tongKhach'];
