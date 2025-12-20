@@ -67,9 +67,13 @@ class DashboardController extends Controller
         $tongDonHangQuery = HoaDon::query();
         $tongDonHang = $applyDateRange($tongDonHangQuery)->count();
 
-        // Đơn hàng mới nhất
-        $donHangMoiQuery = HoaDon::with('datBan');
-        $donHangMoi = $applyDateRange($donHangMoiQuery)->latest('created_at')->take(5)->get();
+        // Hóa đơn chưa thanh toán
+        $donHangMoiQuery = HoaDon::with(['datBan', 'chiTietHoaDon'])
+            ->where(function($q) {
+                $q->where('trang_thai', '!=', 'da_thanh_toan')
+                  ->orWhereNull('trang_thai');
+            });
+        $donHangMoi = $applyDateRange($donHangMoiQuery)->latest('created_at')->take(10)->get();
 
         // Món bán chạy nhất theo khoảng thời gian
         $monBanChayQuery = ChiTietOrder::selectRaw('mon_an_id, SUM(so_luong) as tong');

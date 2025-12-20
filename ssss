@@ -1,0 +1,227 @@
+[33mcommit 2cc7f05ef91a417c70997cb9628cd773454d3618[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mgia[m[33m)[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Fri Dec 19 11:36:30 2025 +0700
+
+    sửa biểu đồ thống kê khung giờ bán chạy
+
+[33mcommit e15d20ec2bd41fa588dd767e14a1a50502e0b28e[m[33m ([m[1;31morigin/gia[m[33m, [m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Fri Dec 19 11:13:47 2025 +0700
+
+    sửa admin hóa đơn - sửa hiển thị trạng thái và phương thức thanh toán, sửa thông tin hóa đơn trong trang sửa hóa đơn và các logic sửa hóa đơn, thêm trạng thái món hiển thị bên trang orderQR, cập nhật trạng thái món tự động
+
+[33mcommit 5726a25eca9a5845d9fa0d3f61252bf776063469[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 05:56:44 2025 +0700
+
+    làm chat box tư vấn - liên kết messenger
+
+[33mcommit 077253d1ac5ff41bf0e928243eba3476e260694d[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 04:20:31 2025 +0700
+
+    tối ưu booking - bấm chọn món nhảy sang thực đơn thay vì home
+
+[33mcommit 393605210436bb45368394bc4edca57bea3cf6ed[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 03:58:02 2025 +0700
+
+    tối ưu booking - không thể bấm chọn ngày đã quá
+
+[33mcommit 43d04eef22d3b263f3fb0445a3934ee0ed862309[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 03:45:34 2025 +0700
+
+    tối ưu giao diện home - thêm nút đăng nhập ở cuối trang và nút quay lại ở trang login
+
+[33mcommit e059ecc8bf8146f2b338eb64258841b1e9b0234a[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 03:10:33 2025 +0700
+
+    sửa trang hóa đơn mới nhất, sửa trang in hóa đơn mới nhất
+
+[33mcommit e0480cd3d601441dc33ca7f22361755ebc589c1d[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 02:42:56 2025 +0700
+
+    sửa thanh toán- tính tiền món chờ cung ứng
+
+[33mcommit f566fc41382b1e030a039d5b6f46a35c167aab59[m
+Merge: 082ef0c 538c383
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 01:46:08 2025 +0700
+
+    Merge remote-tracking branch 'origin/dev' into gia
+
+[33mcommit 538c383670c5045c5a390d5dbebdab0bda5044d3[m
+Merge: 216e94f 722d753
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Thu Dec 18 01:32:36 2025 +0700
+
+    Fix conflict merge gia into Trung
+
+[33mcommit 216e94f284662223e5f8c448699129b8d76f8204[m
+Merge: e16bca5 de530fc
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Thu Dec 18 01:19:13 2025 +0700
+
+    Fix conflict merge hanh into Trung
+
+[33mcommit 082ef0c651082d7c0ca7f5af460357b4b6d8f5c6[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Thu Dec 18 01:03:39 2025 +0700
+
+    sửa nhân viên đặt bàn- phần combo
+
+[33mcommit 722d7534045f4876532287d2ec9e3aab78f4845d[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Wed Dec 17 22:20:06 2025 +0700
+
+    sửa nhân viên đặt bàn - validate và tự động tích chọn c=bàn số ghế phù hợp với số khách
+
+[33mcommit 770123ea95d13c2f94a3ee6d23af3e47d0a55fe6[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Wed Dec 17 22:02:30 2025 +0700
+
+    chuyển phân quyền lễ tân thanh toán
+
+[33mcommit e16bca505632f3bd8dac18b881f7636fbc06766f[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Wed Dec 17 21:46:52 2025 +0700
+
+    Lưu code
+
+[33mcommit 46214d27ab455aa74675e5c216695b0c4917ea07[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Wed Dec 17 21:26:13 2025 +0700
+
+    tiếp tục chia giao diện lễ tân - trang bàn ăn thanh toán
+
+[33mcommit 12e3956eccd25063f6b5c55a6c85306793acee01[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Wed Dec 17 21:03:59 2025 +0700
+
+    Lưu code
+
+[33mcommit de530fc4d7b9bfc93206e91e36a367363ffbe35a[m[33m ([m[1;31morigin/hanh[m[33m)[m
+Author: Hoang Anh <hanhsociu555@gmail.com>
+Date:   Wed Dec 17 14:30:06 2025 +0700
+
+    Thêm phương thức thanh toán Online PayOs thành công
+
+[33mcommit 646b322fdf2611eaa0a315fd9e98de3ba79b6a96[m
+Merge: cd12178 3f2f670
+Author: Hoang Anh <hanhsociu555@gmail.com>
+Date:   Wed Dec 17 11:17:08 2025 +0700
+
+    Fix xung đột sau khi gộp
+
+[33mcommit 931b067f272f492b3e4608f1e868b35fbc81f4f0[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Wed Dec 17 02:36:40 2025 +0700
+
+    sửa giao diện đăng nhập, xóa bỏ đăng ký
+
+[33mcommit 83966c7b17b089af861951d1c639c141aec93858[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Wed Dec 17 02:21:52 2025 +0700
+
+    tách giao diện lễ tân
+
+[33mcommit bf5524fc9a8804e8c2278605165ff9c426397220[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Wed Dec 17 02:09:23 2025 +0700
+
+    sửa thanh toán, hóa đơn, in hóa đơn - tính tiền món có trạng thái chờ cung ứng, loại bỏ các món combo ra khỏi hóa đơn, sửa logic tính tiền, sửa admin chi tiết hóa đơn
+
+[33mcommit c3b7128c5c2f392ffda17d1485a120dcd2f1e2b4[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Wed Dec 17 00:18:08 2025 +0700
+
+    sửa tạo đặt bàn, combo phải >= số khách
+
+[33mcommit 3f2f6709e1b9f719f381636a8dba496c6d44f7fd[m[33m ([m[1;32mTrung[m[33m)[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Tue Dec 16 21:13:18 2025 +0700
+
+    goi nhan vien
+
+[33mcommit 5a1e7f4fedb959338414969f2712c46242e11e63[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Tue Dec 16 20:51:55 2025 +0700
+
+    goi nhan vien
+
+[33mcommit be03c42988dfac4774cc638172fc0d722fc62f35[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Tue Dec 16 16:50:59 2025 +0700
+
+    giao dien, code gia
+
+[33mcommit b12c6dcba6959afe24e638fb33cd3805e1acf7f6[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Tue Dec 16 15:32:01 2025 +0700
+
+    giao dien, code gia
+
+[33mcommit cd1217822f29c95279943ed79606f074c44c1140[m
+Author: Hoang Anh <hanhsociu555@gmail.com>
+Date:   Sun Dec 14 14:26:17 2025 +0700
+
+    Thanh toán hóa đơn bằng PayOs
+
+[33mcommit bc34ad53c9b8b79d503beb14f199ab5333d67618[m
+Merge: 8cd99cc 78da657
+Author: Hoang Anh <hanhsociu555@gmail.com>
+Date:   Sun Dec 14 11:40:12 2025 +0700
+
+    fix đặt bàn
+
+[33mcommit b92637638a4b0398dadf36c753e33ffe9ecce1be[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Sun Dec 14 10:53:42 2025 +0700
+
+    sua logic datban va them hang cho pv
+
+[33mcommit 4caecd360f82593cf8c7c7799272143cea115c96[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Tue Dec 9 14:36:18 2025 +0700
+
+    sửa logic đặt onl
+
+[33mcommit 2f994184d37b7aa6b147f15f7ba119e467731e4f[m
+Merge: 7b78f40 bf2b88d
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Sun Dec 7 18:51:11 2025 +0700
+
+    Merge branch 'gia' into Trung
+
+[33mcommit 7b78f4069cc833027172c20790f675a79137cad7[m
+Author: Tên của bạn <trungpldph51651@pldph51651gmail.51651gmailcom>
+Date:   Sat Dec 6 15:17:04 2025 +0700
+
+    code
+
+[33mcommit bf2b88df9c4fb2e5f5d64c49524360d0a82791a1[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Sat Dec 6 15:09:22 2025 +0700
+
+    thêm tag món combo món gọi thêm vào giỏ hàng order
+
+[33mcommit 3f7e3a6fa59648a2f5254b6d574a2bd8d3211fc0[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Sat Dec 6 06:10:43 2025 +0700
+
+    thêm bộ lọc thời gian tổng cho dashboard, thêm thống kê món order nhiều,
+
+[33mcommit a0da342483e63f30f611fb6e1b0d15f5f912fb34[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Sat Dec 6 05:45:53 2025 +0700
+
+    thêm thời gian gọi món và giá món vào sidebar  order, thêm thời gian gọi món vào màn hình bếp
+
+[33mcommit c54df810aacf48ec1727702284bf1bb741be024a[m
+Author: Đỗ Gia <giado280904@gmail.com>
+Date:   Sat Dec 6 05:36:39 2025 +0700
+
+    sửa logic admin show hóa đơn, giúp không mất món trong hóa đơn 
