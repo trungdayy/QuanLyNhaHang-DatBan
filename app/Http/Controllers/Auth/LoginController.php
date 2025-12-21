@@ -63,8 +63,20 @@ class LoginController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            // 4. Kiểm tra trạng thái: Đảm bảo tài khoản Đang làm (trang_thai = 1)
-            if ($user->trang_thai !== 1) {
+            // 4. Kiểm tra trạng thái: Chỉ cho phép đăng nhập nếu tài khoản đang làm (trang_thai = 1)
+            // Refresh lại user từ database để đảm bảo lấy trạng thái mới nhất
+            $user->refresh();
+            
+            if ($user->trang_thai == 0) {
+                // Trạng thái nghỉ
+                Auth::logout();
+                return back()->withErrors(['email' => 'Tài khoản của bạn đã tạm đóng. Vui lòng liên hệ quản lý.']);
+            } elseif ($user->trang_thai == 2) {
+                // Trạng thái khóa
+                Auth::logout();
+                return back()->withErrors(['email' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản lý.']);
+            } elseif ($user->trang_thai !== 1) {
+                // Trạng thái khác (an toàn)
                 Auth::logout();
                 return back()->withErrors(['email' => 'Tài khoản đã bị khóa hoặc ngừng hoạt động.']);
             }

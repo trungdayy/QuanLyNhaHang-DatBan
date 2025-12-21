@@ -96,23 +96,35 @@
 
                     @if (Auth::check())
                         <div class="nav-item dropdown">
-                            <a href="#" class="btn btn-warning py-2 px-4 dropdown-toggle shadow-sm"
+                            <a href="#" class="btn btn-warning py-2 px-4 dropdown-toggle shadow-sm d-flex align-items-center"
                                 data-bs-toggle="dropdown" aria-expanded="false" title="Tài khoản nhân viên">
-                                <i class="fa fa-user me-2"></i> {{ Auth::user()->ho_ten }}
+                                @php
+                                    $user = Auth::user();
+                                    $avatarUrl = $user->hinh_anh ? asset($user->hinh_anh) : asset('restaurant/img/default-avatar.png');
+                                @endphp
+                                <img src="{{ $avatarUrl }}" alt="{{ $user->ho_ten }}" 
+                                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 8px;">
+                                <span>{{ $user->ho_ten }}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0"
                                 style="background-color: #343a40;">
 
+                                <li class="px-3 pt-2 pb-2 text-center border-bottom border-secondary">
+                                    <img src="{{ $avatarUrl }}" alt="{{ $user->ho_ten }}" 
+                                         style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #ffc107;">
+                                    <div class="text-white mt-2"><strong>{{ $user->ho_ten }}</strong></div>
+                                </li>
+
                                 <li><span
                                         class="dropdown-item text-muted small px-3 pt-2 pb-0 border-bottom border-secondary"
                                         style="font-size: 0.85em;">
-                                        <i class="fas fa-id-badge me-2"></i> Vai trò: **{{ Auth::user()->vai_tro }}**
+                                        <i class="fas fa-id-badge me-2"></i> Vai trò: **{{ $user->vai_tro }}**
                                     </span></li>
 
                                 <li><span
                                         class="dropdown-item text-white-50 px-3 pt-0 pb-2 border-bottom border-secondary"
                                         style="font-size: 0.85em;">
-                                        <i class="fas fa-envelope me-2"></i> {{ Auth::user()->email }}
+                                        <i class="fas fa-envelope me-2"></i> {{ $user->email }}
                                     </span></li>
 
                                 <li>

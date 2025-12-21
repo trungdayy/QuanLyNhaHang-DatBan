@@ -175,6 +175,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
         Route::get('/{id}/edit', 'edit')->name('edit');
         Route::put('/{id}', 'update')->name('update');
         Route::delete('/{id}', 'destroy')->name('destroy');
+        Route::post('/{id}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::patch('/{id}/trang-thai', 'capNhatTrangThai')->name('cap-nhat-trang-thai');
         Route::post('/{id}/reset-mat-khau', 'resetMatKhau')->name('reset-mat-khau');
     });
@@ -190,6 +191,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
         Route::get('/{id}/edit', 'edit')->name('edit');
         Route::post('/{id}/update', 'update')->name('update');
         Route::post('/{id}/delete', 'destroy')->name('destroy');
+        Route::post('/{id}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::patch('/{id}/trang-thai', 'capNhatTrangThai')->name('cap-nhat-trang-thai');
     });
 
@@ -200,6 +202,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
         Route::post('/{id}/update', 'update')->name('update');
         Route::post('/{id}/delete', 'destroy')->name('destroy');
         Route::post('/{id}/regenerate-qr', 'regenerateQr')->name('qr');
+        Route::post('/{id}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::patch('/{id}/trang-thai', 'capNhatTrangThai')->name('cap-nhat-trang-thai');
         Route::get('/qr-tool', 'showQrGeneratorPage')->name('qr_tool');
         Route::get('/ajax/get-available-tables', 'ajaxGetAvailableTables')->name('ajax.get-available-tables');

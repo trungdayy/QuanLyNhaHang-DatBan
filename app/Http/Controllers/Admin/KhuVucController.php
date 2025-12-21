@@ -35,7 +35,43 @@ class KhuVucController extends Controller
             $now = Carbon::now($timezone);
             $limitTime = $now->copy()->addMinutes(30);
 
-            $banAns->transform(function ($ban) use ($now, $limitTime) {
+            // 3. Đồng bộ trạng thái bàn với trạng thái khu vực
+            foreach ($khuVucs as $khuVuc) {
+                $trangThaiKhuVuc = trim(strtolower($khuVuc->trang_thai ?? 'dang_su_dung'));
+                
+                if ($trangThaiKhuVuc === 'khong_su_dung') {
+                    // Nếu khu vực bị tắt, đảm bảo tất cả bàn trong khu vực đó cũng bị tắt
+                    // (trừ những bàn đang phục vụ hoặc đã đặt)
+                    $banTrongKhuVuc = BanAn::where('khu_vuc_id', $khuVuc->id)->get();
+                    
+                    foreach ($banTrongKhuVuc as $ban) {
+                        $trangThaiBan = trim(strtolower($ban->trang_thai));
+                        
+                        // Chỉ tắt bàn nếu bàn đang trống (không phục vụ, không đặt)
+                        if (!in_array($trangThaiBan, ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])) {
+                            $ban->update(['trang_thai' => 'khong_su_dung']);
+                        }
+                    }
+                }
+            }
+
+            $banAns->transform(function ($ban) use ($now, $limitTime, $khuVucs) {
+                
+                // Kiểm tra xem khu vực của bàn có bị tắt không
+                $khuVuc = $khuVucs->firstWhere('id', $ban->khu_vuc_id);
+                if ($khuVuc) {
+                    $trangThaiKhuVuc = trim(strtolower($khuVuc->trang_thai ?? 'dang_su_dung'));
+                    if ($trangThaiKhuVuc === 'khong_su_dung') {
+                        // Nếu khu vực bị tắt, giữ nguyên trạng thái bàn (không tính toán lại)
+                        // Nếu bàn chưa bị tắt nhưng khu vực đã tắt, thì tắt bàn (trừ bàn đang phục vụ/đã đặt)
+                        $trangThaiBan = trim(strtolower($ban->trang_thai));
+                        if (!in_array($trangThaiBan, ['dang_phuc_vu', 'da_dat', 'khong_su_dung'])) {
+                            $ban->trang_thai = 'khong_su_dung';
+                            $ban->save();
+                        }
+                        return $ban;
+                    }
+                }
                 
                 // Bàn hỏng -> Bỏ qua
                 if ($ban->trang_thai === 'khong_su_dung') {
@@ -213,6 +249,126 @@ class KhuVucController extends Controller
         } catch (\Exception $e) {
             Log::error("DELETE KHUVUC FAILED: " . $e->getMessage());
             return back()->with('error', 'Lỗi hệ thống khi xóa khu vực.');
+        }
+    }
+
+    /**
+     * Toggle trạng thái khu vực (Tắt/Mở)
+     * Tắt: đổi trạng thái thành khong_su_dung và tắt tất cả bàn trong khu vực (trừ bàn đang phục vụ/đã đặt)
+     * Bật: đổi trạng thái thành dang_su_dung và bật lại các bàn trong khu vực (set về trong nếu không có đơn đặt)
+     */
+    public function toggleStatus($id)
+    {
+        try {
+            $khuVuc = KhuVuc::findOrFail($id);
+            $trangThaiHienTai = trim(strtolower($khuVuc->trang_thai ?? 'dang_su_dung'));
+
+            // Toggle trạng thái khu vực
+            if ($trangThaiHienTai === 'khong_su_dung') {
+                // Bật khu vực: chuyển từ khong_su_dung sang dang_su_dung
+                $khuVuc->update(['trang_thai' => 'dang_su_dung']);
+                
+                // Bật lại các bàn trong khu vực (chỉ những bàn đang tắt và không có đơn đặt)
+                $timezone = 'Asia/Ho_Chi_Minh';
+                $now = Carbon::now($timezone);
+                $limitTime = $now->copy()->addMinutes(30);
+                
+                $banAns = BanAn::where('khu_vuc_id', $khuVuc->id)
+                    ->where('trang_thai', 'khong_su_dung')
+                    ->get();
+                
+                foreach ($banAns as $ban) {
+                    // Kiểm tra xem bàn có đang phục vụ hoặc đã đặt không
+                    $dangPhucVu = DatBan::where('ban_id', $ban->id)
+                        ->where('trang_thai', 'khach_da_den')
+                        ->exists();
+                    
+                    $daDat = DatBan::where('ban_id', $ban->id)
+                        ->where('trang_thai', 'da_xac_nhan')
+                        ->where(function($q) use ($now, $limitTime) {
+                            $q->whereBetween('gio_den', [$now, $limitTime])
+                              ->orWhere(function($sub) use ($now) {
+                                  $sub->where('gio_den', '<', $now)
+                                      ->where('gio_den', '>', $now->copy()->subMinutes(60));
+                              });
+                        })
+                        ->exists();
+                    
+                    // Chỉ bật bàn nếu không có đơn đặt
+                    if (!$dangPhucVu && !$daDat) {
+                        $ban->update(['trang_thai' => 'trong']);
+                    }
+                }
+                
+                return back()->with('success', "✅ Đã bật khu vực {$khuVuc->ten_khu_vuc}.");
+            } else {
+                // Tắt khu vực: chuyển từ dang_su_dung sang khong_su_dung
+                // KIỂM TRA: Nếu có bàn đang phục vụ hoặc đã đặt, không cho phép tắt
+                $timezone = 'Asia/Ho_Chi_Minh';
+                $now = Carbon::now($timezone);
+                $limitTime = $now->copy()->addMinutes(30);
+                
+                $banAns = BanAn::where('khu_vuc_id', $khuVuc->id)->get();
+                $banDangPhucVu = [];
+                $banDaDat = [];
+                
+                foreach ($banAns as $ban) {
+                    $trangThaiBan = trim(strtolower($ban->trang_thai));
+                    
+                    // Kiểm tra bàn đang phục vụ
+                    if ($trangThaiBan === 'dang_phuc_vu') {
+                        $datBan = DatBan::where('ban_id', $ban->id)
+                            ->where('trang_thai', 'khach_da_den')
+                            ->first();
+                        if ($datBan) {
+                            $banDangPhucVu[] = $ban->so_ban;
+                        }
+                    }
+                    
+                    // Kiểm tra bàn đã đặt
+                    if ($trangThaiBan === 'da_dat') {
+                        $datBan = DatBan::where('ban_id', $ban->id)
+                            ->where('trang_thai', 'da_xac_nhan')
+                            ->where(function($q) use ($now, $limitTime) {
+                                $q->whereBetween('gio_den', [$now, $limitTime])
+                                  ->orWhere(function($sub) use ($now) {
+                                      $sub->where('gio_den', '<', $now)
+                                          ->where('gio_den', '>', $now->copy()->subMinutes(60));
+                                  });
+                            })
+                            ->first();
+                        if ($datBan) {
+                            $banDaDat[] = $ban->so_ban;
+                        }
+                    }
+                }
+                
+                // Nếu có bàn đang phục vụ hoặc đã đặt, không cho phép tắt
+                if (!empty($banDangPhucVu) || !empty($banDaDat)) {
+                    $message = "❌ Không thể tắt khu vực {$khuVuc->ten_khu_vuc} vì:";
+                    if (!empty($banDangPhucVu)) {
+                        $message .= " Có bàn đang phục vụ: " . implode(', ', $banDangPhucVu) . ".";
+                    }
+                    if (!empty($banDaDat)) {
+                        $message .= " Có bàn đã được đặt: " . implode(', ', $banDaDat) . ".";
+                    }
+                    $message .= " Vui lòng chờ khi tất cả bàn trống.";
+                    return back()->with('error', $message);
+                }
+                
+                // Tất cả bàn đã trống, cho phép tắt khu vực
+                $khuVuc->update(['trang_thai' => 'khong_su_dung']);
+                
+                // Tắt tất cả bàn trong khu vực
+                foreach ($banAns as $ban) {
+                    $ban->update(['trang_thai' => 'khong_su_dung']);
+                }
+                
+                return back()->with('success', "🔒 Đã tắt khu vực {$khuVuc->ten_khu_vuc}.");
+            }
+        } catch (\Exception $e) {
+            Log::error("Lỗi toggle trạng thái khu vực: " . $e->getMessage());
+            return back()->with('error', 'Lỗi hệ thống.');
         }
     }
 }

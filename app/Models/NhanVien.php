@@ -19,6 +19,7 @@ class NhanVien extends Authenticatable // Kế thừa Authenticatable
         'mat_khau',
         'vai_tro',
         'trang_thai',
+        'hinh_anh',
     ];
 
     // Các thuộc tính cần ẩn (đã bao gồm remember_token chuẩn Laravel)
