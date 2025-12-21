@@ -175,6 +175,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
         Route::get('/{id}/edit', 'edit')->name('edit');
         Route::put('/{id}', 'update')->name('update');
         Route::delete('/{id}', 'destroy')->name('destroy');
+        Route::post('/{id}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::patch('/{id}/trang-thai', 'capNhatTrangThai')->name('cap-nhat-trang-thai');
         Route::post('/{id}/reset-mat-khau', 'resetMatKhau')->name('reset-mat-khau');
     });
