@@ -515,14 +515,24 @@
     const dateRangePicker = flatpickr("#date-range", {
         mode: "range",
         dateFormat: "d/m/Y",
+        altInput: true,
+        altFormat: "d/m/Y",
         locale: {
             firstDayOfWeek: 1
         },
         onChange: function(selectedDates, dateStr, instance) {
             if (selectedDates.length === 2) {
+                // Format ngày theo Y-m-d để tránh lỗi timezone
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+                
                 selectedDateRange = {
-                    from: selectedDates[0].toISOString().split('T')[0],
-                    to: selectedDates[1].toISOString().split('T')[0]
+                    from: formatDate(selectedDates[0]),
+                    to: formatDate(selectedDates[1])
                 };
             }
         }
@@ -655,8 +665,13 @@
             from: urlParams.get('date_from'),
             to: urlParams.get('date_to')
         };
-        const fromDate = new Date(selectedDateRange.from);
-        const toDate = new Date(selectedDateRange.to);
+        // Parse ngày từ Y-m-d format để tránh lỗi timezone
+        const parseDate = (dateStr) => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        };
+        const fromDate = parseDate(selectedDateRange.from);
+        const toDate = parseDate(selectedDateRange.to);
         dateRangePicker.setDate([fromDate, toDate]);
     }
 
