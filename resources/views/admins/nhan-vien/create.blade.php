@@ -13,8 +13,15 @@
 
   <div class="tile">
     <div class="tile-body">
-      <form action="{{ route('admin.nhan-vien.store') }}" method="POST">
+      <form action="{{ route('admin.nhan-vien.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
+
+        <div class="form-group">
+          <label>Ảnh đại diện</label>
+          <input type="file" name="hinh_anh" class="form-control" accept="image/*">
+          <small class="text-muted">Chọn ảnh đại diện cho nhân viên (JPG, PNG, GIF)</small>
+          @error('hinh_anh') <small class="text-danger">{{ $message }}</small> @enderror
+        </div>
 
         <div class="form-group">
           <label>Họ tên</label>

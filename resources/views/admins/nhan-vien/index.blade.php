@@ -62,6 +62,7 @@
                 <thead>
                     <tr class="text-center">
                         <th width="5%">STT</th>
+                        <th width="10%">Ảnh</th>
                         <th>Họ tên</th>
                         <th>SĐT</th>
                         <th>Email</th>
@@ -74,6 +75,13 @@
                     @forelse ($nhanViens as $index => $nv)
                         <tr class="text-center">
                             <td>{{ $nhanViens->firstItem() + $index }}</td>
+                            <td>
+                                @php
+                                    $avatarUrl = $nv->hinh_anh ? asset($nv->hinh_anh) : asset('restaurant/img/default-avatar.png');
+                                @endphp
+                                <img src="{{ $avatarUrl }}" alt="{{ $nv->ho_ten }}" 
+                                     style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd;">
+                            </td>
                             <td>{{ $nv->ho_ten }}</td>
                             <td>{{ $nv->sdt }}</td>
                             <td>{{ $nv->email }}</td>
@@ -98,32 +106,43 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('admin.nhan-vien.edit', $nv->id) }}" class="btn btn-sm btn-primary">
+                                <a href="{{ route('admin.nhan-vien.edit', $nv->id) }}" class="btn btn-sm btn-primary" title="Sửa">
                                     <i class="fa fa-edit"></i>
                                 </a>
 
-                                <form action="{{ route('admin.nhan-vien.destroy', $nv->id) }}" method="POST" style="display:inline-block;"
-                                      onsubmit="return confirm('Xóa nhân viên này?');">
+                                @php
+                                    $isOff = ($nv->trang_thai == 0);
+                                    $isKhoa = ($nv->trang_thai == 2);
+                                    $isAdmin = ($nv->vai_tro === 'quan_ly');
+                                    $isCurrentAdmin = (auth()->check() && auth()->user()->id === $nv->id);
+                                    $cannotToggle = ($isAdmin && $isCurrentAdmin && !$isOff); // Admin đang đăng nhập không thể tự tắt
+                                @endphp
+                                <form action="{{ route('admin.nhan-vien.toggle-status', $nv->id) }}" method="POST" style="display:inline-block;">
                                     @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-danger">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
+                                    @if($isKhoa)
+                                        {{-- Nhân viên bị khóa, không cho toggle --}}
+                                        <button type="button" class="btn btn-sm btn-secondary" disabled title="Nhân viên đang bị khóa">
+                                            <i class="fa fa-power-off"></i>
+                                        </button>
+                                    @elseif($isOff)
+                                        {{-- Nút Bật (khi nhân viên đang nghỉ) --}}
+                                        <button type="submit" class="btn btn-sm btn-success" title="Bật nhân viên">
+                                            <i class="fa fa-power-off"></i>
+                                        </button>
+                                    @else
+                                        {{-- Nút Tắt (khi nhân viên đang làm) --}}
+                                        <button type="submit" class="btn btn-sm btn-secondary {{ $cannotToggle ? 'disabled' : '' }}" 
+                                                title="{{ $cannotToggle ? 'Bạn không thể tự tắt tài khoản của chính mình' : 'Tắt nhân viên' }}"
+                                                {{ $cannotToggle ? 'disabled' : '' }}>
+                                            <i class="fa fa-power-off"></i>
+                                        </button>
+                                    @endif
                                 </form>
-
-                                {{-- Cập nhật trạng thái --}}
-                                @if($nv->trang_thai != 2)
-                                    <form action="{{ route('admin.nhan-vien.cap-nhat-trang-thai', $nv->id) }}" method="POST" style="display:inline-block;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button class="btn btn-sm btn-warning">Đổi trạng thái</button>
-                                    </form>
-                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center">Không có nhân viên nào.</td>
+                            <td colspan="8" class="text-center">Không có nhân viên nào.</td>
                         </tr>
                     @endforelse
                 </tbody>

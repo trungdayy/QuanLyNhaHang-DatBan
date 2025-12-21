@@ -15,7 +15,8 @@ class KhuVuc extends Model
     protected $fillable = [
         'ten_khu_vuc',
         'mo_ta',
-        'tang'
+        'tang',
+        'trang_thai'
     ];
 
 

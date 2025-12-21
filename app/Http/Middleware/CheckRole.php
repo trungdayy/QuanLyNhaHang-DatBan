@@ -20,13 +20,23 @@ class CheckRole
             return redirect()->route('login'); 
         }
 
-        // 2. Lấy user (NhanVien) hiện tại
+        // 2. Lấy user (NhanVien) hiện tại và refresh để đảm bảo lấy trạng thái mới nhất
         $user = Auth::user();
+        $user->refresh(); // Refresh từ database để lấy trạng thái mới nhất
 
-        // 3. Kiểm tra trạng thái: Nếu bị khóa (trang_thai = 0) thì logout và thông báo
-        if ($user->trang_thai === 0) {
-             Auth::logout();
-             return redirect()->route('login')->with('error', 'Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động.');
+        // 3. Kiểm tra trạng thái: Nếu nghỉ (trang_thai = 0) hoặc khóa (trang_thai = 2) thì logout và thông báo
+        if ($user->trang_thai == 0) {
+            // Trạng thái nghỉ - tài khoản tạm đóng
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->with('error', 'Tài khoản của bạn đã tạm đóng. Vui lòng liên hệ quản lý.');
+        } elseif ($user->trang_thai == 2) {
+            // Trạng thái khóa
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->with('error', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản lý.');
         }
 
         // 4. Kiểm tra vai trò: Nếu vai trò của user nằm trong danh sách cho phép (truyền vào từ route)
