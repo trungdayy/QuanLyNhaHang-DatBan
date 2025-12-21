@@ -135,7 +135,29 @@ class DashboardController extends Controller
             ->count();
         $tiLeQuayLai = $tongKhach > 0 ? round(($khachQuayLai / $tongKhach) * 100, 2) : 0;
 
-        // ------------------ 4. TRẢ VỀ VIEW ------------------
+        // ------------------ 4. TOP MÓN ĂN ĐƯỢC GỌI NHIỀU NHẤT ------------------
+        $topMonAn = DB::table('chi_tiet_order as cto')
+            ->join('mon_an as ma', 'cto.mon_an_id', '=', 'ma.id')
+            ->select(
+                'ma.id',
+                'ma.ten_mon',
+                'ma.gia',
+                DB::raw('SUM(CASE WHEN cto.trang_thai != "huy_mon" THEN cto.so_luong ELSE 0 END) as so_luot_goi'),
+                DB::raw('SUM(CASE WHEN cto.trang_thai = "huy_mon" THEN cto.so_luong ELSE 0 END) as so_luot_huy'),
+                DB::raw('SUM(CASE WHEN cto.trang_thai != "huy_mon" THEN cto.so_luong * ma.gia ELSE 0 END) as tong_gia_tri')
+            )
+            ->groupBy('ma.id', 'ma.ten_mon', 'ma.gia')
+            ->havingRaw('SUM(CASE WHEN cto.trang_thai != "huy_mon" THEN cto.so_luong ELSE 0 END) > 0')
+            ->orderByDesc(DB::raw('SUM(CASE WHEN cto.trang_thai != "huy_mon" THEN cto.so_luong ELSE 0 END)'))
+            ->take(10)
+            ->get()
+            ->map(function ($mon) {
+                $tongLuot = $mon->so_luot_goi + $mon->so_luot_huy;
+                $mon->ti_le_huy = $tongLuot > 0 ? round(($mon->so_luot_huy / $tongLuot) * 100, 1) : 0;
+                return $mon;
+            });
+
+        // ------------------ 5. TRẢ VỀ VIEW ------------------
 
         return view('admins.dashboard', compact(
             'doanhThuHomNay',
@@ -158,6 +180,7 @@ class DashboardController extends Controller
             'tiLeQuayLai', // Mới
             'tongKhach', // Mới
             'tongDoanhThu', // Mới
+            'topMonAn', // Top món ăn được gọi nhiều nhất
         ));
     }
 
