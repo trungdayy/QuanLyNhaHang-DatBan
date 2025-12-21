@@ -19,6 +19,67 @@
     <script type="text/javascript" src="{{ asset('admin/ckeditor/ckeditor.js') }}"></script>
 
     @yield('style')
+
+    <style>
+    /* 1. Tăng độ thoáng cho menu chính */
+    .app-menu__item {
+        margin-bottom: 5px; /* Tạo khe hở giữa các mục */
+        border-radius: 5px; /* Bo góc nhẹ cho mềm mại */
+        font-weight: 600; /* Chữ đậm hơn chút cho dễ đọc */
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent; /* Chuẩn bị sẵn viền trái */
+    }
+
+    /* 2. Hiệu ứng khi di chuột vào menu cha */
+    .app-menu__item:hover, 
+    .app-menu__item.active {
+        background: rgba(255, 255, 255, 0.15); /* Sáng hơn chút */
+        border-left-color: #ffd43b; /* Có vạch màu vàng nổi bật bên trái */
+        text-decoration: none;
+        color: #fff;
+    }
+
+    /* 3. Xử lý Menu Con (Dropdown) cho rõ ràng */
+    .treeview-menu {
+        background-color: rgba(0, 0, 0, 0.2) !important; /* Nền tối hơn nền chính để tạo chiều sâu */
+        border-radius: 0 0 5px 5px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    /* 4. Định dạng từng mục con */
+    .treeview-item {
+        padding: 10px 15px 10px 50px !important; /* Thụt đầu dòng sâu hơn để phân biệt với cha */
+        font-size: 0.9rem;
+        color: #e0e0e0;
+        border-bottom: 1px dashed rgba(255,255,255,0.1); /* Đường kẻ mờ ngăn cách các mục con */
+    }
+
+    /* Bỏ đường kẻ ở mục con cuối cùng */
+    .treeview-item:last-child {
+        border-bottom: none;
+    }
+
+    /* 5. Hiệu ứng hover vào mục con */
+    .treeview-item:hover {
+        color: #ffd43b !important; /* Đổi màu chữ sang vàng */
+        background: rgba(255,255,255,0.05);
+        padding-left: 55px !important; /* Hiệu ứng trượt nhẹ sang phải */
+        transition: all 0.2s;
+    }
+
+    /* 6. Trạng thái khi menu cha đang mở (Expanded) */
+    .treeview.is-expanded .app-menu__item {
+        background: rgba(0, 0, 0, 0.3); /* Nền đậm khi đang mở */
+        border-left-color: #ffd43b;
+        color: #fff;
+    }
+
+    /* Mũi tên chỉ xuống */
+    .treeview-indicator {
+        font-size: 1.1rem;
+    }
+</style>
 </head>
 
 <body onload="time()" class="app sidebar-mini rtl">
@@ -60,96 +121,73 @@
         </a>
     </li>
 
-    {{-- ===== QUẢN LÝ THỰC ĐƠN ===== --}}
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.danh-muc.index') }}">
-            <i class='app-menu__icon bx bx-category'></i>
-            <span class="app-menu__label">Danh mục món</span>
+    {{-- ================================================= --}}
+    {{-- QUẢN LÝ THỰC ĐƠN (CHIẾN) --}}
+    {{-- ================================================= --}}
+    <li class="treeview {{ request()->routeIs(
+        'admin.danh-muc.*',
+        'admin.san-pham.*',
+        'admin.combo-buffet.*',
+        'admin.mon-trong-combo.*'
+    ) ? 'is-expanded' : '' }}">
+        <a class="app-menu__item" href="#" data-toggle="treeview">
+            <i class='app-menu__icon bx bx-food-menu'></i>
+            <span class="app-menu__label">Quản lý thực đơn</span>
+            <i class="treeview-indicator bx bx-chevron-right"></i>
         </a>
+
+        <ul class="treeview-menu">
+            <li><a class="treeview-item" href="{{ route('admin.danh-muc.index') }}">Danh mục món</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.san-pham.index') }}">Món ăn</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.combo-buffet.index') }}">Combo buffet</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.mon-trong-combo.index') }}">Món trong combo</a></li>
+        </ul>
     </li>
 
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.san-pham.index') }}">
-            <i class='app-menu__icon bx bx-purchase-tag-alt'></i>
-            <span class="app-menu__label">Món ăn</span>
+    {{-- ================================================= --}}
+    {{-- QUẢN LÝ VẬN HÀNH (VINH) --}}
+    {{-- ================================================= --}}
+    <li class="treeview {{ request()->routeIs(
+        'admin.khu-vuc-ban-an',
+        'admin.ban-an.*',
+        'admin.nhan-vien.*',
+        'admin.voucher.*'
+    ) ? 'is-expanded' : '' }}">
+        <a class="app-menu__item" href="#" data-toggle="treeview">
+            <i class='app-menu__icon bx bx-cog'></i>
+            <span class="app-menu__label">Quản lý vận hành</span>
+            <i class="treeview-indicator bx bx-chevron-right"></i>
         </a>
+
+        <ul class="treeview-menu">
+            <li><a class="treeview-item" href="{{ route('admin.khu-vuc-ban-an') }}">Khu vực & bàn ăn</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.ban-an.qr_tool') }}">Mã QR bàn</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.nhan-vien.index') }}">Nhân viên</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.voucher.index') }}">Voucher</a></li>
+        </ul>
     </li>
 
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.combo-buffet.index') }}">
-            <i class='app-menu__icon bx bx-task'></i>
-            <span class="app-menu__label">Combo buffet</span>
+    {{-- ================================================= --}}
+    {{-- QUẢN LÝ ĐƠN HÀNG & THỐNG KÊ (CẢNH) --}}
+    {{-- ================================================= --}}
+    <li class="treeview {{ request()->routeIs(
+        'admin.dat-ban.*',
+        'admin.order-mon.*',
+        'admin.hoa-don.*',
+        'admin.danh-gia.*'
+    ) ? 'is-expanded' : '' }}">
+        <a class="app-menu__item" href="#" data-toggle="treeview">
+            <i class='app-menu__icon bx bx-bar-chart'></i>
+            <span class="app-menu__label">Quản lý & thống kê</span>
+            <i class="treeview-indicator bx bx-chevron-right"></i>
         </a>
-    </li>
 
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.mon-trong-combo.index') }}">
-            <i class='app-menu__icon bx bx-table'></i>
-            <span class="app-menu__label">Món trong combo</span>
-        </a>
-    </li>
-
-    {{-- ===== QUẢN LÝ BÀN & ĐẶT BÀN ===== --}}
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.khu-vuc-ban-an') }}">
-            <i class='app-menu__icon bx bx-map'></i>
-            <span class="app-menu__label">Khu vực & bàn ăn</span>
-        </a>
-    </li>
-
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.dat-ban.index') }}">
-            <i class='app-menu__icon bx bx-calendar-check'></i>
-            <span class="app-menu__label">Đặt bàn</span>
-        </a>
-    </li>
-
-    {{-- ===== BÁN HÀNG - THANH TOÁN ===== --}}
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.order-mon.index') }}">
-            <i class='app-menu__icon bx bx-receipt'></i>
-            <span class="app-menu__label">Order</span>
-        </a>
-    </li>
-
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.hoa-don.index') }}">
-            <i class='app-menu__icon bx bx-money'></i>
-            <span class="app-menu__label">Hóa đơn</span>
-        </a>
-    </li>
-
-    {{-- ===== NHÂN SỰ ===== --}}
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.nhan-vien.index') }}">
-            <i class='app-menu__icon bx bx-user'></i>
-            <span class="app-menu__label">Nhân viên</span>
-        </a>
-    </li>
-
-    {{-- ===== MARKETING ===== --}}
-    <li>
-        <a class="app-menu__item {{ Request::is('admin/voucher*') ? 'active' : '' }}"
-            href="{{ route('admin.voucher.index') }}">
-            <i class="app-menu__icon fa fa-ticket-alt"></i>
-            <span class="app-menu__label">Voucher</span>
-        </a>
-    </li>
-
-    <li>
-        <a class="app-menu__item {{ request()->routeIs('admin.danh-gia.*') ? 'active' : '' }}"
-            href="{{ route('admin.danh-gia.index') }}">
-            <i class='app-menu__icon bx bx-star'></i>
-            <span class="app-menu__label">Đánh giá</span>
-        </a>
-    </li>
-
-    {{-- ===== CÔNG CỤ ===== --}}
-    <li>
-        <a class="app-menu__item" href="{{ route('admin.ban-an.qr_tool') }}">
-            <i class='app-menu__icon bx bx-qr'></i>
-            <span class="app-menu__label">Mã QR bàn</span>
-        </a>
+        <ul class="treeview-menu">
+            <li><a class="treeview-item" href="{{ route('admin.dat-ban.index') }}">Đặt bàn</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.order-mon.index') }}">Order</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.hoa-don.index') }}">Hóa đơn</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.danh-gia.index') }}">Đánh giá</a></li>
+        </ul>
     </li>
 
 </ul>
@@ -218,6 +256,29 @@
                 return i;
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+    const treeviews = document.querySelectorAll('.treeview > a');
+
+    treeviews.forEach(function (menu) {
+        menu.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const parent = this.parentElement;
+            const isOpen = parent.classList.contains('is-expanded');
+
+            // Đóng tất cả menu khác (accordion)
+            document.querySelectorAll('.treeview').forEach(function (item) {
+                item.classList.remove('is-expanded');
+            });
+
+            // Mở menu hiện tại nếu trước đó đang đóng
+            if (!isOpen) {
+                parent.classList.add('is-expanded');
+            }
+        });
+    });
+});
     </script>
 
     {{-- máy in --}}
@@ -238,3 +299,4 @@
 </body>
 
 </html>
+
