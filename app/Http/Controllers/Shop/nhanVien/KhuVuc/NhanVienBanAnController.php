@@ -63,8 +63,8 @@ public function index(Request $request)
             ->orWhere(function ($q) {
                 // LOGIC 2: Khách ĐANG NGỒI -> Lấy hết trong ngày (bất kể giờ đến)
                 // Để đảm bảo khách đến từ ca sáng vẫn hiện trên sơ đồ ca tối
-                $q->where('trang_thai', 'khach_da_den')
-                  ->whereDate('gio_den', Carbon::today());
+                $q->where('trang_thai', 'khach_da_den');
+                //   ->whereDate('gio_den', Carbon::today());
             })
             ->orderBy('gio_den', 'asc');
 

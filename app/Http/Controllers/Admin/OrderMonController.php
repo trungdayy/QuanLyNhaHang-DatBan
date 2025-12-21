@@ -48,7 +48,6 @@ class OrderMonController extends Controller
     {
         $datBans = DatBan::with(['banAn', 'chiTietDatBan.combo'])
             ->where('trang_thai', 'khach_da_den')
-             ->whereHas('banAn')
             ->orderByDesc('id')
             ->get();
 

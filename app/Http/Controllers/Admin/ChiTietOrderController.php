@@ -137,8 +137,7 @@ class ChiTietOrderController extends Controller
             'trang_thai' => $request->trang_thai,
         ]);
 
-        // Cập nhật tổng tiền/tổng món
-        ChiTietOrder::capNhatTongOrder($ct->order_id);
+
 
         // Đồng bộ số lượng combo
         $order = OrderMon::with('datBan')->find($ct->order_id);

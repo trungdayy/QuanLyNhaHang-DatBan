@@ -60,34 +60,44 @@
 
                                     {{-- 🧱 Loại combo --}}
                                     <div class="form-group">
-                                        <label class="control-label">Loại combo</label>
-                                        <div class="d-block mt-2">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="loai_combo"
-                                                    id="loai_nl" value="nguoi_lon"
-                                                    {{ old('loai_combo') == 'nguoi_lon' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="loai_nl">Người lớn</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="loai_combo"
-                                                    id="loai_te" value="tre_em"
-                                                    {{ old('loai_combo') == 'tre_em' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="loai_te">Trẻ em</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="loai_combo"
-                                                    id="loai_vip" value="vip"
-                                                    {{ old('loai_combo') == 'vip' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="loai_vip">VIP</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="loai_combo"
-                                                    id="loai_km" value="khuyen_mai"
-                                                    {{ old('loai_combo') == 'khuyen_mai' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="loai_km">Khuyến mãi</label>
-                                            </div>
-                                        </div>
-                                    </div>
+    <label class="control-label">Loại combo</label>
+    <div class="d-block mt-2">
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="loai_combo" 
+                id="combo_99k" value="99k"
+                {{ old('loai_combo') == '99k' ? 'checked' : '' }}>
+            <label class="form-check-label" for="combo_99k">99k</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="loai_combo" 
+                id="combo_199k" value="199k"
+                {{ old('loai_combo') == '199k' ? 'checked' : '' }}>
+            <label class="form-check-label" for="combo_199k">199k</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="loai_combo" 
+                id="combo_299k" value="299k"
+                {{ old('loai_combo') == '299k' ? 'checked' : '' }}>
+            <label class="form-check-label" for="combo_299k">299k</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="loai_combo" 
+                id="combo_399k" value="399k"
+                {{ old('loai_combo') == '399k' ? 'checked' : '' }}>
+            <label class="form-check-label" for="combo_399k">399k</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="loai_combo" 
+                id="combo_499k" value="499k"
+                {{ old('loai_combo') == '499k' ? 'checked' : '' }}>
+            <label class="form-check-label" for="combo_499k">499k</label>
+        </div>
+    </div>
+</div>
 
                                     {{-- 🕒 Thời gian BẮT ĐẦU VÀ KẾT THÚC (ĐÃ DI CHUYỂN SANG TRÁI) --}}
                                     <div class="form-group">
