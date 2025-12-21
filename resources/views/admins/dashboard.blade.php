@@ -294,8 +294,8 @@
 
                 {{-- BẢNG 3 --}}
                 <div class="col-md-12">
-                    <div class="title">
-                        <h3 class="tile-title">Trạng thái thanh toán (Đơn hàng mới nhất)</h3>
+                    <div class="tile">
+                        <h3 class="tile-title">Hóa đơn chưa thanh toán</h3>
                         <div style="overflow-x:auto;">
                             <table class="table">
                                 <thead class="table-dark">
@@ -309,17 +309,13 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($donHangMoi as $don)
+                                    @forelse ($donHangMoi as $don)
                                     <tr>
                                         <td>{{ $don->id }}</td>
                                         <td>{{ $don->datBan->ten_khach ?? 'Ẩn' }}</td>
                                         <td>{{ number_format($don->tong_tien) }} đ</td>
                                         <td>
-                                            @if($don->trang_thai == 'da_thanh_toan')
-                                                <span class="badge bg-success">Đã thanh toán</span>
-                                            @else
-                                                <span class="badge bg-warning">Chưa thanh toán</span>
-                                            @endif
+                                            <span class="badge bg-warning">Chưa thanh toán</span>
                                         </td>
                                         <td>
                                             @if($don->phuong_thuc_tt == 'tien_mat')
@@ -338,7 +334,11 @@
                                         </td>
                                         <td>{{ \Carbon\Carbon::parse($don->created_at)->format('d/m/Y') }}</td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center">Không có hóa đơn chưa thanh toán.</td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -581,6 +581,11 @@
                 });
 
                 if (barChart) barChart.destroy();
+                
+                // Tạo mảng màu động dựa trên số lượng combo
+                const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'];
+                const backgroundColor = res.comboLabels.map((_, index) => colors[index % colors.length]);
+                
                 barChart = new Chart(document.getElementById('barChart'), {
                     type: 'bar',
                     data: {
@@ -588,8 +593,29 @@
                         datasets: [{
                             label: 'Doanh thu theo combo',
                             data: res.comboData,
-                            backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0']
+                            backgroundColor: backgroundColor
                         }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Doanh thu: ' + new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ';
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
 

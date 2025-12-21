@@ -44,8 +44,12 @@ class DashboardController extends Controller
         // Tổng số đơn hàng
         $tongDonHang = HoaDon::count();
 
-        // Đơn hàng mới nhất
-        $donHangMoi = HoaDon::with('datBan')->latest('created_at')->take(5)->get();
+        // Hóa đơn chưa thanh toán (mới nhất)
+        $donHangMoi = HoaDon::with('datBan')
+            ->where('trang_thai', 'chua_thanh_toan')
+            ->latest('created_at')
+            ->take(5)
+            ->get();
 
         // Món bán chạy nhất hôm nay (Đã sửa with('monAn') thành with('mon') theo gợi ý trước)
         $monBanChay = ChiTietOrder::selectRaw('mon_an_id, SUM(so_luong) as tong')
@@ -225,30 +229,39 @@ class DashboardController extends Controller
             }
         }
 
-// ------------------ 2. BIỂU ĐỒ DOANH THU THEO LOẠI COMBO ------------------
-        $comboTypes = ['nguoi_lon', 'tre_em', 'vip', 'khuyen_mai'];
-        $comboLabels = ['Người lớn', 'Trẻ em', 'VIP', 'Khuyến mãi'];
-        $comboData = [];
+// ------------------ 2. BIỂU ĐỒ DOANH THU THEO COMBO CỤ THỂ ------------------
+        // Lấy top combo bán chạy (theo doanh thu) để hiển thị trong biểu đồ
+        $comboQuery = DB::table('dat_ban_combo as dbc')
+            ->join('dat_ban as db', 'dbc.dat_ban_id', '=', 'db.id')
+            ->join('combo_buffet as cb', 'dbc.combo_id', '=', 'cb.id')
+            ->join('hoa_don as hd', 'hd.dat_ban_id', '=', 'db.id')
+            ->select(
+                'cb.id',
+                'cb.ten_combo',
+                DB::raw('SUM(dbc.so_luong * cb.gia_co_ban) as tong_doanh_thu')
+            );
 
-        foreach ($comboTypes as $type) {
-            // SỬA: Join qua bảng dat_ban_combo
-            $query = DB::table('dat_ban_combo as dbc')
-                ->join('dat_ban as db', 'dbc.dat_ban_id', '=', 'db.id')
-                ->join('combo_buffet as cb', 'dbc.combo_id', '=', 'cb.id')
-                ->join('hoa_don as hd', 'hd.dat_ban_id', '=', 'db.id') // Join hóa đơn để lấy ngày tháng
-                ->where('cb.loai_combo', $type);
-
-            if ($filter == 'day') {
-                $query->whereBetween('hd.created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()]);
-            } elseif ($filter == 'month') {
-                $query->whereYear('hd.created_at', $thisYear);
-            } else {
-                $query->whereYear('hd.created_at', '>=', $thisYear - 5);
-            }
-
-            // Tính tổng tiền = số lượng suất * giá vé (Vì 1 hóa đơn có thể có nhiều combo khác loại)
-            $comboData[] = (int) $query->sum(DB::raw('dbc.so_luong * cb.gia_co_ban'));
+        // Áp dụng filter theo thời gian
+        if ($filter == 'day') {
+            $comboQuery->whereBetween('hd.created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()]);
+        } elseif ($filter == 'month') {
+            $comboQuery->whereYear('hd.created_at', $thisYear);
+        } else {
+            $comboQuery->whereYear('hd.created_at', '>=', $thisYear - 5);
         }
+
+        // Lấy top 10 combo có doanh thu cao nhất
+        $comboStats = $comboQuery
+            ->groupBy('cb.id', 'cb.ten_combo')
+            ->orderByDesc('tong_doanh_thu')
+            ->take(10)
+            ->get();
+
+        // Tách labels và data
+        $comboLabels = $comboStats->pluck('ten_combo')->toArray();
+        $comboData = $comboStats->pluck('tong_doanh_thu')->map(function ($value) {
+            return (int) $value;
+        })->toArray();
 
         // ------------------ 3. BIỂU ĐỒ KHUNG GIỜ ĐẶT BÀN ------------------
         $hourlyData = DB::table('dat_ban')
