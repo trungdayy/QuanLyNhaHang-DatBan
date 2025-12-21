@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\NhanVien;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\QueryException;
@@ -65,29 +66,55 @@ class NhanVienController extends Controller
             'mat_khau' => 'required|min:6',
             'vai_tro' => ['required', Rule::in(['quan_ly', 'phuc_vu', 'bep', 'le_tan'])],
             'trang_thai' => ['required', Rule::in([0,1,2])], // 0: nghỉ, 1: đang làm, 2: khóa
+            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Tối đa 2MB
         ];
 
         $messages = [
             'ho_ten.required' => 'Vui lòng nhập họ tên.',
             'email.required' => 'Vui lòng nhập email.',
-            'email.unique' => 'Email đã tồn tại.',
-            'sdt.unique' => 'Số điện thoại đã tồn tại.',
+            'email.email' => 'Email không đúng định dạng.',
+            'email.unique' => 'Email này đã được sử dụng bởi nhân viên khác. Vui lòng chọn email khác.',
+            'sdt.required' => 'Vui lòng nhập số điện thoại.',
+            'sdt.unique' => 'Số điện thoại này đã được sử dụng bởi nhân viên khác. Vui lòng chọn số điện thoại khác.',
             'mat_khau.required' => 'Vui lòng nhập mật khẩu.',
+            'mat_khau.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'vai_tro.required' => 'Vui lòng chọn vai trò.',
             'vai_tro.in' => 'Vai trò không hợp lệ.',
+            'trang_thai.required' => 'Vui lòng chọn trạng thái.',
             'trang_thai.in' => 'Trạng thái không hợp lệ.',
+            'hinh_anh.image' => 'File phải là hình ảnh.',
+            'hinh_anh.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'hinh_anh.max' => 'Kích thước ảnh không được vượt quá 2MB.',
         ];
 
         $request->validate($rules, $messages);
 
         try {
-            NhanVien::create([
+            $data = [
                 'ho_ten' => $request->ho_ten,
                 'sdt' => $request->sdt,
                 'email' => $request->email,
                 'mat_khau' => Hash::make($request->mat_khau),
                 'vai_tro' => $request->vai_tro,
                 'trang_thai' => $request->trang_thai,
-            ]);
+            ];
+
+            // Xử lý upload ảnh
+            if ($request->hasFile('hinh_anh')) {
+                $file = $request->file('hinh_anh');
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $uploadPath = public_path('uploads/nhan_vien');
+                
+                // Tạo thư mục nếu chưa tồn tại
+                if (!File::exists($uploadPath)) {
+                    File::makeDirectory($uploadPath, 0755, true);
+                }
+                
+                $file->move($uploadPath, $fileName);
+                $data['hinh_anh'] = 'uploads/nhan_vien/' . $fileName;
+            }
+
+            NhanVien::create($data);
 
             return redirect()->route('admin.nhan-vien.index')->with('success', 'Thêm nhân viên thành công!');
         } catch (QueryException $e) {
@@ -113,21 +140,61 @@ class NhanVienController extends Controller
         $nhanVien = NhanVien::findOrFail($id);
 
         // Chỉ validate các trường được phép sửa
+        // Email và vai_tro, trang_thai không được sửa trong form edit (readonly/disabled)
+        // Nhưng vẫn validate để đảm bảo an toàn nếu có ai đó cố gắng thay đổi
         $rules = [
             'ho_ten' => 'required|string|max:255',
             'sdt' => ['required', 'string', 'max:20', Rule::unique('nhan_vien', 'sdt')->ignore($nhanVien->id)],
-            // Email, vai_tro và trang_thai không được sửa trong form edit
+            'email' => ['required', 'email', Rule::unique('nhan_vien', 'email')->ignore($nhanVien->id)], // Validate để đảm bảo an toàn
+            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Tối đa 2MB
+            // vai_tro và trang_thai không được sửa trong form edit
         ];
 
-        $request->validate($rules);
+        $messages = [
+            'ho_ten.required' => 'Vui lòng nhập họ tên.',
+            'sdt.required' => 'Vui lòng nhập số điện thoại.',
+            'sdt.unique' => 'Số điện thoại này đã được sử dụng bởi nhân viên khác. Vui lòng chọn số điện thoại khác.',
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'email.unique' => 'Email này đã được sử dụng bởi nhân viên khác. Vui lòng chọn email khác.',
+            'hinh_anh.image' => 'File phải là hình ảnh.',
+            'hinh_anh.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'hinh_anh.max' => 'Kích thước ảnh không được vượt quá 2MB.',
+        ];
+
+        $request->validate($rules, $messages);
 
         try {
-            // Chỉ cập nhật các trường được phép sửa (giữ nguyên email, vai_tro, trang_thai)
-            $nhanVien->update([
+            $data = [
                 'ho_ten' => $request->ho_ten,
                 'sdt' => $request->sdt,
-                // Không cập nhật email, vai_tro, trang_thai
-            ]);
+            ];
+
+            // Xử lý upload ảnh mới (nếu có)
+            if ($request->hasFile('hinh_anh')) {
+                // Xóa ảnh cũ nếu có
+                if ($nhanVien->hinh_anh && File::exists(public_path($nhanVien->hinh_anh))) {
+                    File::delete(public_path($nhanVien->hinh_anh));
+                }
+
+                $file = $request->file('hinh_anh');
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $uploadPath = public_path('uploads/nhan_vien');
+                
+                // Tạo thư mục nếu chưa tồn tại
+                if (!File::exists($uploadPath)) {
+                    File::makeDirectory($uploadPath, 0755, true);
+                }
+                
+                $file->move($uploadPath, $fileName);
+                $data['hinh_anh'] = 'uploads/nhan_vien/' . $fileName;
+            } else {
+                // Giữ nguyên ảnh cũ nếu không upload ảnh mới
+                $data['hinh_anh'] = $nhanVien->hinh_anh;
+            }
+
+            // Chỉ cập nhật các trường được phép sửa (giữ nguyên email, vai_tro, trang_thai)
+            $nhanVien->update($data);
 
             return redirect()->route('admin.nhan-vien.index')->with('success', 'Cập nhật nhân viên thành công!');
         } catch (\Exception $e) {

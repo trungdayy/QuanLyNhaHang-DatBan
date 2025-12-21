@@ -62,6 +62,7 @@
                 <thead>
                     <tr class="text-center">
                         <th width="5%">STT</th>
+                        <th width="10%">Ảnh</th>
                         <th>Họ tên</th>
                         <th>SĐT</th>
                         <th>Email</th>
@@ -74,6 +75,13 @@
                     @forelse ($nhanViens as $index => $nv)
                         <tr class="text-center">
                             <td>{{ $nhanViens->firstItem() + $index }}</td>
+                            <td>
+                                @php
+                                    $avatarUrl = $nv->hinh_anh ? asset($nv->hinh_anh) : asset('restaurant/img/default-avatar.png');
+                                @endphp
+                                <img src="{{ $avatarUrl }}" alt="{{ $nv->ho_ten }}" 
+                                     style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd;">
+                            </td>
                             <td>{{ $nv->ho_ten }}</td>
                             <td>{{ $nv->sdt }}</td>
                             <td>{{ $nv->email }}</td>
@@ -134,7 +142,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center">Không có nhân viên nào.</td>
+                            <td colspan="8" class="text-center">Không có nhân viên nào.</td>
                         </tr>
                     @endforelse
                 </tbody>

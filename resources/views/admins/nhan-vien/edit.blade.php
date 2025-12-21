@@ -13,9 +13,21 @@
 
   <div class="tile">
     <div class="tile-body">
-      <form action="{{ route('admin.nhan-vien.update', $nhanVien->id) }}" method="POST">
+      <form action="{{ route('admin.nhan-vien.update', $nhanVien->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
+
+        <div class="form-group">
+          <label>Ảnh đại diện</label>
+          @if($nhanVien->hinh_anh)
+            <div class="mb-2">
+              <img src="{{ asset($nhanVien->hinh_anh) }}" alt="Ảnh hiện tại" style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover;">
+            </div>
+          @endif
+          <input type="file" name="hinh_anh" class="form-control" accept="image/*">
+          <small class="text-muted">Chọn ảnh mới để thay thế (để trống nếu giữ nguyên ảnh cũ)</small>
+          @error('hinh_anh') <small class="text-danger">{{ $message }}</small> @enderror
+        </div>
 
         <div class="form-group">
           <label>Họ tên</label>

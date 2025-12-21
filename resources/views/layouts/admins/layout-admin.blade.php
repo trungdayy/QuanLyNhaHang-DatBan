@@ -42,10 +42,16 @@
     </header>
     <div class="app-sidebar__overlay" data-toggle="sidebar"></div>
     <aside class="app-sidebar">
-        <div class="app-sidebar__user"><img class="app-sidebar__user-avatar" src="http://127.0.0.1:8000/assets/img/hero.png" width="50px"
-                alt="User Image">
+        <div class="app-sidebar__user">
+            @php
+                $admin = Auth::user();
+                $avatarUrl = $admin && $admin->hinh_anh ? asset($admin->hinh_anh) : asset('assets/img/hero.png');
+                $adminName = $admin ? $admin->ho_ten : 'Ocean Buffet';
+            @endphp
+            <img class="app-sidebar__user-avatar" src="{{ $avatarUrl }}" width="70px" height="70px"
+                alt="Admin Avatar" style="border-radius: 50%; object-fit: cover; border: 3px solid white;">
             <div>
-                <p class="app-sidebar__user-name"><b>Ocean Buffet</b></p>
+                <p class="app-sidebar__user-name"><b>{{ $adminName }}</b></p>
                 <p class="app-sidebar__user-designation">Chào mừng bạn trở lại</p>
             </div>
         </div>
