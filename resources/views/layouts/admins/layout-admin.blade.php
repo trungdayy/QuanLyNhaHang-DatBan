@@ -161,9 +161,10 @@
 
         <ul class="treeview-menu">
             <li><a class="treeview-item" href="{{ route('admin.khu-vuc-ban-an') }}">Khu vực & bàn ăn</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.ban-an.qr_tool') }}">Mã QR bàn</a></li>
             <li><a class="treeview-item" href="{{ route('admin.nhan-vien.index') }}">Nhân viên</a></li>
             <li><a class="treeview-item" href="{{ route('admin.voucher.index') }}">Voucher</a></li>
+                        <li><a class="treeview-item" href="{{ route('admin.danh-gia.index') }}">Đánh giá</a></li>
+
         </ul>
     </li>
 
@@ -186,7 +187,6 @@
             <li><a class="treeview-item" href="{{ route('admin.dat-ban.index') }}">Đặt bàn</a></li>
             <li><a class="treeview-item" href="{{ route('admin.order-mon.index') }}">Order</a></li>
             <li><a class="treeview-item" href="{{ route('admin.hoa-don.index') }}">Hóa đơn</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.danh-gia.index') }}">Đánh giá</a></li>
         </ul>
     </li>
 

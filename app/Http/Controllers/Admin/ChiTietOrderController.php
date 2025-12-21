@@ -61,7 +61,6 @@ class ChiTietOrderController extends Controller
 
         // Cập nhật số lượng combo trước khi hiển thị form
         $this->capNhatSoLuongCombo($order);
-        OrderHelper::capNhatTongOrder($order);
         // Lấy danh sách món đang bán
         $monAns = MonAn::where('trang_thai', 'con')->get();
 
@@ -103,7 +102,6 @@ class ChiTietOrderController extends Controller
 
         // Đồng bộ số lượng combo sau khi thêm món
         $this->capNhatSoLuongCombo($order);
-        OrderHelper::capNhatTongOrder($order);
         return redirect()->route('admin.chi-tiet-order.index', ['order_id' => $request->order_id])
             ->with('success', 'Đã thêm món gọi thêm vào đơn hàng thành công!');
     }
@@ -115,7 +113,6 @@ class ChiTietOrderController extends Controller
     {
         $ct = ChiTietOrder::with('monAn', 'orderMon')->findOrFail($id);
         $order = $ct->orderMon;
-        OrderHelper::capNhatTongOrder($order);
         return view('admins.chi-tiet-order.edit', compact('ct'));
     }
 
@@ -159,7 +156,6 @@ class ChiTietOrderController extends Controller
         // Đồng bộ số lượng combo
         $order = OrderMon::with('datBan')->find($ct->order_id);
         $this->capNhatSoLuongCombo($order);
-        OrderHelper::capNhatTongOrder($order);
         return redirect()->route('admin.chi-tiet-order.index', ['order_id' => $ct->order_id])
             ->with('success', 'Đã xóa món ăn khỏi đơn hàng!');
     }

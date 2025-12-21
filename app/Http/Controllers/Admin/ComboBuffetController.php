@@ -33,7 +33,7 @@ class ComboBuffetController extends Controller
     {
         $request->validate([
             'ten_combo' => 'required|string|max:255',
-            'loai_combo' => 'nullable|in:nguoi_lon,tre_em,vip,khuyen_mai',
+            'loai_combo' => 'nullable|in:99k,199k,299k,399k,499k',
             'gia_co_ban' => 'required|numeric|min:1',
             'thoi_luong_phut' => 'nullable|integer|min:15',
             'thoi_gian_bat_dau' => 'nullable|date',
@@ -96,7 +96,7 @@ class ComboBuffetController extends Controller
         $request->validate([
             'ten_combo' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',   // thêm dòng này
-            'loai_combo' => 'nullable|in:nguoi_lon,tre_em,vip,khuyen_mai',
+            'loai_combo' => 'nullable|in:99k,199k,299k,399k,499k',
             'gia_co_ban' => 'required|numeric|min:1',
             'thoi_luong_phut' => 'nullable|integer|min:15',
             'thoi_gian_bat_dau' => 'nullable|date',
