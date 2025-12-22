@@ -56,7 +56,18 @@
                                         $chiTiet = $hoaDon->chiTietHoaDon;
                                         $tenKhach = $chiTiet ? $chiTiet->ten_khach : ($hoaDon->datBan->ten_khach ?? 'N/A');
                                         $soBan = $chiTiet ? $chiTiet->ban_so : ($hoaDon->datBan->banAn->so_ban ?? 'N/A');
-                                        $phaiThanhToan = $chiTiet ? ($chiTiet->phai_thanh_toan ?? 0) : ($hoaDon->da_thanh_toan ?? 0);
+                                        
+                                        // Tính phải thanh toán: ưu tiên lấy từ chi tiết, nếu không có thì tính lại
+                                        if ($chiTiet && $chiTiet->phai_thanh_toan !== null && $chiTiet->phai_thanh_toan > 0) {
+                                            $phaiThanhToan = $chiTiet->phai_thanh_toan;
+                                        } else {
+                                            // Tính lại từ các giá trị: tong_tien - tien_giam - tien_coc + phu_thu
+                                            $tongTien = $chiTiet ? ($chiTiet->tong_tien_combo_mon ?? $hoaDon->tong_tien ?? 0) : ($hoaDon->tong_tien ?? 0);
+                                            $tienGiam = $chiTiet ? ($chiTiet->tien_giam_voucher ?? $hoaDon->tien_giam ?? 0) : ($hoaDon->tien_giam ?? 0);
+                                            $tienCoc = $chiTiet ? ($chiTiet->tien_coc ?? 0) : ($hoaDon->datBan->tien_coc ?? 0);
+                                            $phuThu = $chiTiet ? ($chiTiet->tong_phu_thu ?? $hoaDon->phu_thu ?? 0) : ($hoaDon->phu_thu ?? 0);
+                                            $phaiThanhToan = max(0, $tongTien - $tienGiam - $tienCoc + $phuThu);
+                                        }
                                     @endphp
                                     <tr>
                                         <td>{{ ($hoaDons->currentPage() - 1) * $hoaDons->perPage() + $index + 1 }}</td>

@@ -577,85 +577,56 @@
                 
                 @if($chiTiet && $chiTiet->danh_sach_mon)
                     @php
+                        // Decode JSON từ danh_sach_mon
+                        $danhSachMonArray = is_string($chiTiet->danh_sach_mon) 
+                            ? json_decode($chiTiet->danh_sach_mon, true) 
+                            : $chiTiet->danh_sach_mon;
+                        
                         $tongTienMonGoiThemTinhLai = 0;
                         $sttMon = 1;
+                        
+                        // Lọc chỉ các món gọi thêm (không phải món combo)
+                        $danhSachMonGoiThem = [];
+                        if (is_array($danhSachMonArray)) {
+                            foreach($danhSachMonArray as $mon) {
+                                if(!isset($mon['la_mon_combo']) || !$mon['la_mon_combo']) {
+                                    // Chỉ lấy món gọi thêm (la_mon_combo = false hoặc không có)
+                                    if(isset($mon['thanh_tien']) && $mon['thanh_tien'] > 0) {
+                                        $danhSachMonGoiThem[] = $mon;
+                                    }
+                                }
+                            }
+                        }
                     @endphp
                     
-                    {{-- Chỉ hiển thị món gọi thêm (không hiển thị combo) --}}
-                    @foreach($monAnGrouped as $monAnId => $monAnGroup)
-                    @php
-                        $ctFirst = $monAnGroup->first();
-                        
-                        // Lấy thông tin từ danh_sach_mon nếu có
-                        $monInfo = null;
-                        foreach($chiTiet->danh_sach_mon as $mon) {
-                            if($ctFirst->monAn && $ctFirst->monAn->ten_mon == $mon['ten_mon']) {
-                                $monInfo = $mon;
-                                break;
-                            }
-                        }
-                        
-                        // Chỉ hiển thị món gọi thêm (không phải món combo)
-                        $coTrongCombo = $monInfo['la_mon_combo'] ?? false;
-                        if($coTrongCombo) {
-                            continue; // Bỏ qua món combo
-                        }
-                        
-                        // Tính số lượng theo trạng thái: chỉ tính đã lên + đang nấu + chờ cung ứng (không tính hủy, chờ bếp)
-                        $soLuongDaLen = 0;
-                        $soLuongDangCheBien = 0;
-                        $soLuongChoCungUng = 0;
-                        
-                        foreach($monAnGroup as $ct) {
-                            if($ct->trang_thai == 'da_len_mon') {
-                                $soLuongDaLen += $ct->so_luong;
-                            } elseif($ct->trang_thai == 'dang_che_bien') {
-                                $soLuongDangCheBien += $ct->so_luong;
-                            } elseif($ct->trang_thai == 'cho_cung_ung') {
-                                $soLuongChoCungUng += $ct->so_luong;
-                            }
-                            // Bỏ qua: huy_mon, cho_bep
-                        }
-                        
-                        // Số lượng hiển thị = số lượng tính tiền (chỉ tính các trạng thái được tính tiền)
-                        $tongSoLuongHienThi = $soLuongDaLen + $soLuongDangCheBien + $soLuongChoCungUng;
-                        
-                        // Chỉ hiển thị món có số lượng > 0
-                        if($tongSoLuongHienThi <= 0) {
-                            continue;
-                        }
-                        
-                        // Lấy đơn giá
-                        $donGiaGoc = 0;
-                        if($monAnGroup && $monAnGroup->first()->monAn) {
-                            $donGiaGoc = $monAnGroup->first()->monAn->gia ?? 0;
-                        }
-                        
-                        // Tính thành tiền: đã lên + đang nấu + chờ cung ứng
-                        $thanhTienTinhLai = ($donGiaGoc * $soLuongDaLen) + ($donGiaGoc * $soLuongDangCheBien) + ($donGiaGoc * $soLuongChoCungUng);
-                    @endphp
+                    {{-- Hiển thị món gọi thêm từ danh_sach_mon --}}
+                    @foreach($danhSachMonGoiThem as $mon)
                     <tr>
                         <td class="text-center" data-label="STT">{{ $sttMon++ }}</td>
                         <td data-label="Tên món">
-                            {{ $ctFirst->monAn->ten_mon ?? 'N/A' }}
+                            {{ $mon['ten_mon'] ?? 'N/A' }}
                         </td>
                         <td class="text-center" data-label="Số lượng">
-                            {{ $tongSoLuongHienThi }}
+                            {{ $mon['so_luong'] ?? 0 }}
                         </td>
                         <td class="text-end" data-label="Đơn giá">
-                            {{ number_format($donGiaGoc) }} đ
+                            {{ number_format($mon['don_gia'] ?? 0) }} đ
                         </td>
                         <td class="text-end" data-label="Thành tiền">
-                            <strong>{{ number_format($thanhTienTinhLai) }} đ</strong>
+                            <strong>{{ number_format($mon['thanh_tien'] ?? 0) }} đ</strong>
                             @php
-                                $tongTienMonGoiThemTinhLai += $thanhTienTinhLai;
+                                $tongTienMonGoiThemTinhLai += ($mon['thanh_tien'] ?? 0);
                             @endphp
                         </td>
                     </tr>
                     @endforeach
                     @php
-                        // Sử dụng dữ liệu đã tính từ bảng
-                        $tongTienMonGoiThem = $tongTienMonGoiThemTinhLai;
+                        // Sử dụng dữ liệu đã tính từ danh_sach_mon hoặc từ chi tiết
+                        if($tongTienMonGoiThemTinhLai > 0) {
+                            $tongTienMonGoiThem = $tongTienMonGoiThemTinhLai;
+                        } else {
+                            $tongTienMonGoiThem = $chiTiet->tong_tien_mon_goi_them ?? 0;
+                        }
                     @endphp
                     
                     {{-- Tổng kết món gọi thêm --}}
