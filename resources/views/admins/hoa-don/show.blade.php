@@ -144,13 +144,21 @@
                 <div class="list-group list-group-flush">
                     <div class="list-group-item">
                         <strong>Phương thức:</strong><br>
-                        <span class="badge bg-primary">
-                            @if($hoaDon->phuong_thuc_tt == 'tien_mat')
+                        <span class="badge {{ ($hoaDon->trang_thai == 'da_thanh_toan' && ($hoaDon->phuong_thuc_tt == 'chua_thanh_toan' || !$hoaDon->phuong_thuc_tt)) ? 'bg-success' : 'bg-primary' }}">
+                            @if($hoaDon->trang_thai == 'da_thanh_toan' && ($hoaDon->phuong_thuc_tt == 'chua_thanh_toan' || !$hoaDon->phuong_thuc_tt))
+                                Đã thanh toán
+                            @elseif($hoaDon->phuong_thuc_tt == 'tien_mat')
                                 Tiền mặt
                             @elseif($hoaDon->phuong_thuc_tt == 'chuyen_khoan')
                                 Chuyển khoản
+                            @elseif($hoaDon->phuong_thuc_tt == 'the_ATM')
+                                Thẻ ATM
+                            @elseif($hoaDon->phuong_thuc_tt == 'vnpay')
+                                VNPay
+                            @elseif($hoaDon->phuong_thuc_tt == 'payos')
+                                PayOS
                             @else
-                                {{ $hoaDon->phuong_thuc_tt ?? 'N/A' }}
+                                {{ $hoaDon->phuong_thuc_tt ?? 'Chưa thanh toán' }}
                             @endif
                         </span>
                     </div>

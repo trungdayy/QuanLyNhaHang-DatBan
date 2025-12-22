@@ -84,6 +84,9 @@
                             
                             <a href="{{ route('nhanVien.datban.index') }}"
                                 class="nav-item nav-link {{ request()->routeIs('nhanVien.datban.*') ? 'active' : '' }}">Đặt bàn</a>
+                            
+                            <a href="{{ route('nhanVien.thanh-toan.danh-sach-chua-thanh-toan') }}"
+                                class="nav-item nav-link {{ request()->routeIs('nhanVien.thanh-toan.danh-sach-chua-thanh-toan') ? 'active' : '' }}">Hóa đơn chưa thanh toán</a>
                         @else
                             {{-- Menu cho nhân viên phục vụ - Order và Hàng chờ phục vụ --}}
                             <a href="{{ route('nhanVien.order.index') }}"
