@@ -287,13 +287,18 @@
         // --- DOM ELEMENTS ---
         const container = document.getElementById('bookingCartContainer');
         const totalSection = document.getElementById('bookingCartTotalSection');
-        const cartHeader = document.getElementById('cartHeader');
         const totalDisplay = document.getElementById('bookingDisplayTotal');
         const formInput = document.getElementById('cartDataInput');
-        const btnBulkDelete = document.getElementById('btnBulkDelete');
-        const countDeleteSpan = document.getElementById('countDelete');
-        const selectAllCheckbox = document.getElementById('selectAllCart');
         const formatMoney = (amount) => parseInt(amount).toLocaleString('vi-VN') + ' đ';
+
+        // Hàm tính tổng số khách
+        function getTongKhach() {
+            const nguoiLonInput = document.querySelector('input[name="nguoi_lon"]');
+            const treEmInput = document.querySelector('input[name="tre_em"]');
+            const nguoiLon = parseInt(nguoiLonInput?.value) || 0;
+            const treEm = parseInt(treEmInput?.value) || 0;
+            return nguoiLon + treEm;
+        }
 
         // --- 1. RENDER GIỎ HÀNG ---
         window.renderBookingCart = function() {
@@ -318,108 +323,161 @@
                         </div>`;
                 }
                 if (totalSection) totalSection.classList.add('d-none');
-                if (cartHeader) cartHeader.style.setProperty('display', 'none', 'important');
-                if (btnBulkDelete) btnBulkDelete.classList.add('d-none');
-                if (selectAllCheckbox) selectAllCheckbox.checked = false;
                 return;
             }
 
             // Nếu có món
             if (totalSection) totalSection.classList.remove('d-none');
-            if (cartHeader) cartHeader.style.setProperty('display', 'flex', 'important');
 
             let html = '';
             let grandTotal = 0;
+            const tongKhach = getTongKhach();
+            const nguoiLon = parseInt(document.querySelector('input[name="nguoi_lon"]')?.value) || 0;
+            const treEm = parseInt(document.querySelector('input[name="tre_em"]')?.value) || 0;
 
             cart.forEach((item, index) => {
-                grandTotal += item.price * item.quantity;
+                const isCombo = item.key && item.key.startsWith('combo_');
+                const minQty = isCombo ? tongKhach : 0;
+                
+                // Tính giá: combo giảm 50% cho trẻ em
+                let itemTotal = 0;
+                if (isCombo) {
+                    // Tính số combo cho người lớn và trẻ em
+                    let soComboNguoiLon = Math.min(item.quantity, nguoiLon);
+                    let soComboTreEm = Math.max(0, item.quantity - nguoiLon);
+                    // Giảm giá 50% cho trẻ em
+                    itemTotal = (item.price * soComboNguoiLon) + (item.price * 0.5 * soComboTreEm);
+                } else {
+                    itemTotal = item.price * item.quantity;
+                }
+                
+                grandTotal += itemTotal;
+                
                 html += `
                     <div class="d-flex align-items-center p-3 border-bottom bg-white cart-item-card position-relative mx-3 my-2 rounded-3">
-                        <div class="form-check me-3">
-                            <input class="form-check-input cart-checkbox" type="checkbox" value="${index}">
-                        </div>
-                        ${item.img ? `<img src="${item.img}" class="rounded-3 shadow-sm me-3 border" style="width: 70px; height: 70px; object-fit: cover;">` : ''}
+                        ${item.img ? `
+                            <div class="position-relative me-3">
+                                <img src="${item.img}" class="rounded-3 shadow-sm border" style="width: 70px; height: 70px; object-fit: cover;">
+                                ${isCombo ? `
+                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle p-0" 
+                                        style="width: 24px; height: 24px; transform: translate(50%, -50%);" 
+                                        onclick="removeCombo(${index})" title="Bỏ chọn combo">
+                                        <i class="fa fa-times" style="font-size: 10px;"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        ` : ''}
                         <div class="flex-grow-1">
                             <div class="fw-bold text-dark text-truncate" style="max-width: 220px;">${item.name}</div>
-                            <div class="text-primary fw-bold small mt-1">${formatMoney(item.price)}</div>
+                            <div class="text-primary fw-bold small mt-1">${formatMoney(item.price)}${isCombo ? ' <span class="text-muted">(Trẻ em: 50%)</span>' : ''}</div>
                         </div>
                         <div class="d-flex align-items-center bg-light rounded-pill border px-2 py-1 shadow-sm">
-                            <button type="button" class="btn btn-sm border-0 text-secondary px-2 fw-bold" onclick="updateQty(${index}, -1)"><i class="fa fa-minus small"></i></button>
+                            <button type="button" class="btn btn-sm border-0 text-secondary px-2 fw-bold" 
+                                onclick="updateQty(${index}, -1)" 
+                                ${isCombo && item.quantity <= minQty ? 'disabled style="opacity: 0.5;"' : ''}>
+                                <i class="fa fa-minus small"></i>
+                            </button>
                             <span class="fw-bold text-dark mx-2" style="min-width: 20px; text-align: center;">${item.quantity}</span>
-                            <button type="button" class="btn btn-sm border-0 text-primary px-2 fw-bold" onclick="updateQty(${index}, 1)"><i class="fa fa-plus small"></i></button>
+                            <button type="button" class="btn btn-sm border-0 text-primary px-2 fw-bold" onclick="updateQty(${index}, 1)">
+                                <i class="fa fa-plus small"></i>
+                            </button>
                         </div>
                     </div>`;
             });
 
             if(container) container.innerHTML = html;
             if(totalDisplay) totalDisplay.innerText = formatMoney(grandTotal);
-            attachCheckboxEvents();
-            toggleDeleteButton(0);
-            if (selectAllCheckbox) selectAllCheckbox.checked = false;
         };
 
-        // --- Các hàm phụ trợ ---
-        function attachCheckboxEvents() {
-            const checkboxes = document.querySelectorAll('.cart-checkbox');
-            checkboxes.forEach(cb => {
-                cb.addEventListener('change', function() {
-                    const count = document.querySelectorAll('.cart-checkbox:checked').length;
-                    toggleDeleteButton(count);
-                    if (selectAllCheckbox) selectAllCheckbox.checked = (count === checkboxes.length && count > 0);
-                });
-            });
-        }
+        // Hàm tự động cập nhật combo khi số khách thay đổi
+        function autoUpdateComboQuantity() {
+            const tongKhach = getTongKhach();
+            if (tongKhach < 1) return;
 
-        function toggleDeleteButton(count) {
-            if (!btnBulkDelete) return;
-            if (count > 0) {
-                btnBulkDelete.classList.remove('d-none');
-                btnBulkDelete.classList.add('animate__fadeIn');
-                if (countDeleteSpan) countDeleteSpan.innerText = count;
-            } else {
-                btnBulkDelete.classList.add('d-none');
+            let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+            let hasCombo = false;
+            let totalComboQty = 0;
+            let comboIndex = -1;
+
+            // Tìm combo trong giỏ hàng
+            cart.forEach((item, idx) => {
+                if (item.key && item.key.startsWith('combo_')) {
+                    hasCombo = true;
+                    comboIndex = idx;
+                    totalComboQty = item.quantity || 0;
+                }
+            });
+
+            // Nếu có combo, tự động điều chỉnh số lượng
+            if (hasCombo && comboIndex >= 0) {
+                // Nếu combo < số khách, tăng lên
+                // Nếu combo > số khách, giảm xuống (nhưng không dưới số khách)
+                if (totalComboQty !== tongKhach) {
+                    cart[comboIndex].quantity = tongKhach;
+                    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                    renderBookingCart();
+                }
             }
         }
 
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                const checkboxes = document.querySelectorAll('.cart-checkbox');
-                checkboxes.forEach(cb => cb.checked = this.checked);
-                toggleDeleteButton(this.checked ? checkboxes.length : 0);
-            });
+        // Lắng nghe thay đổi số khách
+        const nguoiLonInput = document.querySelector('input[name="nguoi_lon"]');
+        const treEmInput = document.querySelector('input[name="tre_em"]');
+        
+        if (nguoiLonInput) {
+            nguoiLonInput.addEventListener('change', autoUpdateComboQuantity);
+            nguoiLonInput.addEventListener('input', autoUpdateComboQuantity);
         }
-
-        if (btnBulkDelete) {
-            btnBulkDelete.onclick = function() {
-                const checkedBoxes = document.querySelectorAll('.cart-checkbox:checked');
-                if (checkedBoxes.length === 0) return;
-                
-                const performDelete = () => {
-                    let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
-                    const indexes = Array.from(checkedBoxes).map(cb => parseInt(cb.value)).sort((a, b) => b - a);
-                    indexes.forEach(idx => { if (cart[idx]) cart.splice(idx, 1); });
-                    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-                    renderBookingCart();
-                    if (typeof Swal !== 'undefined') Swal.fire({ icon: 'success', title: 'Đã xóa!', timer: 1000, showConfirmButton: false });
-                };
-
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ title: 'Xóa món?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa ngay' }).then((r) => { if (r.isConfirmed) performDelete(); });
-                } else { if (confirm('Xóa món?')) performDelete(); }
-            };
+        if (treEmInput) {
+            treEmInput.addEventListener('change', autoUpdateComboQuantity);
+            treEmInput.addEventListener('input', autoUpdateComboQuantity);
         }
 
         window.updateQty = function(index, change) {
             let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+            if (!cart[index]) return;
+
+            const item = cart[index];
+            const tongKhach = getTongKhach();
+            const isCombo = item.key && item.key.startsWith('combo_');
+            
+            let newQty = item.quantity + change;
+
+            // Nếu là combo, không cho giảm dưới số khách
+            if (isCombo && change < 0 && newQty < tongKhach) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Không thể giảm!',
+                        text: `Số lượng combo phải >= số khách (${tongKhach} người). Hoặc dùng nút X để bỏ chọn combo.`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+                return;
+            }
+
+            if (newQty > 0) {
+                cart[index].quantity = newQty;
+                localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                renderBookingCart();
+            } else {
+                // Xóa item nếu quantity = 0
+                cart.splice(index, 1);
+                localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                renderBookingCart();
+            }
+        };
+
+        // Hàm xóa combo (dấu X)
+        window.removeCombo = function(index) {
+            let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
             if (cart[index]) {
-                const newQty = cart[index].quantity + change;
-                if (newQty > 0) {
-                    cart[index].quantity = newQty;
-                    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-                    renderBookingCart();
-                } else {
-                    if (typeof Swal !== 'undefined') Swal.fire('Thông báo', 'Dùng ô tích chọn để xóa món.', 'info');
-                    else alert('Dùng ô tích chọn để xóa món.');
+                cart.splice(index, 1);
+                localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                renderBookingCart();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'success', title: 'Đã bỏ chọn combo!', timer: 1000, showConfirmButton: false });
                 }
             }
         };

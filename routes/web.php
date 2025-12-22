@@ -213,6 +213,7 @@ Route::middleware(['auth', 'role:quan_ly'])->prefix('admin')->name('admin.')->gr
     Route::prefix('dat-ban')->name('dat-ban.')->controller(DatBanController::class)->group(function () {
         Route::get('/ajax-get-combos-by-loai', 'ajaxGetCombosByLoai')->name('ajax-get-combos-by-loai');
         Route::get('/ajax-get-available-tables', 'ajaxGetAvailableTables')->name('ajax-get-available-tables');
+        Route::get('/check-ban-trong', 'ajaxCheckBanTrong')->name('check-ban-trong');
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/store', 'store')->name('store');
