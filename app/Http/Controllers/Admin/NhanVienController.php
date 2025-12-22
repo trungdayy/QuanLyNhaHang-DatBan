@@ -139,15 +139,14 @@ class NhanVienController extends Controller
     {
         $nhanVien = NhanVien::findOrFail($id);
 
-        // Chỉ validate các trường được phép sửa
-        // Email và vai_tro, trang_thai không được sửa trong form edit (readonly/disabled)
-        // Nhưng vẫn validate để đảm bảo an toàn nếu có ai đó cố gắng thay đổi
+        // Validate các trường được phép sửa
         $rules = [
             'ho_ten' => 'required|string|max:255',
             'sdt' => ['required', 'string', 'max:20', Rule::unique('nhan_vien', 'sdt')->ignore($nhanVien->id)],
             'email' => ['required', 'email', Rule::unique('nhan_vien', 'email')->ignore($nhanVien->id)], // Validate để đảm bảo an toàn
+            'vai_tro' => ['required', Rule::in(['quan_ly', 'phuc_vu', 'bep', 'le_tan'])],
+            'trang_thai' => ['required', Rule::in([0, 1, 2])], // 0: nghỉ, 1: đang làm, 2: khóa
             'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Tối đa 2MB
-            // vai_tro và trang_thai không được sửa trong form edit
         ];
 
         $messages = [
@@ -157,6 +156,10 @@ class NhanVienController extends Controller
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không đúng định dạng.',
             'email.unique' => 'Email này đã được sử dụng bởi nhân viên khác. Vui lòng chọn email khác.',
+            'vai_tro.required' => 'Vui lòng chọn vai trò.',
+            'vai_tro.in' => 'Vai trò không hợp lệ.',
+            'trang_thai.required' => 'Vui lòng chọn trạng thái.',
+            'trang_thai.in' => 'Trạng thái không hợp lệ.',
             'hinh_anh.image' => 'File phải là hình ảnh.',
             'hinh_anh.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
             'hinh_anh.max' => 'Kích thước ảnh không được vượt quá 2MB.',
@@ -165,9 +168,23 @@ class NhanVienController extends Controller
         $request->validate($rules, $messages);
 
         try {
+            $adminHienTai = Auth::user(); // Admin đang đăng nhập
+
+            // Kiểm tra nếu admin đang cố gắng thay đổi vai trò hoặc trạng thái của chính mình
+            if ($nhanVien->id === $adminHienTai->id) {
+                if ($request->vai_tro != $nhanVien->vai_tro) {
+                    return back()->with('error', '❌ Bạn không thể thay đổi vai trò của chính mình.');
+                }
+                if ($request->trang_thai != $nhanVien->trang_thai) {
+                    return back()->with('error', '❌ Bạn không thể thay đổi trạng thái của chính mình.');
+                }
+            }
+
             $data = [
                 'ho_ten' => $request->ho_ten,
                 'sdt' => $request->sdt,
+                'vai_tro' => $request->vai_tro,
+                'trang_thai' => $request->trang_thai,
             ];
 
             // Xử lý upload ảnh mới (nếu có)
@@ -193,7 +210,7 @@ class NhanVienController extends Controller
                 $data['hinh_anh'] = $nhanVien->hinh_anh;
             }
 
-            // Chỉ cập nhật các trường được phép sửa (giữ nguyên email, vai_tro, trang_thai)
+            // Cập nhật các trường
             $nhanVien->update($data);
 
             return redirect()->route('admin.nhan-vien.index')->with('success', 'Cập nhật nhân viên thành công!');

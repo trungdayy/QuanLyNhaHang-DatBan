@@ -243,7 +243,27 @@ class ThanhToanController extends Controller
         $tienGiam = 0;
         if ($request->filled('voucher_id')) {
             $voucher = Voucher::find($request->voucher_id);
-            if ($voucher && $voucher->trang_thai == 'dang_ap_dung' && $voucher->ngay_ket_thuc >= now() && $voucher->so_luong > $voucher->so_luong_da_dung) {
+            if ($voucher) {
+                // Kiểm tra điều kiện voucher
+                if ($voucher->trang_thai != 'dang_ap_dung') {
+                    return redirect()->back()
+                        ->with('error', 'Voucher "' . $voucher->ma_voucher . '" không còn hiệu lực!')
+                        ->withInput();
+                }
+                
+                if ($voucher->ngay_ket_thuc < now()) {
+                    return redirect()->back()
+                        ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết hạn!')
+                        ->withInput();
+                }
+                
+                if ($voucher->so_luong <= $voucher->so_luong_da_dung) {
+                    return redirect()->back()
+                        ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết số lượng sử dụng!')
+                        ->withInput();
+                }
+                
+                // Tính tiền giảm nếu voucher hợp lệ
                 if ($voucher->loai_giam == 'phan_tram') {
                     $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
                     if ($voucher->gia_tri_toi_da && $tienGiam > $voucher->gia_tri_toi_da) {
@@ -466,6 +486,26 @@ class ThanhToanController extends Controller
         $tienGiam = 0;
 
         if ($voucher) {
+            // Kiểm tra điều kiện voucher
+            if ($voucher->trang_thai != 'dang_ap_dung') {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" không còn hiệu lực!')
+                    ->withInput();
+            }
+            
+            if ($voucher->ngay_ket_thuc < now()) {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết hạn!')
+                    ->withInput();
+            }
+            
+            if ($voucher->so_luong <= $voucher->so_luong_da_dung) {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết số lượng sử dụng!')
+                    ->withInput();
+            }
+            
+            // Tính tiền giảm nếu voucher hợp lệ
             if ($voucher->loai_giam == 'phan_tram') {
                 $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
                 if ($voucher->gia_tri_toi_da && $tienGiam > $voucher->gia_tri_toi_da) {
@@ -848,6 +888,26 @@ class ThanhToanController extends Controller
         $tienGiam = 0;
 
         if ($voucher) {
+            // Kiểm tra điều kiện voucher
+            if ($voucher->trang_thai != 'dang_ap_dung') {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" không còn hiệu lực!')
+                    ->withInput();
+            }
+            
+            if ($voucher->ngay_ket_thuc < now()) {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết hạn!')
+                    ->withInput();
+            }
+            
+            if ($voucher->so_luong <= $voucher->so_luong_da_dung) {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết số lượng sử dụng!')
+                    ->withInput();
+            }
+            
+            // Tính tiền giảm nếu voucher hợp lệ
             if ($voucher->loai_giam == 'phan_tram') {
                 $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
                 if ($voucher->gia_tri_toi_da && $tienGiam > $voucher->gia_tri_toi_da) {
@@ -1464,7 +1524,27 @@ class ThanhToanController extends Controller
         $voucher = $request->voucher_id ? Voucher::find($request->voucher_id) : null;
         $tienGiam = 0;
 
-        if ($voucher && $voucher->so_luong > $voucher->so_luong_da_dung) {
+        if ($voucher) {
+            // Kiểm tra điều kiện voucher
+            if ($voucher->trang_thai != 'dang_ap_dung') {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" không còn hiệu lực!')
+                    ->withInput();
+            }
+            
+            if ($voucher->ngay_ket_thuc < now()) {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết hạn!')
+                    ->withInput();
+            }
+            
+            if ($voucher->so_luong <= $voucher->so_luong_da_dung) {
+                return redirect()->back()
+                    ->with('error', 'Voucher "' . $voucher->ma_voucher . '" đã hết số lượng sử dụng!')
+                    ->withInput();
+            }
+            
+            // Tính tiền giảm nếu voucher hợp lệ
             if ($voucher->loai_giam == 'phan_tram') {
                 $tienGiam = $tongTienOrder * ($voucher->gia_tri / 100);
                 if ($voucher->gia_tri_toi_da && $tienGiam > $voucher->gia_tri_toi_da) $tienGiam = $voucher->gia_tri_toi_da;
