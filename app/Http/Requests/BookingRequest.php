@@ -116,10 +116,12 @@ class BookingRequest extends FormRequest
                 }
             }
 
-            // Validate số suất combo phải đủ cho số người lớn
+            // Validate số suất combo: phải >= số khách (người lớn + trẻ em), hoặc không chọn combo
+            $tongKhach = ($this->nguoi_lon ?? 0) + ($this->tre_em ?? 0);
+            $totalCombos = 0;
+            
             if ($this->filled('cart_data')) {
                 $cartItems = json_decode($this->cart_data, true);
-                $totalCombos = 0;
                 
                 if (is_array($cartItems)) {
                     foreach ($cartItems as $item) {
@@ -128,11 +130,11 @@ class BookingRequest extends FormRequest
                         }
                     }
                 }
-                
-                $nguoiLon = $this->nguoi_lon ?? 0;
-                if ($totalCombos > 0 && $totalCombos < $nguoiLon) {
-                    $validator->errors()->add('cart_data', "Số suất Combo ($totalCombos) phải đủ cho số người lớn ($nguoiLon). Vui lòng chọn thêm combo hoặc giảm số người lớn.");
-                }
+            }
+            
+            // Nếu có chọn combo thì phải >= số khách, nếu không chọn combo thì OK
+            if ($totalCombos > 0 && $totalCombos < $tongKhach) {
+                $validator->errors()->add('cart_data', "Số suất Combo ($totalCombos) phải >= số khách ($tongKhach người). Hoặc không chọn combo.");
             }
         });
     }

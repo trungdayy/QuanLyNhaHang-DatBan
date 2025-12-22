@@ -187,10 +187,12 @@ class BookingController extends Controller
             'gio_den.after'   => 'Thời gian đặt phải ở tương lai.',
         ]);
 
-        // Validate Combo
+        // Validate Combo: Số lượng combo >= số khách (người lớn + trẻ em), hoặc không chọn combo
+        $tongKhach = $request->nguoi_lon + ($request->tre_em ?? 0);
+        $totalCombos = 0;
+        
         if ($request->filled('cart_data')) {
             $cartItems = json_decode($request->cart_data, true);
-            $totalCombos = 0;
             if (is_array($cartItems)) {
                 foreach ($cartItems as $item) {
                     if (isset($item['key']) && str_starts_with($item['key'], 'combo_')) {
@@ -198,12 +200,13 @@ class BookingController extends Controller
                     }
                 }
             }
-            if ($totalCombos > 0 && $totalCombos < $request->nguoi_lon) {
-                // Throw Validation Exception để Laravel tự redirect back kèm lỗi
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'cart_data' => "Quy định: Số suất Combo ($totalCombos) phải đủ cho số người lớn ($request->nguoi_lon)."
-                ]);
-            }
+        }
+        
+        // Nếu có chọn combo thì phải >= số khách, nếu không chọn combo thì OK
+        if ($totalCombos > 0 && $totalCombos < $tongKhach) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'cart_data' => "Số suất Combo ($totalCombos) phải >= số khách ($tongKhach người). Hoặc không chọn combo."
+            ]);
         }
     }
 

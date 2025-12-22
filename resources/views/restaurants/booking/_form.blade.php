@@ -63,7 +63,7 @@
     .btn-gradient-submit {
         background: linear-gradient(45deg, #FEA116, #FF8E53);
         border: none;
-        color: white;
+        color:z white;
         font-weight: 700;
         text-transform: uppercase;
         box-shadow: 0 4px 15px rgba(254, 161, 22, 0.4);
@@ -181,43 +181,29 @@
 
         {{-- 4. GIỎ HÀNG --}}
         <div class="col-12 mt-4">
-            <div class="d-flex justify-content-between align-items-end mb-3 px-1">
-                <h6 class="fw-bold text-dark mb-0"><i class="fa fa-utensils text-primary me-2"></i>Thực đơn đã chọn</h6>
-            </div>
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                {{-- Phần danh sách món --}}
-                <div class="card-body p-0 bg-white" style="max-height: 400px; overflow-y: auto;">
-                    <div id="bookingCartContainer">
-                        <div class="text-center py-5 text-muted">
-                            <p class="mb-0 small">Đang tải giỏ hàng...</p>
+                        <div class="d-flex justify-content-between align-items-end mb-3 px-1">
+                            <h6 class="fw-bold text-dark mb-0"><i class="fa fa-utensils text-primary me-2"></i>Thực đơn đã chọn</h6>
                         </div>
-                    </div>
-                </div>
-
-                {{-- Phần Footer --}}
-                <div id="bookingCartTotalSection" class="card-footer bg-light border-top p-3 d-none">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="form-check mb-0">
-                                <input class="form-check-input" type="checkbox" id="selectAllCart"
-                                    style="cursor: pointer;">
-                                <label class="form-check-label small fw-bold text-muted cursor-pointer"
-                                    for="selectAllCart">
-                                    Tất cả
-                                </label>
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                            {{-- Phần danh sách món --}}
+                            <div class="card-body p-0 bg-white" style="max-height: 400px; overflow-y: auto;">
+                                <div id="bookingCartContainer">
+                                    <div class="text-center py-5 text-muted">
+                                        <p class="mb-0 small">Đang tải giỏ hàng...</p>
+                                    </div>
+                                </div>
                             </div>
-                            <button type="button" id="btnBulkDelete"
-                                class="btn btn-sm btn-danger rounded-pill px-3 fw-bold d-none animate__animated animate__fadeIn">
-                                <i class="fa fa-trash me-1"></i> Xóa (<span id="countDelete">0</span>)
-                            </button>
+
+                            {{-- Phần Footer --}}
+                            <div id="bookingCartTotalSection" class="card-footer bg-light border-top p-3 d-none">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="text-end w-100">
+                                        <span class="text-muted small">Tạm tính:</span>
+                                        <span id="bookingDisplayTotal" class="fw-bold text-danger fs-5 ms-2">0 đ</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="text-end">
-                            <span class="text-muted small">Tạm tính:</span>
-                            <span id="bookingDisplayTotal" class="fw-bold text-danger fs-5 ms-2">0 đ</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         {{-- 5. GHI CHÚ --}}
@@ -397,6 +383,15 @@
             } catch (e) {}
         @endif
 
+        // Hàm tính tổng số khách
+        function getTongKhach() {
+            const nguoiLonInput = document.querySelector('input[name="nguoi_lon"]');
+            const treEmInput = document.querySelector('input[name="tre_em"]');
+            const nguoiLon = parseInt(nguoiLonInput?.value) || 0;
+            const treEm = parseInt(treEmInput?.value) || 0;
+            return nguoiLon + treEm;
+        }
+
         window.renderBookingCart = function() {
             let cart = [];
             try { cart = JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (e) { cart = []; }
@@ -411,22 +406,214 @@
             
             let html = '';
             let grandTotal = 0;
+            const nguoiLon = parseInt(document.querySelector('input[name="nguoi_lon"]')?.value) || 0;
+            const treEm = parseInt(document.querySelector('input[name="tre_em"]')?.value) || 0;
+
             cart.forEach((item, index) => {
-                grandTotal += item.price * item.quantity;
+                const isCombo = item.key && item.key.startsWith('combo_');
+                
+                // Tính giá: combo giảm 50% cho trẻ em
+                let itemTotal = 0;
+                if (isCombo) {
+                    // Tính số combo cho người lớn và trẻ em
+                    let soComboNguoiLon = Math.min(item.quantity, nguoiLon);
+                    let soComboTreEm = Math.max(0, item.quantity - nguoiLon);
+                    // Giảm giá 50% cho trẻ em
+                    itemTotal = (item.price * soComboNguoiLon) + (item.price * 0.5 * soComboTreEm);
+                } else {
+                    itemTotal = item.price * item.quantity;
+                }
+                
+                grandTotal += itemTotal;
+                
+                // Tính chi tiết giá để hiển thị
+                let priceDetail = '';
+                if (isCombo && treEm > 0) {
+                    const soComboNguoiLon = Math.min(item.quantity, nguoiLon);
+                    const soComboTreEm = Math.max(0, item.quantity - nguoiLon);
+                    if (soComboNguoiLon > 0 && soComboTreEm > 0) {
+                        priceDetail = `<div class="text-muted small">(${soComboNguoiLon} người lớn × ${formatMoney(item.price)} + ${soComboTreEm} trẻ em × ${formatMoney(item.price * 0.5)})</div>`;
+                    } else if (soComboTreEm > 0) {
+                        priceDetail = `<div class="text-muted small">(${soComboTreEm} trẻ em × ${formatMoney(item.price * 0.5)})</div>`;
+                    }
+                }
+                
+                const tongKhach = getTongKhach();
+                const minQty = isCombo ? tongKhach : 0;
+                
                 html += `
                     <div class="d-flex align-items-center p-2 border-bottom bg-white mx-2 my-1 rounded">
                         <div class="flex-grow-1 ms-2">
                             <div class="fw-bold text-dark text-truncate" style="max-width: 180px;">${item.name}</div>
-                            <div class="text-danger small fw-bold">${formatMoney(item.price)}</div>
+                            <div class="text-danger small fw-bold">${formatMoney(item.price)}${isCombo ? ' <span class="text-muted">(Trẻ em: 50%)</span>' : ''}</div>
+                            ${priceDetail}
                         </div>
-                        <div class="d-flex align-items-center bg-light rounded px-2">
-                            <span class="fw-bold text-dark mx-2">x${item.quantity}</span>
+                        <div class="d-flex align-items-center bg-light rounded-pill border px-2 py-1 shadow-sm">
+                            <button type="button" class="btn btn-sm border-0 text-secondary px-2 fw-bold" 
+                                onclick="updateComboQty(${index}, -1)" 
+                                ${isCombo && item.quantity <= minQty ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+                                title="${isCombo && item.quantity <= minQty ? 'Không thể giảm dưới số khách' : 'Giảm'}">
+                                <i class="fa fa-minus small"></i>
+                            </button>
+                            <span class="fw-bold text-dark mx-2" style="min-width: 20px; text-align: center;">${item.quantity}</span>
+                            <button type="button" class="btn btn-sm border-0 text-primary px-2 fw-bold" 
+                                onclick="updateComboQty(${index}, 1)"
+                                title="Tăng">
+                                <i class="fa fa-plus small"></i>
+                            </button>
                         </div>
                     </div>`;
             });
             container.innerHTML = html;
             if(totalDisplay) totalDisplay.innerText = formatMoney(grandTotal);
         };
+
+        // Hàm tự động cập nhật combo khi số khách thay đổi
+        function autoUpdateComboQuantity() {
+            const tongKhach = getTongKhach();
+            if (tongKhach < 1) return;
+
+            let cart = [];
+            try {
+                cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+            } catch (e) {
+                cart = [];
+            }
+            
+            let comboIndex = -1;
+
+            // Tìm combo trong giỏ hàng
+            cart.forEach((item, idx) => {
+                if (item.key && item.key.startsWith('combo_')) {
+                    comboIndex = idx;
+                }
+            });
+
+            // Nếu có combo, tự động điều chỉnh số lượng về bằng số khách
+            if (comboIndex >= 0) {
+                const currentQty = parseInt(cart[comboIndex].quantity) || 0;
+                const tongKhachInt = parseInt(tongKhach) || 0;
+                
+                console.log('autoUpdateComboQuantity - Combo hiện tại:', currentQty, 'Số khách:', tongKhachInt);
+                
+                if (currentQty !== tongKhachInt) {
+                    console.log('Cập nhật combo từ', currentQty, 'lên', tongKhachInt);
+                    cart[comboIndex].quantity = tongKhachInt;
+                    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                    return true; // Trả về true nếu có thay đổi
+                }
+            }
+            return false; // Không có thay đổi
+        }
+
+        // Hàm cập nhật số lượng combo (global để có thể gọi từ onclick)
+        window.updateComboQty = function(index, change) {
+            let cart = [];
+            try {
+                cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+            } catch (e) {
+                cart = [];
+            }
+            
+            if (!cart[index]) return;
+            
+            const item = cart[index];
+            const tongKhach = getTongKhach();
+            const isCombo = item.key && item.key.startsWith('combo_');
+            
+            let currentQty = parseInt(item.quantity) || 0;
+            let newQty = currentQty + change;
+            
+            // Nếu là combo, không cho giảm dưới số khách
+            if (isCombo) {
+                const tongKhachInt = parseInt(tongKhach) || 0;
+                if (change < 0 && newQty < tongKhachInt) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Không thể giảm!',
+                            text: `Số lượng combo phải >= số khách (${tongKhachInt} người).`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        alert(`Số lượng combo phải >= số khách (${tongKhachInt} người)`);
+                    }
+                    return;
+                }
+                // Nếu tăng nhưng vẫn thấp hơn số khách, tự động đặt về số khách
+                if (newQty < tongKhachInt) {
+                    newQty = tongKhachInt;
+                }
+            }
+            
+            if (newQty > 0) {
+                cart[index].quantity = newQty;
+                localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                renderBookingCart();
+            } else {
+                // Xóa item nếu quantity = 0
+                cart.splice(index, 1);
+                localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                renderBookingCart();
+            }
+        };
+        
+        // Hàm xử lý thay đổi số khách
+        function handleGuestChange() {
+            console.log('handleGuestChange được gọi');
+            // Cập nhật combo trước
+            const hasChanged = autoUpdateComboQuantity();
+            console.log('Combo đã thay đổi:', hasChanged);
+            // Sau đó tính lại giá (luôn render lại để đảm bảo giá được tính đúng)
+            renderBookingCart();
+        }
+        
+        const nguoiLonInput = document.querySelector('input[name="nguoi_lon"]');
+        const treEmInput = document.querySelector('input[name="tre_em"]');
+        
+        // Lắng nghe mọi sự kiện có thể
+        if (nguoiLonInput) {
+            nguoiLonInput.addEventListener('change', handleGuestChange);
+            nguoiLonInput.addEventListener('input', handleGuestChange);
+            nguoiLonInput.addEventListener('keyup', handleGuestChange);
+            nguoiLonInput.addEventListener('blur', handleGuestChange);
+            // Quan trọng: Lắng nghe sự kiện khi click vào spinner
+            nguoiLonInput.addEventListener('mouseup', handleGuestChange);
+            nguoiLonInput.addEventListener('touchend', handleGuestChange);
+            // Lắng nghe khi giá trị thay đổi qua DOM
+            nguoiLonInput.addEventListener('propertychange', handleGuestChange);
+        }
+        
+        if (treEmInput) {
+            treEmInput.addEventListener('change', handleGuestChange);
+            treEmInput.addEventListener('input', handleGuestChange);
+            treEmInput.addEventListener('keyup', handleGuestChange);
+            treEmInput.addEventListener('blur', handleGuestChange);
+            treEmInput.addEventListener('mouseup', handleGuestChange);
+            treEmInput.addEventListener('touchend', handleGuestChange);
+            treEmInput.addEventListener('propertychange', handleGuestChange);
+        }
+        
+        // Polling để đảm bảo bắt được mọi thay đổi (fallback method)
+        let lastNguoiLon = parseInt(nguoiLonInput?.value) || 0;
+        let lastTreEm = parseInt(treEmInput?.value) || 0;
+        
+        // Polling với interval ngắn hơn để phản ứng nhanh hơn
+        setInterval(function() {
+            if (nguoiLonInput && treEmInput) {
+                const currentNguoiLon = parseInt(nguoiLonInput.value) || 0;
+                const currentTreEm = parseInt(treEmInput.value) || 0;
+                
+                // Nếu có thay đổi
+                if (currentNguoiLon !== lastNguoiLon || currentTreEm !== lastTreEm) {
+                    console.log('Số khách thay đổi:', currentNguoiLon, '+', currentTreEm, '=', currentNguoiLon + currentTreEm);
+                    lastNguoiLon = currentNguoiLon;
+                    lastTreEm = currentTreEm;
+                    handleGuestChange();
+                }
+            }
+        }, 100); // Kiểm tra mỗi 100ms để phản ứng nhanh hơn
 
         // Submit form handler
         if (bookingForm) {
@@ -436,7 +623,32 @@
             });
         }
 
-        // Init
-        renderBookingCart();
+        // Init - Đảm bảo render lại sau khi tất cả đã load
+        function initializeCart() {
+            // Đảm bảo lấy giá trị mới nhất từ input
+            const nguoiLon = parseInt(document.querySelector('input[name="nguoi_lon"]')?.value) || 0;
+            const treEm = parseInt(document.querySelector('input[name="tre_em"]')?.value) || 0;
+            console.log('Khởi tạo giỏ hàng - Số khách:', nguoiLon, '+', treEm, '=', nguoiLon + treEm);
+            
+            // Cập nhật combo về đúng số khách
+            const hasChanged = autoUpdateComboQuantity();
+            // Render lại giỏ hàng
+            renderBookingCart();
+        }
+        
+        // Gọi ngay lập tức
+        initializeCart();
+        
+        // Gọi lại sau khi DOM đã sẵn sàng
+        setTimeout(initializeCart, 100);
+        
+        // Gọi lại sau khi window load xong (đảm bảo tất cả input đã có giá trị)
+        if (document.readyState === 'loading') {
+            window.addEventListener('load', function() {
+                setTimeout(initializeCart, 200);
+            });
+        } else {
+            setTimeout(initializeCart, 200);
+        }
     });
 </script>

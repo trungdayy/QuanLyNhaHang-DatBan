@@ -168,14 +168,17 @@
 
                                     {{-- Vòng lặp hiển thị ảnh cũ --}}
                                     @forelse ($san_pham->thuVienAnh as $anh)
-                                    <div class="position-relative border p-1" id="anh_cu_{{ $anh->id }}">
-                                        <img src="{{ asset($anh->duong_dan_anh) }}" style="width: 80px; height: 80px; object-fit: cover;" class="img-thumbnail">
+                                    <div class="position-relative border p-1 rounded" id="anh_cu_{{ $anh->id }}" style="display: inline-block; margin: 5px;">
+                                        <img src="{{ asset($anh->duong_dan_anh) }}" style="width: 80px; height: 80px; object-fit: cover; display: block;" class="img-thumbnail rounded">
 
                                         {{-- Nút xóa ảnh cũ --}}
                                         <button type="button"
-                                            class="btn-close position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger p-2"
-                                            aria-label="Close"
-                                            onclick="removeCurrentImage({{ $anh->id }})">
+                                            class="btn btn-sm btn-danger position-absolute rounded-circle"
+                                            style="width: 24px; height: 24px; top: -8px; right: -8px; z-index: 1000; padding: 0; line-height: 24px; cursor: pointer; pointer-events: auto;"
+                                            aria-label="Xóa ảnh"
+                                            onclick="removeCurrentImage({{ $anh->id }}); return false;"
+                                            title="Xóa ảnh">
+                                            <i class="fa fa-times" style="font-size: 11px; line-height: 24px;"></i>
                                         </button>
                                     </div>
                                     @empty
@@ -208,7 +211,7 @@
 </main>
 @endsection
 
-@push('scripts')
+@section('script')
 <script>
     // Mảng lưu ID của các ảnh bị đánh dấu xóa (Được định nghĩa ở phạm vi toàn cục)
     let anhXoaIds = [];
@@ -252,32 +255,48 @@
         }
     }
 
-    // Hàm đánh dấu xóa ảnh cũ
-    function removeCurrentImage(anhId) {
-        // 1. Ẩn ảnh cũ khỏi giao diện
+    // Hàm đánh dấu xóa ảnh cũ - Đảm bảo ở global scope
+    window.removeCurrentImage = function(anhId) {
+        console.log('removeCurrentImage được gọi với ID:', anhId);
+        
+        // Xác nhận trước khi xóa
+        if (!confirm('Bạn có chắc chắn muốn xóa ảnh này?')) {
+            return false;
+        }
+
+        // 1. Ẩn ảnh cũ khỏi giao diện với hiệu ứng fade
         const elementToRemove = document.getElementById(`anh_cu_${anhId}`);
         if (elementToRemove) {
-            elementToRemove.remove();
+            elementToRemove.style.transition = 'opacity 0.3s';
+            elementToRemove.style.opacity = '0';
+            setTimeout(() => {
+                elementToRemove.remove();
+                
+                // 4. Cập nhật trạng thái hiển thị
+                const galleryCurrent = document.getElementById('gallery_current');
+                if (galleryCurrent) {
+                    const remainingImages = galleryCurrent.querySelectorAll('.position-relative');
+                    if (remainingImages.length === 0) {
+                        galleryCurrent.innerHTML = '<span class="text-muted small">Chưa có ảnh phụ nào.</span>';
+                    }
+                }
+            }, 300);
         }
 
-        // 2. Thêm ID vào mảng xóa
-        anhXoaIds.push(anhId);
+        // 2. Thêm ID vào mảng xóa (nếu chưa có)
+        if (!anhXoaIds.includes(anhId)) {
+            anhXoaIds.push(anhId);
+        }
 
         // 3. Cập nhật input ẩn để gửi dữ liệu về Controller
-        document.getElementById('anh_xoa').value = anhXoaIds.join(',');
-
-        // 4. Cập nhật trạng thái hiển thị
-        const galleryCurrent = document.getElementById('gallery_current');
-        if (galleryCurrent) {
-            setTimeout(() => {
-                if (galleryCurrent.querySelectorAll('.position-relative').length === 0) {
-                    galleryCurrent.innerHTML = '<span class="text-muted small">Chưa có ảnh phụ nào.</span>';
-                }
-            }, 10);
+        const anhXoaInput = document.getElementById('anh_xoa');
+        if (anhXoaInput) {
+            anhXoaInput.value = anhXoaIds.join(',');
+            console.log('Đã cập nhật anh_xoa:', anhXoaInput.value);
         }
-
-        alert('Ảnh sẽ được xóa khỏi cơ sở dữ liệu khi bạn bấm "Cập nhật"');
-    }
+        
+        return false;
+    };
 
     // Khởi tạo preview cho ảnh chính với ID mới
     document.addEventListener('DOMContentLoaded', () => {
@@ -312,4 +331,4 @@
         }
     });
 </script>
-@endpush
+@endsection
