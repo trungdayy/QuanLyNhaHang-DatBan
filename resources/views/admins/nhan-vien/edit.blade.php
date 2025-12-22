@@ -50,26 +50,30 @@
 
         <div class="form-group">
           <label>Vai trò</label>
-          <select name="vai_tro" class="form-control" disabled>
+          <select name="vai_tro" class="form-control" {{ auth()->check() && auth()->user()->id === $nhanVien->id ? 'disabled' : '' }}>
             <option value="quan_ly" {{ old('vai_tro', $nhanVien->vai_tro) == 'quan_ly' ? 'selected' : '' }}>Quản lý</option>
             <option value="phuc_vu" {{ old('vai_tro', $nhanVien->vai_tro) == 'phuc_vu' ? 'selected' : '' }}>Phục vụ</option>
             <option value="bep" {{ old('vai_tro', $nhanVien->vai_tro) == 'bep' ? 'selected' : '' }}>Bếp</option>
             <option value="le_tan" {{ old('vai_tro', $nhanVien->vai_tro) == 'le_tan' ? 'selected' : '' }}>Lễ tân</option>
           </select>
-          <input type="hidden" name="vai_tro" value="{{ $nhanVien->vai_tro }}">
-          <small class="text-muted">Vai trò không thể thay đổi</small>
+          @if(auth()->check() && auth()->user()->id === $nhanVien->id)
+            <input type="hidden" name="vai_tro" value="{{ $nhanVien->vai_tro }}">
+            <small class="text-muted">Bạn không thể thay đổi vai trò của chính mình.</small>
+          @endif
           @error('vai_tro') <small class="text-danger">{{ $message }}</small> @enderror
         </div>
 
         <div class="form-group">
           <label>Trạng thái</label>
-          <select name="trang_thai" class="form-control" disabled>
+          <select name="trang_thai" class="form-control" {{ auth()->check() && auth()->user()->id === $nhanVien->id ? 'disabled' : '' }}>
             <option value="1" {{ old('trang_thai', $nhanVien->trang_thai) == 1 ? 'selected' : '' }}>Đang làm</option>
             <option value="0" {{ old('trang_thai', $nhanVien->trang_thai) == 0 ? 'selected' : '' }}>Nghỉ</option>
             <option value="2" {{ old('trang_thai', $nhanVien->trang_thai) == 2 ? 'selected' : '' }}>Khóa</option>
           </select>
-          <input type="hidden" name="trang_thai" value="{{ $nhanVien->trang_thai }}">
-          <small class="text-muted">Trạng thái không thể thay đổi. Sử dụng nút tắt/mở trong danh sách để thay đổi trạng thái.</small>
+          @if(auth()->check() && auth()->user()->id === $nhanVien->id)
+            <input type="hidden" name="trang_thai" value="{{ $nhanVien->trang_thai }}">
+            <small class="text-muted">Bạn không thể thay đổi trạng thái của chính mình.</small>
+          @endif
           @error('trang_thai') <small class="text-danger">{{ $message }}</small> @enderror
         </div>
 
