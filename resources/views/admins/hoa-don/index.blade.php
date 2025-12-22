@@ -110,7 +110,10 @@
                     </td>
 
                     <td>
-                        @if($hd->phuong_thuc_tt == 'tien_mat')
+                        @if($hd->trang_thai == 'da_thanh_toan' && ($hd->phuong_thuc_tt == 'chua_thanh_toan' || !$hd->phuong_thuc_tt))
+                            {{-- Chỉ hiển thị "Đã thanh toán" khi đã thanh toán nhưng không biết phương thức (thanh toán sau) --}}
+                            <span class="badge bg-success" data-bs-toggle="tooltip" title="Đã thanh toán (không xác định phương thức)">Đã thanh toán</span>
+                        @elseif($hd->phuong_thuc_tt == 'tien_mat')
                             <span class="badge bg-primary" data-bs-toggle="tooltip" title="Thanh toán tiền mặt">Tiền mặt</span>
                         @elseif($hd->phuong_thuc_tt == 'chuyen_khoan')
                             <span class="badge bg-secondary" data-bs-toggle="tooltip" title="Thanh toán QR / Chuyển khoản">Chuyển khoản</span>
@@ -118,10 +121,10 @@
                             <span class="badge bg-info" data-bs-toggle="tooltip" title="Thanh toán bằng thẻ ATM">Thẻ ATM</span>
                         @elseif($hd->phuong_thuc_tt == 'vnpay')
                             <span class="badge bg-warning" data-bs-toggle="tooltip" title="Thanh toán qua VNPay">VNPay</span>
-                        @elseif($hd->phuong_thuc_tt == 'chua_thanh_toan' || !$hd->phuong_thuc_tt)
-                            <span class="badge bg-dark" data-bs-toggle="tooltip" title="Chưa thanh toán">Chưa thanh toán</span>
+                        @elseif($hd->phuong_thuc_tt == 'payos')
+                            <span class="badge bg-info" data-bs-toggle="tooltip" title="Thanh toán qua PayOS">PayOS</span>
                         @else
-                            <span class="badge bg-dark" data-bs-toggle="tooltip" title="{{ $hd->phuong_thuc_tt }}">{{ $hd->phuong_thuc_tt }}</span>
+                            <span class="badge bg-dark" data-bs-toggle="tooltip" title="Chưa thanh toán">Chưa thanh toán</span>
                         @endif
                     </td>
 

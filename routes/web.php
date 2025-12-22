@@ -257,6 +257,10 @@ Route::middleware(['auth', 'role:le_tan'])->prefix('nhanVien')->name('nhanVien.'
         // 3. Hóa đơn & In
         Route::get('/hoa-don/{hoaDonId}', 'hienThiHoaDon')->name('hien-thi-hoa-don');
         Route::get('/hoa-don/{hoaDonId}/in', 'inHoaDon')->name('in-hoa-don');
+        
+        // 6. Danh sách hóa đơn chưa thanh toán
+        Route::get('/hoa-don-chua-thanh-toan', 'danhSachHoaDonChuaThanhToan')->name('danh-sach-chua-thanh-toan');
+        Route::post('/hoa-don/{hoaDonId}/xac-nhan-thanh-toan', 'xacNhanDaThanhToan')->name('xac-nhan-thanh-toan');
 
         // 4. Thanh toán VNPAY
         Route::post('/vnpay-payment/{banId}', 'vnpayPayment')->name('vnpay.payment');

@@ -211,7 +211,12 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <p><strong>Phương thức thanh toán:</strong>
-                                            @if($chiTiet->phuong_thuc_tt == 'tien_mat') Tiền mặt
+                                            @php
+                                                $phuongThucTT = $chiTiet->phuong_thuc_tt ?? null;
+                                            @endphp
+                                            @if($hoaDon->trang_thai == 'da_thanh_toan' && ($phuongThucTT == 'chua_thanh_toan' || !$phuongThucTT))
+                                                Đã thanh toán
+                                            @elseif($chiTiet->phuong_thuc_tt == 'tien_mat') Tiền mặt
                                             @elseif($chiTiet->phuong_thuc_tt == 'chuyen_khoan') Chuyển khoản
                                             @elseif($chiTiet->phuong_thuc_tt == 'the_ATM') Thẻ ATM
                                             @elseif($chiTiet->phuong_thuc_tt == 'vnpay') VNPay

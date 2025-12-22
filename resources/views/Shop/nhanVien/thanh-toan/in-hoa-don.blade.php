@@ -314,9 +314,21 @@
             <button onclick="window.print()" class="btn btn-primary btn-lg">
                 <i class="bi bi-printer me-2"></i>In hóa đơn
             </button>
-            <a href="javascript:window.close()" class="btn btn-secondary btn-lg ms-2">
-                <i class="bi bi-x-circle me-2"></i>Đóng
-            </a>
+            @php
+                // Kiểm tra xem có phải hóa đơn thanh toán sau không
+                $chiTiet = $hoaDon->chiTietHoaDon;
+                $phuongThucTT = $chiTiet ? ($chiTiet->phuong_thuc_tt ?? null) : ($hoaDon->phuong_thuc_tt ?? null);
+                $laThanhToanSau = $hoaDon->trang_thai == 'da_thanh_toan' && ($phuongThucTT == 'chua_thanh_toan' || !$phuongThucTT);
+            @endphp
+            @if($laThanhToanSau)
+                <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-secondary btn-lg ms-2">
+                    <i class="bi bi-x-circle me-2"></i>Đóng
+                </a>
+            @else
+                <a href="javascript:window.close()" class="btn btn-secondary btn-lg ms-2">
+                    <i class="bi bi-x-circle me-2"></i>Đóng
+                </a>
+            @endif
         </div>
 
         {{-- Header hóa đơn --}}
@@ -394,40 +406,28 @@
                     <td>
                         <strong>
                             @php
+                                // Chỉ hiển thị "Đã thanh toán" khi đã thanh toán nhưng không biết phương thức (thanh toán sau)
                                 $chiTiet = $hoaDon->chiTietHoaDon;
-                                // Ưu tiên lấy từ chi_tiet_hoa_don, sau đó từ hoa_don
                                 $phuongThucTT = $chiTiet ? ($chiTiet->phuong_thuc_tt ?? null) : ($hoaDon->phuong_thuc_tt ?? null);
                                 
-                                // Nếu có tien_khach_dua hoặc phuong_thuc_tt khác 'chua_thanh_toan' thì đã thanh toán
-                                $daThanhToan = false;
-                                if($chiTiet) {
-                                    if($chiTiet->tien_khach_dua && $chiTiet->tien_khach_dua > 0) {
-                                        $daThanhToan = true;
-                                    } elseif($phuongThucTT && $phuongThucTT != 'chua_thanh_toan') {
-                                        $daThanhToan = true;
-                                    }
-                                } elseif($hoaDon->trang_thai == 'da_thanh_toan') {
-                                    $daThanhToan = true;
-                                }
-                                
-                                // Nếu chưa thanh toán hoặc phuong_thuc_tt là 'chua_thanh_toan' hoặc null
-                                if(!$daThanhToan || !$phuongThucTT || $phuongThucTT == 'chua_thanh_toan') {
-                                    $phuongThucTT = 'chua_thanh_toan';
+                                if($hoaDon->trang_thai == 'da_thanh_toan' && ($phuongThucTT == 'chua_thanh_toan' || !$phuongThucTT)) {
+                                    // Đã thanh toán sau (không xác định phương thức)
+                                    $hienThi = 'Đã thanh toán';
+                                } elseif($phuongThucTT == 'tien_mat') {
+                                    $hienThi = 'Tiền mặt';
+                                } elseif($phuongThucTT == 'chuyen_khoan') {
+                                    $hienThi = 'Chuyển khoản';
+                                } elseif($phuongThucTT == 'the_ATM') {
+                                    $hienThi = 'Thẻ ATM';
+                                } elseif($phuongThucTT == 'vnpay') {
+                                    $hienThi = 'VNPay';
+                                } elseif($phuongThucTT == 'payos') {
+                                    $hienThi = 'PayOS';
+                                } else {
+                                    $hienThi = 'Chưa thanh toán';
                                 }
                             @endphp
-                            @if($phuongThucTT == 'chua_thanh_toan')
-                                Chưa thanh toán
-                            @elseif($phuongThucTT == 'tien_mat')
-                                Tiền mặt
-                            @elseif($phuongThucTT == 'chuyen_khoan')
-                                Chuyển khoản
-                            @elseif($phuongThucTT == 'the_ATM')
-                                Thẻ ATM
-                            @elseif($phuongThucTT == 'vnpay')
-                                VNPay
-                            @else
-                                {{ $phuongThucTT }}
-                            @endif
+                            {{ $hienThi }}
                         </strong>
                     </td>
                     <td></td>
