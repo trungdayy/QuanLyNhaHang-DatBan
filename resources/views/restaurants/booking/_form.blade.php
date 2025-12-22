@@ -1,5 +1,5 @@
 {{-- ============================================================= --}}
-{{-- 1. CSS TÙY CHỈNH --}}
+{{-- 1. CSS TÙY CHỈNH (FULL) --}}
 {{-- ============================================================= --}}
 <style>
     /* Form Styles */
@@ -78,7 +78,7 @@
 </style>
 
 {{-- ============================================================= --}}
-{{-- 2. HTML FORM (ĐÃ SỬA: SELECT GIỜ) --}}
+{{-- 2. HTML FORM (ĐÃ SỬA: CA SÁNG TỪ 7H) --}}
 {{-- ============================================================= --}}
 <form action="{{ $action }}" method="POST" id="bookingForm" class="booking-form-container p-2">
     @csrf
@@ -129,9 +129,10 @@
         <div class="col-md-4">
             <div class="form-floating">
                 <select name="ca_dat" class="form-select" id="bookingShiftSelect" required>
+                    {{-- ĐÃ SỬA LABEL HIỂN THỊ --}}
                     <option value="trua"
                         {{ (old('ca_dat') == 'trua' || (isset($datBan) && \Carbon\Carbon::parse($datBan->gio_den)->hour < 15)) ? 'selected' : '' }}>
-                        Trưa (10:30 - 14:00)
+                        Sáng/Trưa (07:00 - 14:00)
                     </option>
                     <option value="toi"
                         {{ (old('ca_dat') == 'toi' || (isset($datBan) && \Carbon\Carbon::parse($datBan->gio_den)->hour >= 15)) ? 'selected' : '' }}>
@@ -241,7 +242,7 @@
 </form>
 
 {{-- ============================================================= --}}
-{{-- 3. JAVASCRIPT LOGIC (ĐÃ CẬP NHẬT LOGIC GIỜ) --}}
+{{-- 3. JAVASCRIPT LOGIC (ĐÃ SỬA: CA SÁNG START TỪ 7H) --}}
 {{-- ============================================================= --}}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -259,7 +260,7 @@
         const formatMoney = (amount) => parseInt(amount).toLocaleString('vi-VN') + ' đ';
 
         // ---------------------------------------------------------
-        // 1. LOGIC XỬ LÝ CA & GIỜ (ĐÃ SỬA LẠI CHẶT CHẼ)
+        // 1. LOGIC XỬ LÝ CA & GIỜ (ĐÃ SỬA START TỪ 7H)
         // ---------------------------------------------------------
         const dateInput = document.getElementById('bookingDate');
         const shiftSelect = document.getElementById('bookingShiftSelect'); // Select Ca
@@ -268,7 +269,7 @@
         // Cấu hình khung giờ cho từng ca (Đơn vị: Giờ)
         // start: Giờ bắt đầu, end: Giờ kết thúc, minStart: Phút bắt đầu của giờ đầu tiên
         const SHIFT_CONFIG = {
-            'trua': { start: 10, end: 14, minStart: 30 }, // 10:30 -> 14:00
+            'trua': { start: 7, end: 14, minStart: 0 }, // SỬA: 07:00 -> 14:00
             'toi':  { start: 17, end: 22, minStart: 0 }   // 17:00 -> 22:00
         };
 
@@ -305,10 +306,10 @@
                 // Trong mỗi giờ, chạy 2 mốc: 00 và 30
                 for (let m = 0; m < 60; m += 30) {
                     
-                    // -- LOGIC LỌC GIỜ THEO CA --
+                    // -- LOGIC LỌC GIỜ THEO CA (ĐÃ CẬP NHẬT) --
                     
-                    // Ca Trưa: Bắt đầu từ 10:30 (Bỏ qua 10:00)
-                    if (selectedShift === 'trua' && h === 10 && m < 30) continue;
+                    // Ca Sáng/Trưa: Nếu giờ là giờ bắt đầu (7h) thì kiểm tra minStart
+                    if (selectedShift === 'trua' && h === config.start && m < config.minStart) continue;
                     
                     // Ca Trưa: Kết thúc lúc 14:00 (Bỏ qua 14:30)
                     if (selectedShift === 'trua' && h === 14 && m > 0) continue;
@@ -362,7 +363,7 @@
                 generateTimeSlots();
             });
 
-            // Khi đổi Ca -> Tính lại giờ (QUAN TRỌNG: Sửa lỗi hình ảnh bạn gửi)
+            // Khi đổi Ca -> Tính lại giờ
             shiftSelect.addEventListener('change', function() {
                 timeSelect.setAttribute('data-selected', ''); // Reset chọn
                 generateTimeSlots();
@@ -374,11 +375,8 @@
 
 
         // ---------------------------------------------------------
-        // 2. CÁC PHẦN CÒN LẠI (GIỎ HÀNG, FORM SUBMIT...) - GIỮ NGUYÊN
+        // 2. CÁC PHẦN CÒN LẠI (GIỎ HÀNG, FORM SUBMIT...)
         // ---------------------------------------------------------
-        
-        // ... (Giữ nguyên phần logic giỏ hàng ở các câu trả lời trước) ...
-        // Để code gọn, tôi chỉ paste lại phần render giỏ hàng cơ bản để code chạy được
         
         @if (isset($datBan) && $datBan->chiTietDatBan && $datBan->chiTietDatBan->count() > 0)
             try {

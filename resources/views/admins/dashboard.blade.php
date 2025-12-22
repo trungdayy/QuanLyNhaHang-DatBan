@@ -496,7 +496,7 @@
     <div class="text-center" style="font-size: 13px">
         <p><b>
             © <script>document.write(new Date().getFullYear())</script>
-            Phần mềm quản lý bán hàng | Dev By PH55158 / Trường
+            Phần mềm quản lý bán hàng | WD-02 Buffet ocean
         </b></p>
     </div>
 
