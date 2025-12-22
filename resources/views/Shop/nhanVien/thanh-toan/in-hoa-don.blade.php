@@ -314,9 +314,21 @@
             <button onclick="window.print()" class="btn btn-primary btn-lg">
                 <i class="bi bi-printer me-2"></i>In hóa đơn
             </button>
-            <a href="javascript:window.close()" class="btn btn-secondary btn-lg ms-2">
-                <i class="bi bi-x-circle me-2"></i>Đóng
-            </a>
+            @php
+                // Kiểm tra xem có phải hóa đơn thanh toán sau không
+                $chiTiet = $hoaDon->chiTietHoaDon;
+                $phuongThucTT = $chiTiet ? ($chiTiet->phuong_thuc_tt ?? null) : ($hoaDon->phuong_thuc_tt ?? null);
+                $laThanhToanSau = $hoaDon->trang_thai == 'da_thanh_toan' && ($phuongThucTT == 'chua_thanh_toan' || !$phuongThucTT);
+            @endphp
+            @if($laThanhToanSau)
+                <a href="{{ route('nhanVien.ban-an.index') }}" class="btn btn-secondary btn-lg ms-2">
+                    <i class="bi bi-x-circle me-2"></i>Đóng
+                </a>
+            @else
+                <a href="javascript:window.close()" class="btn btn-secondary btn-lg ms-2">
+                    <i class="bi bi-x-circle me-2"></i>Đóng
+                </a>
+            @endif
         </div>
 
         {{-- Header hóa đơn --}}
