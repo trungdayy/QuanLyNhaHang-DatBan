@@ -21,12 +21,9 @@
         body { font-family: 'Nunito', sans-serif; background-color: #f2f4f8; color: var(--text-main); padding-bottom: 100px; overflow-x: hidden; }
         .app-content { min-height: 100vh; padding: 20px 10px; display: flex; justify-content: center; }
         
-        /* --- [MỚI] ẨN HEADER/FOOTER TRÊN MOBILE --- */
+        /* --- ẨN HEADER/FOOTER TRÊN MOBILE --- */
         @media (max-width: 768px) {
-            /* Ẩn các thẻ layout mặc định của web để tối ưu không gian */
-            header, footer, .banner, .top-bar, .site-header, .site-footer { 
-                display: none !important; 
-            }
+            header, footer, .banner, .top-bar, .site-header, .site-footer { display: none !important; }
             body { padding-top: 0 !important; }
             .app-content { padding-top: 0 !important; padding-bottom: 80px; }
         }
@@ -47,47 +44,17 @@
         .section-label { font-weight: 700; font-size: 1.1rem; color: var(--dark); margin-bottom: 15px; display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
         .section-label i { color: var(--primary); }
         
-        /* --- [ĐÃ CẢI TIẾN] CUSTOMER INFO CARD (Khi có đặt bàn) --- */
+        /* --- CUSTOMER INFO CARD --- */
         .customer-info-card {
-            background: #fff8e8; /* Nền màu vàng nhạt */
-            border: 1px solid var(--primary); /* Viền màu Primary để nổi bật */
-            padding: 15px; 
-            border-radius: 12px; 
-            margin-bottom: 25px; 
+            background: #fff8e8; border: 1px solid var(--primary); padding: 15px; 
+            border-radius: 12px; margin-bottom: 25px; 
             box-shadow: 0 4px 10px -5px rgba(254, 161, 22, 0.2); 
-            display: flex; 
-            flex-direction: column;
+            display: flex; flex-direction: column;
         }
-
-        .customer-info-card strong {
-            color: var(--dark); 
-            font-weight: 800;
-            margin-right: 5px;
-        }
-
-        .customer-info-card .main-details {
-            font-size: 1.05rem; 
-            color: var(--text-main);
-            margin-bottom: 5px;
-            display: flex;
-            flex-wrap: wrap; 
-            gap: 15px; /* Tăng khoảng cách giữa 2 thông tin */
-        }
-
-        .customer-info-card small {
-            display: block;
-            color: #64748b; 
-            font-weight: 600;
-            margin-top: 5px;
-            padding-top: 5px;
-            border-top: 1px dashed #fcd34d; 
-        }
-
-        .customer-info-card .highlight-count {
-            font-weight: 800;
-            color: var(--primary-dark);
-            font-size: 1.1rem;
-        }
+        .customer-info-card strong { color: var(--dark); font-weight: 800; margin-right: 5px; }
+        .customer-info-card .main-details { font-size: 1.05rem; color: var(--text-main); margin-bottom: 5px; display: flex; flex-wrap: wrap; gap: 15px; }
+        .customer-info-card small { display: block; color: #64748b; font-weight: 600; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #fcd34d; }
+        .customer-info-card .highlight-count { font-weight: 800; color: var(--primary-dark); font-size: 1.1rem; }
 
         /* Input & Error */
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
@@ -97,50 +64,32 @@
         .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
         .alert-error ul { margin: 5px 0 0 20px; padding: 0; }
 
-        /* --- 2. CATEGORY NAV (NÚT CHỌN GIÁ - STYLE MỚI) --- */
+        /* --- CATEGORY NAV --- */
         .category-nav-wrapper { background: #ffffff; padding: 10px 0 20px 0; margin: 0 -10px; position: sticky; top: 0; z-index: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
         .category-nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 0 15px; transition: all 0.5s ease; min-height: 60px; }
 
         .cat-item {
-            /* Trạng thái chưa chọn: Lớn, rõ ràng */
-            padding: 20px 15px; 
-            font-weight: 800; font-size: 1.2rem; 
+            padding: 20px 15px; font-weight: 800; font-size: 1.2rem; 
             text-align: center; color: #475569; background-color: #fff; 
-            border: 2px solid #e2e8f0; border-radius: 16px; 
-            cursor: pointer; 
-            flex: 1 0 calc(33.333% - 15px); /* Chia cột đều */
-            display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
-            max-width: 500px; 
-            position: relative;
+            border: 2px solid #e2e8f0; border-radius: 16px; cursor: pointer; 
+            flex: 1 0 calc(33.333% - 15px); display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            max-width: 500px; position: relative;
         }
         .cat-item:not(.active):hover { border-color: var(--primary); color: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(254, 161, 22, 0.15); z-index: 2; }
         
-        /* Trạng thái Active: Nhỏ lại, thu vào giữa (Compact) */
         .cat-item.active { 
-            background-color: var(--primary); 
-            color: var(--white); 
-            border-color: var(--primary); 
-            box-shadow: 0 8px 20px rgba(254, 161, 22, 0.4); 
-            /* Thu nhỏ kích thước */
-            flex: 0 0 auto; 
-            width: auto; 
-            min-width: 180px; 
-            padding: 10px 25px; 
-            border-radius: 50px; 
-            font-size: 1.1rem; 
-            margin-top: 5px;
-            z-index: 10; 
+            background-color: var(--primary); color: var(--white); border-color: var(--primary); 
+            box-shadow: 0 8px 20px rgba(254, 161, 22, 0.4); flex: 0 0 auto; width: auto; 
+            min-width: 180px; padding: 10px 25px; border-radius: 50px; font-size: 1.1rem; 
+            margin-top: 5px; z-index: 10; 
         }
-
         .cat-item.active.is-removable:hover { background-color: #ef4444; border-color: #ef4444; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); }
         .cat-item .reset-icon { margin-left: 10px; display: inline-block; font-size: 1rem; }
         .cat-item.hidden-filter { display: none; }
-        
         @media (max-width: 768px) { .cat-item { flex: 0 0 calc(50% - 10px); padding: 15px 5px; font-size: 1.1rem; } }
 
-        /* --- 3. [UPDATED] COMBO CARD & ANIMATION --- */
+        /* --- COMBO CARD --- */
         .combo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; position: relative; }
         @media (min-width: 768px) { .combo-grid { grid-template-columns: repeat(3, 1fr); } }
         
@@ -148,31 +97,19 @@
             background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; position: relative; 
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); cursor: pointer; 
             
-            /* Trạng thái mặc định: Ẩn và nằm thấp xuống sâu hơn (60px) */
+            /* SỬA: Để display block và opacity 0 để chờ animation */
+            display: block; 
             opacity: 0; 
-            transform: translateY(60px) scale(0.95); 
-            transition: transform 0.2s, box-shadow 0.2s; /* Chỉ transition hover */
-            display: none; /* Ẩn khỏi layout */
+            
+            transform: translateY(60px) scale(0.95); transition: transform 0.2s, box-shadow 0.2s; 
         }
         
-        .combo-card.show-anim {
-            display: block;
-            /* Animation custom: Rõ ràng, dứt khoát */
-            animation: fadeInUpCustom 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-
-        @keyframes fadeInUpCustom {
-            0% {
-                opacity: 0;
-                transform: translateY(60px) scale(0.95);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .combo-card.hidden { display: none; } 
+        .combo-card.show-anim { display: block; animation: fadeInUpCustom 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @keyframes fadeInUpCustom { 0% { opacity: 0; transform: translateY(60px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        /* SỬA: Thêm !important để hidden ghi đè display block */
+        .combo-card.hidden { display: none !important; } 
+        
         .combo-card:active { transform: scale(0.98); }
         .combo-card.selected { border: 2px solid var(--primary); background: #fffbf2; }
         .card-qty-badge { position: absolute; top: 8px; right: 8px; background: var(--primary); color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 0.85rem; font-weight: 800; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 5; }
@@ -221,21 +158,16 @@
         .flying-img { position: fixed; z-index: 9999; width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); pointer-events: none; transition: all 0.8s cubic-bezier(0.2, 1, 0.2, 1); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .detail-img-wrap { position: relative; height: 180px; }
         
-        /* CUSTOM WARNING MODAL */
-        .custom-warning-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); z-index: 4000; display: none; align-items: center; justify-content: center; }
-        .custom-warning-modal.show { display: flex; }
-        .warning-box { background: var(--white); border-radius: 16px; width: 85%; max-width: 380px; text-align: center; padding: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        /* WARNING & CONFIRM MODAL */
+        .custom-warning-modal, .custom-confirm-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); z-index: 4000; display: none; align-items: center; justify-content: center; }
+        .custom-warning-modal.show, .custom-confirm-modal.show { display: flex; }
+        .warning-box, .confirm-box { background: var(--white); border-radius: 16px; width: 85%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .confirm-box { width: 90%; max-width: 350px; overflow: hidden; animation: zoomIn 0.2s ease-out; }
+        .warning-box { text-align: center; padding: 25px; }
         .warning-icon { font-size: 3rem; color: #f59e0b; margin-bottom: 15px; }
         .warning-title { font-size: 1.2rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
         .warning-content { font-size: 0.95rem; color: #64748b; line-height: 1.5; margin-bottom: 20px; }
         .warning-btn { background: var(--primary); color: white; border: none; padding: 10px 30px; border-radius: 30px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 5px 15px rgba(254, 161, 22, 0.3); transition: all 0.2s; }
-        .warning-btn:active { transform: scale(0.95); }
-        @keyframes bounceIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        /* Custom Confirm Modal */
-        .custom-confirm-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 3000; display: none; align-items: center; justify-content: center; }
-        .custom-confirm-modal.show { display: flex; }
-        .confirm-box { background: var(--white); border-radius: var(--radius); width: 90%; max-width: 350px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); overflow: hidden; animation: zoomIn 0.2s ease-out; }
         .confirm-header { background: var(--dark); color: var(--white); padding: 15px 20px; font-size: 1.1rem; font-weight: 700; border-bottom: 3px solid var(--primary); display: flex; align-items: center; gap: 10px; }
         .confirm-body { padding: 25px 20px; color: var(--text-main); font-size: 0.95rem; line-height: 1.4; }
         .confirm-body strong { color: var(--primary-dark); }
@@ -243,10 +175,9 @@
         .confirm-btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.1s; }
         .confirm-btn-ok { background: #10b981; color: var(--white); }
         .confirm-btn-ok:hover { background: #059669; }
-        .confirm-btn-ok:active { transform: scale(0.98); }
         .confirm-btn-cancel { background: #f1f5f9; color: var(--dark); border: 1px solid #cbd5e1; }
         .confirm-btn-cancel:hover { background: #e2e8f0; }
-        .confirm-btn-cancel:active { transform: scale(0.98); }
+        @keyframes bounceIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 
     <main class="app-content">
@@ -277,7 +208,7 @@
 
                     <div class="section-label"><i class="fa-solid fa-user-group"></i> Thông Tin Khách Hàng</div>
                     @if($datBan && $datBan->ten_khach && $datBan->ten_khach !== 'Khách Vãng Lai')
-                        {{-- BLOCK ĐÃ CẢI TIẾN --}}
+                        {{-- BLOCK THÔNG TIN KHÁCH (NẾU CÓ ĐẶT BÀN) --}}
                         <div class="customer-info-card">
                             <div class="main-details">
                                 <div><strong>Khách:</strong> {{ $datBan->ten_khach }}</div>
@@ -295,7 +226,7 @@
                             <input type="hidden" name="tre_em" id="input-tre-em" value="{{ $datBan->tre_em }}">
                         </div>
                     @else
-                        {{-- BLOCK NHẬP TAY --}}
+                        {{-- BLOCK NHẬP TAY (NẾU KHÁCH VÃNG LAI) --}}
                         <div class="input-grid">
                             <div class="form-group">
                                 <label>Họ Tên (*)</label>
@@ -321,6 +252,11 @@
                     {{-- NAV CHỌN GIÁ --}}
                     <div class="category-nav-wrapper" id="categoryNavWrapper">
                         <div class="category-nav" id="categoryScrollBox">
+                            {{-- NÚT TẤT CẢ (MỚI) --}}
+                            <div class="cat-item active" data-filter-category="all" onclick="filterCombos('all', this)">
+                                Tất cả <span class="reset-icon"></span>
+                            </div>
+
                             @php $categories = $combos->pluck('loai_combo')->unique(); @endphp
                             @foreach ($categories as $cat)
                                 <div class="cat-item" data-filter-category="{{ $cat }}" onclick="filterCombos('{{ $cat }}', this)">
@@ -330,12 +266,15 @@
                         </div>
                     </div>
 
+                    {{-- COMBO GRID --}}
                     <div class="combo-grid">
                         @foreach ($combos as $index => $combo)
-                            <div class="combo-card hidden" 
+                            {{-- SỬA Ở ĐÂY: Xóa class 'hidden', thêm 'show-anim', thêm style animation-delay --}}
+                            <div class="combo-card show-anim" 
                                 id="card-{{ $combo->id }}" 
                                 data-category="{{ $combo->loai_combo ?? 'khac' }}" 
-                                onclick="openDetailModal({{ $combo->id }})">
+                                onclick="openDetailModal({{ $combo->id }})"
+                                style="animation-delay: {{ $index * 0.05 }}s">
                                 
                                 <div class="card-qty-badge" id="badge-{{ $combo->id }}">0</div>
                                 
@@ -443,10 +382,12 @@
 
 <script>
     // Global state
-    let selectedCategory = null; 
+    let currentCartCategory = null; // Loại combo ĐANG CÓ trong giỏ (Logic)
+    let currentFilter = 'all';      // Loại đang hiển thị trên màn hình (UI)
     let combosInCart = {}; 
     let confirmResolver = null; 
 
+    // Dữ liệu từ Laravel
     const comboData = {
         @foreach($combos as $combo)
             {{ $combo->id }}: {
@@ -483,44 +424,32 @@
     function closeCustomConfirm() { if(confirmResolver) resolveCustomConfirm(false); }
 
     // --- LOGIC CHÍNH ---
-    async function handleActivePillClick(category, element) {
-        const currentTotal = Object.values(combosInCart).reduce((sum, qty) => sum + qty, 0);
-        if (currentTotal > 0) {
-            const message = `Bạn có chắc chắn muốn xóa toàn bộ <strong>Combo ${category}</strong> đã chọn và trở về màn hình lựa chọn mức giá không?`;
-            const result = await customConfirm(message);
-            if (result) resetAllCombosInCart();
-            return;
-        }
-        resetAllCombosInCart();
-    }
-    
+
+    // Reset toàn bộ giỏ hàng
     function resetAllCombosInCart() {
-        for (let id in comboData) updateSystem(id, 0);
-        unlockMenu(); 
-        selectedCategory = null;
+        for (let id in comboData) {
+            if (combosInCart[id] && combosInCart[id] > 0) {
+                updateSystem(id, 0);
+            }
+        }
+        currentCartCategory = null;
+        updatePillState();
     }
 
-    // --- [UPDATE] Logic Filter & Animation Staggering ---
-    function filterCombos(category, element) {
-        // 1. Nếu click vào nút đang active -> hỏi reset
-        if (element.classList.contains('active')) {
-              handleActivePillClick(category, element);
-              return;
-        }
+    // --- [LOGIC MỚI] FILTER HIỂN THỊ ---
+    async function filterCombos(category, element) {
+        // Nếu đang active mà bấm lại -> không làm gì cả
+        if (element.classList.contains('active')) return;
 
-        // 2. Nếu đã chọn category khác mà chưa xóa -> cảnh báo
-        if (selectedCategory && category !== selectedCategory) {
-            showCustomWarning(`Đã chọn Combo ${selectedCategory}. Vui lòng xóa hết Combo đã chọn để chuyển sang mức giá khác.`);
-            return;
-        }
-
-        // 3. UI Buttons: Compact nút active
+        // Cập nhật UI nút bấm
         document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
-        selectedCategory = category;
-        lockMenu(selectedCategory);
+        currentFilter = category;
+        
+        // Cập nhật UI thùng rác
+        updatePillState();
 
-        // 4. Animation Staggering (Hiệu ứng dây chuyền)
+        // Animation Staggering
         const allCards = document.querySelectorAll('.combo-card');
         
         // Reset hết về ẩn
@@ -532,82 +461,59 @@
         });
 
         // Lọc card cần hiện
-        const activeCards = Array.from(allCards).filter(card => card.getAttribute('data-category') === category);
+        const activeCards = category === 'all' 
+            ? Array.from(allCards)
+            : Array.from(allCards).filter(card => card.getAttribute('data-category') === category);
         
         // Gán delay theo thứ tự
         activeCards.forEach((card, index) => {
             card.classList.remove('hidden');
-            // Trigger reflow để restart animation
-            void card.offsetWidth; 
-            
-            // Mỗi card trễ nhau 0.1s -> tạo hiệu ứng sóng
-            const delay = index * 0.1; 
+            void card.offsetWidth; // Trigger reflow
+            const delay = index * 0.05; // Nhanh hơn chút
             card.style.animationDelay = `${delay}s`; 
             card.classList.add('show-anim');
         });
     }
     
-    function lockMenu(category) {
-        document.querySelectorAll('.cat-item').forEach(el => {
-            const filterCat = el.getAttribute('data-filter-category');
-            if (filterCat !== category) el.classList.add('hidden-filter');
-            else el.classList.remove('hidden-filter');
-        });
-    }
-
-    function unlockMenu() {
-        // Reset Nav
-        document.querySelectorAll('.cat-item').forEach(el => {
-            el.classList.remove('hidden-filter');
-            el.classList.remove('active');
-            el.classList.remove('is-removable');
-            const resetIcon = el.querySelector('.reset-icon');
-            if(resetIcon) resetIcon.innerHTML = '';
-        });
-
-        // Reset Cards
-        document.querySelectorAll('.combo-card').forEach(card => {
-            card.classList.add('hidden');
-            card.classList.remove('show-anim');
-            card.style.animationDelay = '0s';
-        });
-    }
-
+    // Cập nhật icon thùng rác trên nút filter active
     function updatePillState() {
+        document.querySelectorAll('.cat-item').forEach(el => {
+             el.classList.remove('is-removable');
+             const icon = el.querySelector('.reset-icon');
+             if(icon) icon.innerHTML = '';
+        });
+
         let currentTotal = 0;
         for (let id in combosInCart) currentTotal += combosInCart[id];
-        const activePill = document.querySelector('.cat-item.active');
-        if (activePill) {
-            const resetIcon = activePill.querySelector('.reset-icon');
-            if (currentTotal > 0) {
-                activePill.classList.add('is-removable');
-                if(resetIcon) resetIcon.innerHTML = `<i class="fa-solid fa-trash-can"></i>`;
-            } else {
-                activePill.classList.remove('is-removable');
-                if(resetIcon) resetIcon.innerHTML = ``;
+
+        if (currentTotal > 0 && currentCartCategory) {
+            const targetPill = document.querySelector(`.cat-item[data-filter-category="${currentCartCategory}"]`);
+            if (targetPill) {
+                const resetIcon = targetPill.querySelector('.reset-icon');
+                targetPill.classList.add('is-removable');
+                if(resetIcon) resetIcon.innerHTML = ` <i class="fa-solid fa-trash-can" onclick="confirmReset(event)"></i>`;
             }
         }
+    }
+
+    async function confirmReset(e) {
+        e.stopPropagation(); 
+        const result = await customConfirm(`Xóa toàn bộ các món đang chọn?`);
+        if(result) resetAllCombosInCart();
     }
 
     function toggleInputs(id, qty) {
         const inputQty = document.getElementById(`input-qty-${id}`);
         const inputId = document.getElementById(`input-id-${id}`);
-        inputQty.value = qty;
-        const enable = qty > 0;
-        inputQty.disabled = !enable;
-        inputId.disabled = !enable;
-    }
-
-    function resetOtherCategories(currentComboId) {
-        const currentCategory = comboData[currentComboId].category;
-        for (let id in comboData) {
-            if (comboData[id].category !== currentCategory) {
-                const input = document.getElementById(`input-qty-${id}`);
-                if ((parseInt(input.value) || 0) > 0) updateSystem(id, 0); 
-            }
+        if(inputQty) {
+            inputQty.value = qty;
+            const enable = qty > 0;
+            inputQty.disabled = !enable;
+            inputId.disabled = !enable;
         }
     }
     
+    // Animation bay vào giỏ
     function flyToCart(sourceBtn, imgUrl) {
         const cart = document.getElementById('mini-cart');
         if(cart.style.display === 'none') return; 
@@ -633,22 +539,26 @@
         }, 800);
     }
 
-    function quickAdd(id, event) {
+    // --- LOGIC THÊM NHANH ---
+    async function quickAdd(id, event) {
         if(event) event.stopPropagation();
-        const input = document.getElementById(`input-qty-${id}`);
-        const currentQty = parseInt(input.value) || 0;
-        if (currentQty === 0) { 
-            resetOtherCategories(id);
-            selectedCategory = comboData[id].category;
-            const filterEl = document.querySelector(`.cat-item[data-filter-category="${selectedCategory}"]`);
-            if(filterEl) {
-                if(!filterEl.classList.contains('active')) {
-                   filterCombos(selectedCategory, filterEl);
-                }
-            }
+        
+        const itemCat = comboData[id].category;
+
+        if (currentCartCategory && currentCartCategory !== itemCat) {
+            const confirm = await customConfirm(
+                `Giỏ hàng đang có món của nhóm <strong>${currentCartCategory}</strong>.<br>Bạn chọn món nhóm <strong>${itemCat}</strong> sẽ xóa giỏ hàng cũ.`
+            );
+            if (!confirm) return;
+            resetAllCombosInCart();
         }
+
+        currentCartCategory = itemCat;
+        const input = document.getElementById(`input-qty-${id}`);
+        const currentQty = parseInt(input ? input.value : 0) || 0;
         let qty = currentQty + 1;
         updateSystem(id, qty);
+
         const btn = document.getElementById(`btn-add-${id}`);
         const img = comboData[id].img;
         flyToCart(btn, img);
@@ -657,30 +567,37 @@
     function updateSystem(id, qty) {
         toggleInputs(id, qty);
         combosInCart[id] = qty;
+        
         const badge = document.getElementById(`badge-${id}`);
         const card = document.getElementById(`card-${id}`);
         const btn = document.getElementById(`btn-add-${id}`);
-        badge.innerText = qty;
+        
+        if(badge) badge.innerText = qty;
+        
         if(qty > 0) {
-            badge.classList.add('show');
-            card.classList.add('selected');
-            btn.innerHTML = `<i class="fa-solid fa-check"></i> Đã chọn (${qty})`;
-            btn.classList.add('added');
+            if(badge) badge.classList.add('show');
+            if(card) card.classList.add('selected');
+            if(btn) {
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Đã chọn (${qty})`;
+                btn.classList.add('added');
+            }
         } else {
-            badge.classList.remove('show');
-            card.classList.remove('selected');
-            btn.innerHTML = `<i class="fa-solid fa-plus"></i> Chọn`;
-            btn.classList.remove('added');
+            if(badge) badge.classList.remove('show');
+            if(card) card.classList.remove('selected');
+            if(btn) {
+                btn.innerHTML = `<i class="fa-solid fa-plus"></i> Chọn`;
+                btn.classList.remove('added');
+            }
         }
         recalcTotal();
-        updatePillState();
+        updatePillState(); 
     }
 
     function recalcTotal() {
         let total = 0;
         let count = 0;
         for(let id in comboData) {
-            const val = parseInt(document.getElementById(`input-qty-${id}`).value) || 0;
+            const val = combosInCart[id] || 0;
             if(val > 0) {
                 total += val * comboData[id].price;
                 count += val;
@@ -702,6 +619,8 @@
             submitBtn.disabled = true; 
             submitBtn.innerHTML = 'Vui lòng chọn combo';
             closeCartModal();
+            currentCartCategory = null;
+            updatePillState();
         }
     }
 
@@ -715,7 +634,7 @@
         list.innerHTML = '';
         let hasItem = false;
         for(let id in comboData) {
-            const qty = parseInt(document.getElementById(`input-qty-${id}`).value) || 0;
+            const qty = combosInCart[id] || 0;
             if(qty > 0) {
                 hasItem = true;
                 const item = comboData[id];
@@ -735,27 +654,11 @@
     }
 
     function updateCartItem(id, change) {
-        const input = document.getElementById(`input-qty-${id}`);
-        let qty = parseInt(input.value) || 0;
-        if (change > 0 && qty === 0) {
-            resetOtherCategories(id);
-            selectedCategory = comboData[id].category;
-            const filterEl = document.querySelector(`.cat-item[data-filter-category="${selectedCategory}"]`);
-            if(filterEl) {
-                if(!filterEl.classList.contains('active')) {
-                   filterCombos(selectedCategory, filterEl);
-                }
-            }
-        }
+        let qty = combosInCart[id] || 0;
         qty += change;
         if(qty < 0) qty = 0;
         updateSystem(id, qty);
         renderCartList();
-        let currentTotal = 0;
-        for (let k in combosInCart) currentTotal += combosInCart[k];
-        if (currentTotal === 0 && selectedCategory) {
-            resetAllCombosInCart();
-        }
     }
 
     function validateForm() {
@@ -789,9 +692,9 @@
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        // Khởi tạo trạng thái ban đầu: Ẩn tất cả combo
-        document.querySelectorAll('.combo-card').forEach(card => card.classList.add('hidden'));
-        document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
+        // KHÔNG GỌI filterCombos Ở ĐÂY NỮA
+        // Vì HTML đã render sẵn (display:block) rồi
+        currentFilter = 'all';
     });
 </script>
 @endsection
