@@ -86,7 +86,7 @@
                 </tbody>
             </table>
             <div class="mt-3">
-                <a href="{{ route('admin.chi-tiet-order.index') }}" class="btn btn-secondary">
+                <a href="{{ route('admin.order-mon.index') }}" class="btn btn-secondary">
                     ← Quay lại danh sách order
                 </a>
             </div>

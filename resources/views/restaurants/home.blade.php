@@ -526,7 +526,7 @@
     </div>
 </div>
 
-<div class="container-xxl py-5 wow fadeInUp" data-wow-delay="0.1s">
+<div class="container-xxl py-5 wow fadeInUp" data-wow-delay="0.1~s">
     <div class="container">
         <div class="text-center">
             <h5 class="section-title ff-secondary text-center text-primary fw-normal">Phản hồi</h5>
