@@ -4,3 +4,4 @@ php artisan vendor:publish --provider="SimpleSoftwareIO\QrCode\QrCodeServiceProv
 Install with Composer: PayOs
 composer require payos/payos
 composer require guzzlehttp/guzzle
+Update by Trung
