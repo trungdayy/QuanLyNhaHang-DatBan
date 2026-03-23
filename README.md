@@ -4,4 +4,4 @@ php artisan vendor:publish --provider="SimpleSoftwareIO\QrCode\QrCodeServiceProv
 Install with Composer: PayOs
 composer require payos/payos
 composer require guzzlehttp/guzzle
-Update by Trung
+Trang bảng điều khiển setup: http://127.0.0.1:8000/tong
